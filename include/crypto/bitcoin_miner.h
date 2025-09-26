@@ -9,6 +9,9 @@
 #include <QCryptographicHash>
 #include <memory>
 
+namespace BioMining {
+namespace Crypto {
+
 /**
  * @brief Moteur de mining Bitcoin hybride bio-informatique
  * 
@@ -71,21 +74,21 @@ signals:
     void progressUpdate(int attempts, double progress);
 
 public slots:
-    void onBioSignalsReceived(const QVector<double> &signals);
+    void onBioSignalsReceived(const QVector<double> &signalData);
 
 private slots:
     void onMiningThreadFinished();
 
 private:
     // Fonctions de hachage et nonce generation
-    uint64_t generateNonceFromSignals(const QVector<double> &signals, int seed = 0);
+    uint64_t generateNonceFromSignals(const QVector<double> &signalData, int seed = 0);
     QString computeHash(const QString &data);
     bool checkDifficulty(const QString &hash, uint64_t difficulty);
     
     // Optimisations biologiques
-    double calculateSignalEntropy(const QVector<double> &signals);
-    QVector<int> selectBestElectrodes(const QVector<double> &signals, int count);
-    double calculateSignalCorrelation(const QVector<double> &signals);
+    double calculateSignalEntropy(const QVector<double> &signalData);
+    QVector<int> selectBestElectrodes(const QVector<double> &signalData, int count);
+    double calculateSignalCorrelation(const QVector<double> &signalData);
     
     // Gestion des threads
     class MiningWorker;
@@ -125,7 +128,7 @@ class BitcoinMiner::MiningWorker : public QObject
 public:
     MiningWorker(BitcoinMiner *parent = nullptr);
     void setConfig(const MiningConfig &config);
-    void setBioSignals(const QVector<double> &signals);
+    void setBioSignals(const QVector<double> &signalData);
 
 public slots:
     void startMining();
@@ -141,5 +144,8 @@ private:
     QVector<double> m_bioSignals;
     bool m_shouldStop;
 };
+
+} // namespace Crypto
+} // namespace BioMining
 
 #endif // BITCOIN_MINER_H

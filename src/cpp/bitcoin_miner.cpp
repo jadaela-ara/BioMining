@@ -8,6 +8,9 @@
 #include <algorithm>
 #include <numeric>
 
+namespace BioMining {
+namespace Crypto {
+
 BitcoinMiner::BitcoinMiner(QObject *parent)
     : QObject(parent)
     , m_workerThread(std::make_unique<QThread>())
@@ -268,10 +271,10 @@ void BitcoinMiner::optimizeFromResult(const MiningResult &result)
     }
 }
 
-void BitcoinMiner::onBioSignalsReceived(const QVector<double> &signals)
+void BitcoinMiner::onBioSignalsReceived(const QVector<double> &signalData)
 {
     if (m_continuousMode && !m_isMining) {
-        startMiningAsync(signals);
+        startMiningAsync(signalData);
     }
 }
 
@@ -280,9 +283,9 @@ void BitcoinMiner::onMiningThreadFinished()
     m_isMining = false;
 }
 
-uint64_t BitcoinMiner::generateNonceFromSignals(const QVector<double> &signals, int seed)
+uint64_t BitcoinMiner::generateNonceFromSignals(const QVector<double> &signalData, int seed)
 {
-    if (signals.isEmpty()) {
+    if (signalData.isEmpty()) {
         return QRandomGenerator::global()->generate64();
     }
     
@@ -290,10 +293,10 @@ uint64_t BitcoinMiner::generateNonceFromSignals(const QVector<double> &signals, 
     double signalSum = 0.0;
     double weightedSum = 0.0;
     
-    for (int i = 0; i < signals.size(); ++i) {
+    for (int i = 0; i < signalData.size(); ++i) {
         double weight = 1.0 + sin(i * 0.1) * m_config.signalWeight;
-        signalSum += signals[i];
-        weightedSum += signals[i] * weight;
+        signalSum += signalData[i];
+        weightedSum += signalData[i] * weight;
     }
     
     // Incorporation de l'entropie temporelle
@@ -329,9 +332,9 @@ bool BitcoinMiner::checkDifficulty(const QString &hash, uint64_t difficulty)
     return hashValue < difficulty;
 }
 
-double BitcoinMiner::calculateSignalEntropy(const QVector<double> &signals)
+double BitcoinMiner::calculateSignalEntropy(const QVector<double> &signalData)
 {
-    if (signals.isEmpty()) {
+    if (signalData.isEmpty()) {
         return 0.0;
     }
     
@@ -340,22 +343,22 @@ double BitcoinMiner::calculateSignalEntropy(const QVector<double> &signals)
     
     // Quantification des signaux en bins
     const int numBins = 256;
-    double minVal = *std::min_element(signals.begin(), signals.end());
-    double maxVal = *std::max_element(signals.begin(), signals.end());
+    double minVal = *std::min_element(signalData.begin(), signalData.end());
+    double maxVal = *std::max_element(signalData.begin(), signalData.end());
     double range = maxVal - minVal;
     
     if (range == 0.0) {
         return 0.0;
     }
     
-    for (double signal : signals) {
+    for (double signal : signalData) {
         int bin = static_cast<int>((signal - minVal) / range * (numBins - 1));
         histogram[bin]++;
     }
     
     // Calcul de l'entropie
     double entropy = 0.0;
-    int totalSamples = signals.size();
+    int totalSamples = signalData.size();
     
     for (auto it = histogram.begin(); it != histogram.end(); ++it) {
         double probability = static_cast<double>(it.value()) / totalSamples;
@@ -367,12 +370,12 @@ double BitcoinMiner::calculateSignalEntropy(const QVector<double> &signals)
     return entropy;
 }
 
-QVector<int> BitcoinMiner::selectBestElectrodes(const QVector<double> &signals, int count)
+QVector<int> BitcoinMiner::selectBestElectrodes(const QVector<double> &signalData, int count)
 {
     QVector<QPair<double, int>> signalPairs;
     
-    for (int i = 0; i < signals.size(); ++i) {
-        signalPairs.append({abs(signals[i]), i});
+    for (int i = 0; i < signalData.size(); ++i) {
+        signalPairs.append({abs(signalData[i]), i});
     }
     
     // Tri par amplitude décroissante
@@ -389,9 +392,9 @@ QVector<int> BitcoinMiner::selectBestElectrodes(const QVector<double> &signals, 
     return bestElectrodes;
 }
 
-double BitcoinMiner::calculateSignalCorrelation(const QVector<double> &signals)
+double BitcoinMiner::calculateSignalCorrelation(const QVector<double> &signalData)
 {
-    if (signals.size() < 2) {
+    if (signalData.size() < 2) {
         return 0.0;
     }
     
@@ -399,9 +402,9 @@ double BitcoinMiner::calculateSignalCorrelation(const QVector<double> &signals)
     double totalCorrelation = 0.0;
     int pairCount = 0;
     
-    for (int i = 0; i < signals.size() - 1; ++i) {
-        for (int j = i + 1; j < signals.size(); ++j) {
-            totalCorrelation += signals[i] * signals[j];
+    for (int i = 0; i < signalData.size() - 1; ++i) {
+        for (int j = i + 1; j < signalData.size(); ++j) {
+            totalCorrelation += signalData[i] * signalData[j];
             pairCount++;
         }
     }
@@ -420,9 +423,9 @@ void BitcoinMiner::MiningWorker::setConfig(const MiningConfig &config)
     m_config = config;
 }
 
-void BitcoinMiner::MiningWorker::setBioSignals(const QVector<double> &signals)
+void BitcoinMiner::MiningWorker::setBioSignals(const QVector<double> &signalData)
 {
-    m_bioSignals = signals;
+    m_bioSignals = signalData;
 }
 
 void BitcoinMiner::MiningWorker::startMining()
@@ -445,5 +448,8 @@ void BitcoinMiner::MiningWorker::stopMining()
 {
     m_shouldStop = true;
 }
+
+} // namespace Crypto
+} // namespace BioMining
 
 #include "bitcoin_miner.moc"

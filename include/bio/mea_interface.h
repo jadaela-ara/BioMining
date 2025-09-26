@@ -8,6 +8,10 @@
 #include <QTimer>
 #include <memory>
 
+// Namespace pour éviter les conflits
+namespace BioMining {
+namespace Bio {
+
 /**
  * @brief Interface pour la gestion des Multi-Electrode Arrays (MEA)
  * 
@@ -58,7 +62,7 @@ public:
     QString getLastError() const;
     
 signals:
-    void signalsAcquired(const QVector<double> &signals);
+    void signalsAcquired(const QVector<double> &signalData);
     void stimulationComplete();
     void statusChanged(ConnectionStatus status);
     void errorOccurred(const QString &error);
@@ -70,7 +74,7 @@ private slots:
 private:
     void setStatus(ConnectionStatus status);
     void setError(const QString &error);
-    bool validateSignals(const QVector<double> &signals) const;
+    bool validateSignals(const QVector<double> &signalData) const;
 
     ConnectionStatus m_status;
     double m_calibrationFactor;
@@ -94,5 +98,8 @@ private:
     static constexpr double MIN_CALIBRATION = 0.1;
     static constexpr double MAX_CALIBRATION = 5.0;
 };
+
+} // namespace Bio
+} // namespace BioMining
 
 #endif // MEA_INTERFACE_H

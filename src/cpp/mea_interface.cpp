@@ -8,6 +8,9 @@
 #include <QJsonObject>
 #include <cmath>
 
+namespace BioMining {
+namespace Bio {
+
 MEAInterface::MEAInterface(QObject *parent)
     : QObject(parent)
     , m_status(ConnectionStatus::Disconnected)
@@ -84,7 +87,7 @@ QVector<double> MEAInterface::readSignals()
         return QVector<double>();
     }
     
-    QVector<double> signals(ELECTRODE_COUNT);
+    QVector<double> signalData(ELECTRODE_COUNT);
     
     // Simulation de lecture de signaux biologiques
     // Génération de signaux avec caractéristiques biologiques réalistes
@@ -97,21 +100,21 @@ QVector<double> MEAInterface::readSignals()
         double bioComponent = 0.1 * std::sin(2 * M_PI * 10.0 * time + i * 0.1); // ~10Hz neural activity
         
         // Application de la calibration
-        signals[i] = (baseSignal + bioComponent) * m_calibrationFactor;
+        signalData[i] = (baseSignal + bioComponent) * m_calibrationFactor;
         
         // Simulation d'artéfacts occasionnels
         if (QRandomGenerator::global()->generateDouble() < 0.05) {
-            signals[i] *= 2.0; // Spike occasionnel
+            signalData[i] *= 2.0; // Spike occasionnel
         }
     }
     
-    if (!validateSignals(signals)) {
+    if (!validateSignals(signalData)) {
         setError("Signaux invalides détectés");
         return QVector<double>();
     }
     
-    m_lastSignals = signals;
-    return signals;
+    m_lastSignals = signalData;
+    return signalData;
 }
 
 QVector<double> MEAInterface::readSignalsAsync()
@@ -327,9 +330,9 @@ void MEAInterface::onAcquisitionTimer()
         return;
     }
     
-    QVector<double> signals = readSignals();
-    if (!signals.isEmpty()) {
-        emit signalsAcquired(signals);
+    QVector<double> signalData = readSignals();
+    if (!signalData.isEmpty()) {
+        emit signalsAcquired(signalData);
     }
 }
 
@@ -348,14 +351,14 @@ void MEAInterface::setError(const QString &error)
     emit errorOccurred(error);
 }
 
-bool MEAInterface::validateSignals(const QVector<double> &signals) const
+bool MEAInterface::validateSignals(const QVector<double> &signalData) const
 {
-    if (signals.size() != ELECTRODE_COUNT) {
+    if (signalData.size() != ELECTRODE_COUNT) {
         return false;
     }
     
     // Vérification de valeurs aberrantes
-    for (double signal : signals) {
+    for (double signal : signalData) {
         if (std::isnan(signal) || std::isinf(signal) || std::abs(signal) > 100.0) {
             return false;
         }
@@ -363,3 +366,6 @@ bool MEAInterface::validateSignals(const QVector<double> &signals) const
     
     return true;
 }
+
+} // namespace Bio
+} // namespace BioMining

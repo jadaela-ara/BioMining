@@ -56,16 +56,27 @@ include_directories(
 set(LIB_SOURCES
     src/cpp/mea_interface.cpp
     src/cpp/bitcoin_miner.cpp
+    src/cpp/biological_network.cpp
+    src/cpp/hybrid_bitcoin_miner.cpp
 )
 
 # Headers
 set(LIB_HEADERS
     include/bio/mea_interface.h
     include/crypto/bitcoin_miner.h
+    include/bio/biological_network.h
+    include/crypto/hybrid_bitcoin_miner.h
 )
 
 # Création de la bibliothèque statique
 add_library(biomining_core STATIC ${LIB_SOURCES} ${LIB_HEADERS})
+
+# Activation du MOC pour la bibliothèque
+set_target_properties(biomining_core PROPERTIES
+    AUTOMOC ON
+    AUTORCC ON
+    AUTOUIC ON
+)
 
 target_link_libraries(biomining_core
     Qt6::Core
@@ -167,6 +178,8 @@ if(BUILD_TESTS)
     set(TEST_SOURCES
         tests/test_mea_interface.cpp
         tests/test_bitcoin_miner.cpp
+        tests/test_biological_network.cpp
+        tests/test_hybrid_bitcoin_miner.cpp
         tests/test_integration.cpp
     )
     
