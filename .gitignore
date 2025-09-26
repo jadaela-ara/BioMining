@@ -1,0 +1,76 @@
+# Build artifacts
+build/
+*.o
+*.so
+*.a
+*.dll
+*.exe
+
+# IDE files
+*.user
+*.pro.user*
+*.autosave
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Qt generated files
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.moc
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+
+# Runtime files
+*.log
+*.tmp
+*.pid
+*.lock
+
+# Configuration files with sensitive data
+config/production.json
+config/secrets.json
+*.key
+*.pem
+
+# Data directories
+data/
+logs/
+results/
+backups/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Calibration files (peuvent contenir des données sensibles)
+*.calib
+calibration/*.json
+
+# Documentation générée
+docs/html/
+docs/latex/
+docs/man/
+
+# Packages
+*.deb
+*.rpm
+*.dmg
+*.msi
+*.tar.gz
+
+# Test artifacts
+Testing/
+test_results/
+coverage/
+
+# Docker
+.dockerignore
+docker-compose.override.yml

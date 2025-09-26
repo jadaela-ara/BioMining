@@ -1,0 +1,226 @@
+version: '3.8'
+
+# Docker Compose pour la Plateforme Bio-Mining Bitcoin
+# Supporte différents environnements : développement, test, production
+
+services:
+  # === SERVICE PRINCIPAL ===
+  biomining-platform:
+    build:
+      context: .
+      target: runtime
+    image: biomining-platform:latest
+    container_name: biomining-main
+    restart: unless-stopped
+    
+    # Volumes pour persistance des données
+    volumes:
+      - biomining-config:/data/biomining/config
+      - biomining-logs:/data/biomining logs
+      - biomining-results:/data/biomining/results
+      - ./config:/data/biomining/config:ro  # Configuration host (lecture seule)
+    
+    # Variables d'environnement
+    environment:
+      - BIOMINING_LOG_LEVEL=INFO
+      - BIOMINING_CONFIG_PATH=/data/biomining/config/production.json
+      - BIOMINING_WORKER_THREADS=4
+    
+    # Commande par défaut (mode démon)
+    command: ["--automatic", "--iterations", "0", "--config", "/data/biomining/config/production.json"]
+    
+    # Ressources limitées pour éviter la surcharge
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'  
+          memory: 512M
+    
+    # Santé du conteneur
+    healthcheck:
+      test: ["CMD", "biomining_cli", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # === SERVICE DE DÉVELOPPEMENT ===
+  biomining-dev:
+    build:
+      context: .
+      target: development
+    image: biomining-platform:dev
+    container_name: biomining-dev
+    
+    volumes:
+      - .:/home/builder/biomining:cached  # Code source en live reload
+      - biomining-dev-build:/home/builder/biomining/build
+    
+    environment:
+      - CMAKE_BUILD_TYPE=Debug
+      - BIOMINING_LOG_LEVEL=DEBUG
+    
+    # Garde le conteneur en vie pour développement interactif
+    stdin_open: true
+    tty: true
+    
+    profiles:
+      - development
+
+  # === SERVICE DE TESTS ===
+  biomining-tests:
+    build:
+      context: .
+      target: testing
+    image: biomining-platform:test
+    container_name: biomining-tests
+    
+    volumes:
+      - biomining-test-results:/data/biomining/results
+    
+    environment:
+      - BIOMINING_LOG_LEVEL=DEBUG
+      - CTEST_OUTPUT_ON_FAILURE=1
+    
+    # Exécution automatique des tests
+    command: ["--verbose"]
+    
+    profiles:
+      - testing
+
+  # === SERVICE DE BENCHMARK ===
+  biomining-benchmark:
+    build:
+      context: .
+      target: runtime
+    image: biomining-platform:latest
+    container_name: biomining-benchmark
+    
+    volumes:
+      - biomining-benchmark-results:/data/biomining/results
+    
+    environment:
+      - BIOMINING_LOG_LEVEL=INFO
+    
+    # Configuration pour benchmark intensif
+    command: ["--benchmark", "--iterations", "50", "--output", "/data/biomining/results/benchmark.json"]
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 2G
+    
+    profiles:
+      - benchmark
+
+  # === SERVICE DE MONITORING ===
+  biomining-monitor:
+    build:
+      context: .
+      target: runtime
+    image: biomining-platform:latest
+    container_name: biomining-monitor
+    
+    volumes:
+      - biomining-logs:/data/biomining/logs:ro
+      - biomining-results:/data/biomining/results:ro
+    
+    # Mode monitoring seulement
+    command: ["--monitor", "--config", "/data/biomining/config/monitor.json"]
+    
+    # Port pour interface web de monitoring (futur)
+    ports:
+      - "8080:8080"
+    
+    profiles:
+      - monitoring
+
+  # === SERVICE SIMULATEUR MEA (pour tests sans hardware) ===
+  mea-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.mea-simulator  # Dockerfile séparé pour simulateur
+    image: mea-simulator:latest
+    container_name: mea-sim
+    
+    # Interface réseau pour communication avec biomining
+    networks:
+      - biomining-net
+    
+    environment:
+      - MEA_ELECTRODES=60
+      - MEA_FREQUENCY=100
+      - MEA_SIMULATION_MODE=neural_activity
+    
+    profiles:
+      - simulation
+
+# === RÉSEAUX ===
+networks:
+  biomining-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# === VOLUMES PERSISTANTS ===
+volumes:
+  # Données de production
+  biomining-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/config
+  
+  biomining-logs:
+    driver: local
+    driver_opts:
+      type: none 
+      o: bind
+      device: ./data/logs
+  
+  biomining-results:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind  
+      device: ./data/results
+
+  # Données de développement
+  biomining-dev-build:
+    driver: local
+
+  # Données de test
+  biomining-test-results:
+    driver: local
+    
+  # Données de benchmark
+  biomining-benchmark-results:
+    driver: local
+
+# === CONFIGURATIONS AVANCÉES ===
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "100m"
+    max-file: "3"
+
+# Application du logging à tous les services
+services:
+  biomining-platform:
+    logging: *default-logging
+  biomining-dev:
+    logging: *default-logging  
+  biomining-tests:
+    logging: *default-logging
+  biomining-benchmark:
+    logging: *default-logging
+  biomining-monitor:
+    logging: *default-logging
+  mea-simulator:
+    logging: *default-logging
