@@ -231,10 +231,10 @@ private:
     
     // Méthodes ajoutées pour corriger les erreurs de compilation supplémentaires
     bool initialize();
-    bool configureNetwork(const NetworkConfig& config);
-    bool initializeLearning(const NetworkConfig& config);
+    bool configureNetwork(const NetworkConfig &config);
+    bool initializeLearning(const NetworkConfig &config);
     void setAdaptiveLearning(bool enable);
-    void updateInputSignals(const QVector<double>& signals);
+    void updateInputSignals(const QVector<double> &signals);
     void updateWeights();
     QVector<double> getOutputValues();
     
