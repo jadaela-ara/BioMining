@@ -1180,4 +1180,14 @@ bool BiologicalNetwork::importNetworkState(const QJsonObject &state)
     }
 }
 
+
+double BiologicalNetwork::getNetworkComplexity() const
+{
+    // Placeholder implementation for network complexity
+    // In a real scenario, this would involve a more complex calculation
+    // based on the network's structure, number of active neurons, 
+    // and diversity of synaptic weights.
+    return 0.5; 
+}
+
 #include "biological_network.moc"
