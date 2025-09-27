@@ -105,7 +105,7 @@ void BiologicalNetwork::initializeNetwork()
     m_layers.append(inputLayer);
     
     // Couches cachées (traitement biologique)
-    for (int layer = 0; layer < m_config.hiddenLayers; ++layer) {
+    for (int layer = 0; layer < m_config.hiddenLayers.size(); ++layer) {
         NetworkLayer hiddenLayer;
         hiddenLayer.layerType = "hidden";
         
