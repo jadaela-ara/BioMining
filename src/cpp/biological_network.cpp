@@ -391,7 +391,7 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
             
             // Fonction d'activation biologique avec seuil adaptatif
             double threshold = adaptiveThreshold(neuron);
-            neuron.activation = biologicalActivation(weightedSum, adaptiveThreshold);
+            neuron.activation = biologicalActivation(weightedSum, threshold);
             
             // Fatigue neuronale
             neuron.activation *= NEURON_FATIGUE_FACTOR;

@@ -228,7 +228,7 @@ private:
     double sigmoidDerivative(double sigmoidOutput) const;
     double estimateNonceEfficiency(uint64_t nonce, uint64_t difficulty);
     void adaptNetworkThresholds();
-    double adaptiveThreshold(const Neuron& neuron);
+    // Note: adaptiveThreshold déjà déclaré ligne 161
 
 };
 
