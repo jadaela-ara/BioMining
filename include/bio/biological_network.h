@@ -130,7 +130,7 @@ public:
     bool configureNetwork(const NetworkConfig &config);
     bool initializeLearning(const NetworkConfig &config);
     void setAdaptiveLearning(bool enable);
-    void updateInputSignals(const QVector<double> &signals);
+    void updateInputSignals(const QVector<double> &currentSignals);
     void updateWeights();
     QVector<double> getOutputValues();
     void forwardPropagation(const QVector<double> &inputs);
