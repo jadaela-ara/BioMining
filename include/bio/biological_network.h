@@ -85,21 +85,8 @@ public:
         double computeTime;            // Temps de calcul
         QDateTime timestamp;           // Horodatage
     };
-    
+
 public:
-    // Méthodes rendues publiques pour accès externe
-    bool initialize();
-    bool configureNetwork(const NetworkConfig &config);
-    bool initializeLearning(const NetworkConfig &config);
-    void setAdaptiveLearning(bool enable);
-    void updateInputSignals(const QVector<double> &signals);
-    void updateWeights();
-    QVector<double> getOutputValues();
-    void forwardPropagation(const QVector<double> &inputs);
-    void backPropagation(const QVector<double> &targets);
-
-};
-
     explicit BiologicalNetwork(QObject *parent = nullptr);
     ~BiologicalNetwork();
 
@@ -137,6 +124,17 @@ public:
     QString getNetworkDiagnostic() const;
     QVector<double> getLayerActivations(int layer) const;
     double getNetworkEfficiency() const;
+
+    // Méthodes publiques pour accès externe
+    bool initialize();
+    bool configureNetwork(const NetworkConfig &config);
+    bool initializeLearning(const NetworkConfig &config);
+    void setAdaptiveLearning(bool enable);
+    void updateInputSignals(const QVector<double> &signals);
+    void updateWeights();
+    QVector<double> getOutputValues();
+    void forwardPropagation(const QVector<double> &inputs);
+    void backPropagation(const QVector<double> &targets);
 
 signals:
     void learningStateChanged(LearningState newState);
@@ -184,9 +182,7 @@ private:
     double biologicalActivation(double input, double threshold) const;
     double adaptiveThreshold(const BiologicalNeuron &neuron) const;
     
-    // Propagation des signaux
-    void forwardPropagation(const QVector<double> &inputs);
-    void backPropagation(const QVector<double> &targets);
+    // Propagation des signaux (versions privées pour usage interne)
     QVector<double> getNetworkOutput() const;
     
     // Apprentissage biologique
@@ -209,6 +205,14 @@ private:
     void storePatternMemory(const LearningData &data);
     QVector<LearningData> retrieveSimilarPatterns(const QVector<double> &currentSignals);
     double calculatePatternSimilarity(const QVector<double> &a, const QVector<double> &b);
+    
+    // Méthodes utilitaires
+    void generateTrainingData();
+    void calculateNetworkEfficiency();  
+    double calculateNetworkStability() const;
+    double sigmoidDerivative(double sigmoidOutput) const;
+    double estimateNonceEfficiency(uint64_t nonce, uint64_t difficulty);
+    void adaptNetworkThresholds();
     
     // État du réseau
     NetworkConfig m_config;
@@ -243,30 +247,9 @@ private:
     static constexpr double PATTERN_SIMILARITY_THRESHOLD = 0.8;
     static constexpr int MAX_PATTERN_MEMORY = 10000;
     static constexpr double MIN_CONNECTION_STRENGTH = 0.01;
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-private:
-    void generateTrainingData();
-    void calculateNetworkEfficiency();  
-    double calculateNetworkStability() const;
-    double sigmoidDerivative(double sigmoidOutput) const;
-    double estimateNonceEfficiency(uint64_t nonce, uint64_t difficulty);
-    void adaptNetworkThresholds();
-    
-    // Méthodes ajoutées pour corriger les erreurs de compilation supplémentaires
-    bool initialize();
-    bool configureNetwork(const NetworkConfig &config);
-    bool initializeLearning(const NetworkConfig &config);
-    void setAdaptiveLearning(bool enable);
-    void updateInputSignals(const QVector<double> &currentSignals);
-    void updateWeights();
-    QVector<double> getOutputValues();
     
     // Alias pour la compatibilité
     typedef NetworkConfig LearningConfig;
-
-    // Note: adaptiveThreshold déjà déclaré ligne 161
-
 };
 
 #endif // BIOLOGICAL_NETWORK_H
