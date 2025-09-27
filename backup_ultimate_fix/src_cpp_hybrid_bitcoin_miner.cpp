@@ -115,7 +115,7 @@ bool HybridBitcoinMiner::configureBiologicalNetwork(const BiologicalLearningPara
     BiologicalNetwork::NetworkConfig networkConfig;
     networkConfig.inputSize = 60; // 60 électrodes MEA
     networkConfig.outputSize = 32; // Pour prédiction de nonce (32 bits)
-    networkConfig.hiddenLayers = QVector<int>{128, 64, 32}; // Architecture profonde
+    networkConfig.hiddenLayers = {128, 64, 32}; // Architecture profonde
     networkConfig.learningRate = params.initialLearningRate;
     networkConfig.enablePlasticity = params.enablePlasticity;
     networkConfig.enableAdaptation = params.enableAdaptation;
@@ -143,13 +143,8 @@ bool HybridBitcoinMiner::connectToMEA(std::shared_ptr<Bio::MEAInterface> meaInte
     m_meaInterface = meaInterface;
     
     // Connexion des signaux MEA
-    connect(m_meaInterface.get(), 
-                   static_cast<void (Bio::MEAInterface::*)(const QVector<double>&)>(&Bio::MEAInterface::dataReady),
-                   this, 
-                   [this](const QVector<double>& data) {
-                       std::vector<double> stdData(data.begin(), data.end());
-                       this->onMEADataReceived(stdData);
-                   });
+    connect(m_meaInterface.get(), &Bio::MEAInterface::dataReady,
+            this, &HybridBitcoinMiner::onMEADataReceived);
     connect(m_meaInterface.get(), &Bio::MEAInterface::errorOccurred,
             this, &HybridBitcoinMiner::errorOccurred);
     
@@ -553,8 +548,7 @@ BiologicalNoncePrediction HybridBitcoinMiner::predictNonce(const QString& blockH
     
     try {
         // Acquisition des signaux MEA actuels
-        QVector<double> qMeaSignals = m_meaInterface->getCurrentElectrodeData();
-        std::vector<double> meaSignals(qMeaSignals.begin(), qMeaSignals.end());
+        std::vector<double> meaSignals = m_meaInterface->getCurrentElectrodeData();
         
         if (meaSignals.size() != 60) {
             qWarning() << "Invalid MEA signal size:" << meaSignals.size();
@@ -731,8 +725,7 @@ void HybridBitcoinMiner::onMEADataReceived(const std::vector<double>& electrodeD
     if (electrodeData.size() == 60) {
         // Mise à jour du réseau biologique avec les nouvelles données
         if (m_biologicalNetwork && m_learningState == HybridLearningState::ActiveMining) {
-            QVector<double> qElectrodeData(electrodeData.begin(), electrodeData.end());
-            m_biologicalNetwork->updateInputSignals(qElectrodeData);
+            m_biologicalNetwork->updateInputSignals(electrodeData);
         }
     } else {
         qWarning() << "Invalid electrode data size:" << electrodeData.size();
@@ -1163,8 +1156,7 @@ std::vector<double> HybridBitcoinMiner::extractNetworkFeatures()
         return {};
     }
     
-    QVector<double> qOutput = m_biologicalNetwork->getOutputValues();
-    return std::vector<double>(qOutput.begin(), qOutput.end());
+    return m_biologicalNetwork->getOutputValues();
 }
 
 double HybridBitcoinMiner::calculateBiologicalEntropy(const std::vector<double>& signalData)
