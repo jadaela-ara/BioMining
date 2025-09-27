@@ -39,12 +39,6 @@ public:
         double signalWeight;
         bool useQuantumOptimization;
         int threadCount;
-
-        double targetDifficulty = 1.0;    // Compatibilité avec HybridMiner
-        uint32_t threads = 1;             // Nombre de threads
-        bool useGPU = false;              // Utilisation GPU
-        double targetEfficiency = 0.5;    // Efficacité cible
-
     };
 
     explicit BitcoinMiner(QObject *parent = nullptr);
@@ -82,14 +76,8 @@ signals:
 public slots:
     void onBioSignalsReceived(const QVector<double> &signalData);
 
-//private slots:
+private slots:
     void onMiningThreadFinished();
-
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-    bool initialize();
-    bool setMiningParameters(const MiningConfig& config);
-    bool mineBlock(const QString& blockHeader, uint32_t& nonce, QString& blockHash);
 
 private:
     // Fonctions de hachage et nonce generation
@@ -149,12 +137,6 @@ public slots:
 signals:
     void miningComplete(const BitcoinMiner::MiningResult &result);
     void progressUpdate(int attempts, double progress);
-
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-    bool initialize();
-    bool setMiningParameters(const MiningConfig& config);
-    bool mineBlock(const QString& blockHeader, uint32_t& nonce, QString& blockHash);
 
 private:
     BitcoinMiner *m_parent;

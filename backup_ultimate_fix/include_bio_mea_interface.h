@@ -69,13 +69,8 @@ public:
     void stopAcquisition();
     QVector<double> getCurrentElectrodeData();
 
-
-    
-    // Surcharges pour compatibilité des signaux
 signals:
     void dataReady(const QVector<double>& data);
-    void dataReady(const std::vector<double>& data);  // Overload
-
 
 signals:
     void signalsAcquired(const QVector<double> &signalData);

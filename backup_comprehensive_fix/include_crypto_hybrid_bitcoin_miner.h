@@ -42,18 +42,11 @@ struct MiningConfig {
     uint32_t threads = 1; 
     bool useGPU = false;
     double targetEfficiency = 0.5;
-    double targetDifficulty = 1.0;
 };
 
 }
 namespace Bio {
-    enum class NetworkLearningState {
-        Untrained,
-        InitialLearning, 
-        Trained,
-        Retraining,
-        Optimizing
-    };
+    enum class NetworkLearningState;
 }
 }
 
@@ -98,34 +91,6 @@ struct HybridMiningMetrics {
     HybridMiningMetrics() {
         startTime = QDateTime::currentDateTime();
     }
-
-    // Constructeurs pour gérer les atomics
-    HybridMiningMetrics(const HybridMiningMetrics& other) : 
-        totalHashes(other.totalHashes.load()),
-        biologicalPredictions(other.biologicalPredictions.load()),
-        successfulPredictions(other.successfulPredictions.load()),
-        traditionalHashes(other.traditionalHashes.load()),
-        biologicalAccuracy(other.biologicalAccuracy.load()),
-        hybridHashRate(other.hybridHashRate.load()),
-        energyEfficiency(other.energyEfficiency.load()),
-        adaptationScore(other.adaptationScore.load()),
-        startTime(other.startTime) {}
-    
-    HybridMiningMetrics& operator=(const HybridMiningMetrics& other) {
-        if (this != &other) {
-            totalHashes = other.totalHashes.load();
-            biologicalPredictions = other.biologicalPredictions.load();
-            successfulPredictions = other.successfulPredictions.load();
-            traditionalHashes = other.traditionalHashes.load();
-            biologicalAccuracy = other.biologicalAccuracy.load();
-            hybridHashRate = other.hybridHashRate.load();
-            energyEfficiency = other.energyEfficiency.load();
-            adaptationScore = other.adaptationScore.load();
-            startTime = other.startTime;
-        }
-        return *this;
-    }
-
     
     void reset() {
         QMutexLocker locker(&metricsMutex);
