@@ -219,17 +219,6 @@ private:
     static constexpr double PATTERN_SIMILARITY_THRESHOLD = 0.8;
     static constexpr int MAX_PATTERN_MEMORY = 10000;
     static constexpr double MIN_CONNECTION_STRENGTH = 0.01;
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-private:
-    void generateTrainingData();
-    void calculateNetworkEfficiency();  
-    double calculateNetworkStability() const;
-    double sigmoidDerivative(double sigmoidOutput) const;
-    double estimateNonceEfficiency(uint64_t nonce, uint64_t difficulty);
-    void adaptNetworkThresholds();
-    double adaptiveThreshold(const Neuron& neuron);
-
 };
 
 #endif // BIOLOGICAL_NETWORK_H

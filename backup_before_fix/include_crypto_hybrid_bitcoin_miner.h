@@ -1,7 +1,6 @@
 #ifndef HYBRID_BITCOIN_MINER_H
 #define HYBRID_BITCOIN_MINER_H
 
-#include "bio/biological_network.h"
 #include <QObject>
 #include <QThread>
 #include <QMutex>
@@ -36,14 +35,7 @@
 // Forward declarations to avoid circular dependencies
 namespace BioMining {
 namespace Crypto {
-    
-struct MiningConfig {
-    uint64_t difficulty = 1;
-    uint32_t threads = 1; 
-    bool useGPU = false;
-    double targetEfficiency = 0.5;
-};
-
+    struct MiningConfig;
 }
 namespace Bio {
     enum class NetworkLearningState;
@@ -251,7 +243,7 @@ private:
 private:
     // Composants principaux
     std::unique_ptr<BitcoinMiner> m_traditionalMiner;
-    std::unique_ptr<BiologicalNetwork> m_biologicalNetwork;
+    std::unique_ptr<BioMining::Bio::BiologicalNetwork> m_biologicalNetwork;
     std::shared_ptr<Bio::MEAInterface> m_meaInterface;
     
     // Configuration

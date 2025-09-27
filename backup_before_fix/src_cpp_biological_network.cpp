@@ -1,4 +1,3 @@
-#include <cmath>
 #include "bio/biological_network.h"
 #include <QDebug>
 #include <QMutexLocker>
@@ -390,7 +389,7 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
             }
             
             // Fonction d'activation biologique avec seuil adaptatif
-            double threshold = adaptiveThreshold(neuron);
+            double adaptiveThreshold = adaptiveThreshold(neuron);
             neuron.activation = biologicalActivation(weightedSum, adaptiveThreshold);
             
             // Fatigue neuronale
