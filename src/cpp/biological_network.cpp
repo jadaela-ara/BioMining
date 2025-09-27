@@ -1190,5 +1190,4 @@ double BiologicalNetwork::getNetworkComplexity() const
     return 0.5; 
 }
 
-
 #include "biological_network.moc"
