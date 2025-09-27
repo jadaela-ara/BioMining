@@ -236,7 +236,7 @@ private:
     void setAdaptiveLearning(bool enable);
     void updateInputSignals(const QVector<double>& signals);
     void updateWeights();
-    std::vector<double> getOutputValues();
+    QVector<double> getOutputValues();
     
     // Alias pour la compatibilité
     typedef NetworkConfig LearningConfig;

@@ -67,10 +67,10 @@ public:
     bool connectToDevice();
     bool startAcquisition();
     void stopAcquisition();
-    std::vector<double> getCurrentElectrodeData();
+    QVector<double> getCurrentElectrodeData();
 
 signals:
-    void dataReady(const std::vector<double>& data);
+    void dataReady(const QVector<double>& data);
 
 signals:
     void signalsAcquired(const QVector<double> &signalData);
