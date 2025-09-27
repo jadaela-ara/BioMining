@@ -43,23 +43,22 @@ public:
      */
     struct NetworkConfig {
         int neuronCount = 60;           // Nombre de neurones (électrodes MEA)
-        int hiddenLayers = 3;           // Couches cachées biologiques
         double learningRate = 0.01;     // Taux d'apprentissage
         double stimulationThreshold = 0.5; // Seuil de stimulation
         double adaptationRate = 0.1;    // Vitesse d'adaptation
         int memoryDepth = 1000;        // Profondeur mémoire des patterns
         bool useReinforcementLearning = true;
-
-    int inputSize = 60;         // Nombre d'électrodes MEA
-    int outputSize = 32;        // Bits de sortie pour nonce
-    QVector<int> hiddenLayers = {128, 64, 32}; // Architecture des couches cachées
-    bool enablePlasticity = true;  // Plasticité synaptique
-    bool enableAdaptation = true;  // Adaptation dynamique
-    double momentum = 0.9;         // Facteur de momentum
-    double decayRate = 0.995;      // Taux de décroissance
-    double adaptiveThreshold = 0.1; // Seuil adaptatif
-    int maxEpochs = 10000;         // Nombre maximum d'époques
-
+        
+        // Configuration complète pour compatibilité
+        int inputSize = 60;         // Nombre d'électrodes MEA
+        int outputSize = 32;        // Bits de sortie pour nonce
+        QVector<int> hiddenLayers = QVector<int>{128, 64, 32}; // Architecture des couches cachées
+        bool enablePlasticity = true;  // Plasticité synaptique
+        bool enableAdaptation = true;  // Adaptation dynamique
+        double momentum = 0.9;         // Facteur de momentum
+        double decayRate = 0.995;      // Taux de décroissance
+        double adaptiveThreshold = 0.1; // Seuil adaptatif
+        int maxEpochs = 10000;         // Nombre maximum d'époques
     };
 
     /**
@@ -85,7 +84,9 @@ public:
         int attempts;                  // Nombre de tentatives
         double computeTime;            // Temps de calcul
         QDateTime timestamp;           // Horodatage
+    };
     
+public:
     // Méthodes rendues publiques pour accès externe
     bool initialize();
     bool configureNetwork(const NetworkConfig &config);
