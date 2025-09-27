@@ -61,17 +61,6 @@ public:
     double getSignalQuality() const;
     QString getLastError() const;
     
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-    bool isConnected() const;
-    bool connectToDevice();
-    bool startAcquisition();
-    void stopAcquisition();
-    std::vector<double> getCurrentElectrodeData();
-
-signals:
-    void dataReady(const std::vector<double>& data);
-
 signals:
     void signalsAcquired(const QVector<double> &signalData);
     void stimulationComplete();

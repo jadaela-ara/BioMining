@@ -72,7 +72,7 @@ bool HybridBitcoinMiner::initialize()
         }
         
         // Création du réseau biologique
-        m_biologicalNetwork = std::make_unique<BiologicalNetwork>();
+        m_biologicalNetwork = std::make_unique<Bio::BiologicalNetwork>();
         if (!m_biologicalNetwork->initialize()) {
             qCritical() << "Failed to initialize biological network";
             return false;
@@ -112,7 +112,7 @@ bool HybridBitcoinMiner::configureBiologicalNetwork(const BiologicalLearningPara
     m_learningParams = params;
     
     // Configuration du réseau biologique avec les paramètres MEA
-    BiologicalNetwork::NetworkConfig networkConfig;
+    Bio::NetworkConfig networkConfig;
     networkConfig.inputSize = 60; // 60 électrodes MEA
     networkConfig.outputSize = 32; // Pour prédiction de nonce (32 bits)
     networkConfig.hiddenLayers = {128, 64, 32}; // Architecture profonde
@@ -301,7 +301,7 @@ bool HybridBitcoinMiner::initializeBiologicalLearning()
     
     try {
         // Initialisation du réseau avec des paramètres d'apprentissage
-        BiologicalNetwork::NetworkConfig learningConfig;
+        Bio::LearningConfig learningConfig;
         learningConfig.learningRate = m_learningParams.initialLearningRate;
         learningConfig.momentum = m_learningParams.momentumFactor;
         learningConfig.decayRate = m_learningParams.decayRate;
@@ -1019,16 +1019,14 @@ bool HybridBitcoinMiner::trainNetworkWithPattern(const std::vector<double>& inpu
 void HybridBitcoinMiner::performForwardPropagation(const std::vector<double>& input)
 {
     if (m_biologicalNetwork) {
-        QVector<double> qInput(input.begin(), input.end());
-        m_biologicalNetwork->forwardPropagation(qInput);
+        m_biologicalNetwork->forwardPropagation(input);
     }
 }
 
 void HybridBitcoinMiner::performBackwardPropagation(const std::vector<double>& target)
 {
     if (m_biologicalNetwork) {
-        QVector<double> qTarget(target.begin(), target.end());
-        m_biologicalNetwork->backPropagation(qTarget);
+        m_biologicalNetwork->backPropagation(target);
     }
 }
 

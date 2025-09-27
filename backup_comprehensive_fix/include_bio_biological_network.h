@@ -228,19 +228,6 @@ private:
     double sigmoidDerivative(double sigmoidOutput) const;
     double estimateNonceEfficiency(uint64_t nonce, uint64_t difficulty);
     void adaptNetworkThresholds();
-    
-    // Méthodes ajoutées pour corriger les erreurs de compilation supplémentaires
-    bool initialize();
-    bool configureNetwork(const NetworkConfig& config);
-    bool initializeLearning(const NetworkConfig& config);
-    void setAdaptiveLearning(bool enable);
-    void updateInputSignals(const std::vector<double>& signals);
-    void updateWeights();
-    std::vector<double> getOutputValues();
-    
-    // Alias pour la compatibilité
-    typedef NetworkConfig LearningConfig;
-
     // Note: adaptiveThreshold déjà déclaré ligne 161
 
 };

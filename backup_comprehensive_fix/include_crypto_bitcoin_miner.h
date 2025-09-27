@@ -79,12 +79,6 @@ public slots:
 private slots:
     void onMiningThreadFinished();
 
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-    bool initialize();
-    bool setMiningParameters(const MiningConfig& config);
-    bool mineBlock(const QString& blockHeader, uint32_t& nonce, QString& blockHash);
-
 private:
     // Fonctions de hachage et nonce generation
     uint64_t generateNonceFromSignals(const QVector<double> &signalData, int seed = 0);
@@ -143,12 +137,6 @@ public slots:
 signals:
     void miningComplete(const BitcoinMiner::MiningResult &result);
     void progressUpdate(int attempts, double progress);
-
-
-    // Méthodes ajoutées pour corriger les erreurs de compilation
-    bool initialize();
-    bool setMiningParameters(const MiningConfig& config);
-    bool mineBlock(const QString& blockHeader, uint32_t& nonce, QString& blockHash);
 
 private:
     BitcoinMiner *m_parent;
