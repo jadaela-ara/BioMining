@@ -172,7 +172,11 @@ void HybridBitcoinMiner::setMiningParameters(const MiningConfig& config)
     
     m_miningConfig = config;
     if (m_traditionalMiner) {
-        m_traditionalMiner->setMiningParameters(config);
+        BioMining::Crypto::BitcoinMiner::MiningConfig traditionalConfig;
+        traditionalConfig.difficulty = config.difficulty;
+        traditionalConfig.threads = config.threads;
+        traditionalConfig.useGPU = config.useGPU;
+        m_traditionalMiner->setMiningParameters(traditionalConfig);
     }
     
     qDebug() << "Mining parameters updated";
