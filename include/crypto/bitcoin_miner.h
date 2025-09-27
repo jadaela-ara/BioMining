@@ -76,7 +76,7 @@ signals:
 public slots:
     void onBioSignalsReceived(const QVector<double> &signalData);
 
-private slots:
+//private slots:
     void onMiningThreadFinished();
 
 
