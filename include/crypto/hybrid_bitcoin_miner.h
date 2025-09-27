@@ -255,9 +255,11 @@ private slots:
     void updateAdaptationParameters();
     void validateBiologicalPerformance();
 
-private:
+public:
     // Méthodes de mining hybride
     bool performHybridHash(const QString& blockHeader, uint32_t& nonce, QString& blockHash);
+private:
+    // Méthodes de mining hybride
     uint32_t generateBiologicalNonce(const std::vector<double>& meaSignals);
     bool validateNonceWithSHA256(const QString& blockHeader, uint32_t nonce, const QString& targetHash);
     
@@ -282,6 +284,21 @@ private:
     // Threading et synchronisation
     void setupMiningThreads();
     void cleanupMiningThreads();
+    
+    // Méthodes utilitaires supplémentaires (manquantes)
+    void generateInitialTrainingData(std::vector<BiologicalTrainingData>& trainingData);
+    void prepareRetroLearningData(std::vector<BiologicalTrainingData>& retroData);
+    std::vector<double> convertNonceToOutput(uint32_t nonce);
+    double calculatePredictionError(const std::vector<double>& predicted, const std::vector<double>& target);
+    void updateBiologicalAccuracy();
+    void updateHashRate();
+    void updateEnergyEfficiency();
+    double calculateRecentAccuracy();
+    double calculateNetworkComplexity();
+    double calculateAdaptationRate();
+    double calculateBiologicalContribution();
+    QString generateTestBlockHeader();
+    QString calculateSHA256Hash(const QString& data, uint32_t nonce);
     
 private:
     // Composants principaux
