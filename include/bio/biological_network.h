@@ -234,7 +234,7 @@ private:
     bool configureNetwork(const NetworkConfig& config);
     bool initializeLearning(const NetworkConfig& config);
     void setAdaptiveLearning(bool enable);
-    void updateInputSignals(const std::vector<double>& signals);
+    void updateInputSignals(const QVector<double>& signals);
     void updateWeights();
     std::vector<double> getOutputValues();
     
