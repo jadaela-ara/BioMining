@@ -124,6 +124,7 @@ public:
     QString getNetworkDiagnostic() const;
     QVector<double> getLayerActivations(int layer) const;
     double getNetworkEfficiency() const;
+    double getNetworkComplexity() const;
 
     // Méthodes publiques pour accès externe
     bool initialize();
