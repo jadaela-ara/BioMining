@@ -858,8 +858,8 @@ void HybridBitcoinMiner::processNetworkLearning()
             
             // Déclenchement du rétro-apprentissage si nécessaire
             if (m_predictionHistory.size() > 100) {
-                QtConcurrent::run([this]() {
-                    performRetroLearning();
+                QFuture<bool> future = QtConcurrent::run([this]() {
+                    return performRetroLearning();
                 });
             }
         }
@@ -1344,7 +1344,7 @@ void HybridBitcoinMiner::updateEnergyEfficiency()
 {
     // Calcul de l'efficacité énergétique (hashes par unité d'énergie biologique)
     double biologicalRatio = (double)m_metrics.biologicalPredictions.load() / 
-                           std::max(1ULL, m_metrics.totalHashes.load());
+                           std::max(1ULL, (uint64_t)m_metrics.totalHashes.load());
     double accuracy = m_metrics.biologicalAccuracy.load();
     
     m_metrics.energyEfficiency = biologicalRatio * accuracy;
