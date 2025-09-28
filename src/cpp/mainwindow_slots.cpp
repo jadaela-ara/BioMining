@@ -296,12 +296,12 @@ void MainWindow::onMEAStatusChanged(BioMining::Bio::MEAInterface::ConnectionStat
     updateStatusDisplay();
 }
 
-void MainWindow::onMEASignalsReceived(const QVector<double> &signals)
+void MainWindow::onMEASignalsReceived(const QVector<double> &currentSignals)
 {
-    updateMEADisplay(signals);
+    updateMEADisplay(currentSignals);
     
     // Mise à jour de l'affichage des électrodes
-    m_lblElectrodeCount->setText(QString::number(signals.size()));
+    m_lblElectrodeCount->setText(QString::number(currentSignals.size()));
     
     // Calcul et affichage de la qualité du signal
     double quality = m_meaInterface->getSignalQuality();
@@ -549,15 +549,15 @@ void MainWindow::log(const QString &message, const QString &level)
     m_console->setTextCursor(cursor);
 }
 
-void MainWindow::updateMEADisplay(const QVector<double> &signals)
+void MainWindow::updateMEADisplay(const QVector<double> &currentSignals)
 {
     // Mise à jour de l'affichage des signaux MEA
     // Dans une vraie implémentation, ici on mettrait à jour un graphique en temps réel
     
-    if (!signals.isEmpty()) {
-        double avg = std::accumulate(signals.begin(), signals.end(), 0.0) / signals.size();
-        double max = *std::max_element(signals.begin(), signals.end());
-        double min = *std::min_element(signals.begin(), signals.end());
+    if (!currentSignals.isEmpty()) {
+        double avg = std::accumulate(currentSignals.begin(), currentSignals.end(), 0.0) / currentSignals.size();
+        double max = *std::max_element(currentSignals.begin(), currentSignals.end());
+        double min = *std::min_element(currentSignals.begin(), currentSignals.end());
         
         static int signalCount = 0;
         if (++signalCount % 50 == 0) { // Log chaque 50 acquisitions
