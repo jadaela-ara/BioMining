@@ -474,29 +474,6 @@ void BitcoinMiner::MiningWorker::stopMining()
     m_shouldStop = true;
 }
 
-bool BitcoinMiner::MiningWorker::initialize()
-{
-    qDebug() << "[MINER WORKER] MiningWorker::initialize() called.";
-    return true;
-}
-
-bool BitcoinMiner::MiningWorker::setMiningParameters(const MiningConfig& config)
-{
-    m_config = config;
-    qDebug() << "[MINER WORKER] MiningWorker::setMiningParameters() called.";
-    return true;
-}
-
-bool BitcoinMiner::MiningWorker::mineBlock(const QString& blockHeader, uint32_t& nonce, QString& blockHash)
-{
-    qDebug() << "[MINER WORKER] MiningWorker::mineBlock() called.";
-    // Placeholder implementation for now
-    Q_UNUSED(blockHeader);
-    nonce = QRandomGenerator::global()->generate();
-    blockHash = m_parent->computeHash(blockHeader + QString::number(nonce)); // Use parent's computeHash
-    return true;
-}
-
 } // namespace Crypto
 } // namespace BioMining
 
