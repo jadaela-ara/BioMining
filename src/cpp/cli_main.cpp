@@ -16,7 +16,6 @@
 
 #include "bio/mea_interface.h"
 #include "crypto/bitcoin_miner.h"
-#include "cli_main.moc"
 
 class BiominingCLI : public QObject
 {
@@ -538,3 +537,4 @@ int main(int argc, char *argv[])
     
     return result;
 }
+#include "cli_main.moc"
