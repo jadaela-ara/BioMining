@@ -6,8 +6,8 @@
 #include "bio/mea_interface.h"
 #include "bio/biological_network.h"
 
-using namespace BioMining::Crypto;
-using namespace BioMining::Bio;
+using namespace BioMining::HCrypto;
+using namespace BioMining::HBio;
 
 class TestHybridBitcoinMiner : public QObject
 {

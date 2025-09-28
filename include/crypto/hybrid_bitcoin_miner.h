@@ -35,7 +35,7 @@
 
 // Forward declarations to avoid circular dependencies
 namespace BioMining {
-namespace Crypto {
+namespace HCrypto {
     
 struct MiningConfig {
     uint64_t difficulty = 1;
@@ -46,7 +46,7 @@ struct MiningConfig {
 };
 
 }
-namespace Bio {
+namespace HBio {
     enum class NetworkLearningState {
         Untrained,
         InitialLearning, 
@@ -58,7 +58,7 @@ namespace Bio {
 }
 
 namespace BioMining {
-namespace Crypto {
+namespace HCrypto {
 
 /**
  * @brief Structure représentant les paramètres d'apprentissage du réseau biologique
@@ -379,11 +379,11 @@ private:
     std::vector<BioMining::Crypto::BiologicalTrainingData> m_trainingData;
 };
 
-} // namespace Crypto
+} // namespace HCrypto
 } // namespace BioMining
 
-Q_DECLARE_METATYPE(BioMining::Crypto::HybridLearningState)
-Q_DECLARE_METATYPE(BioMining::Crypto::HybridMiningMetrics)
-Q_DECLARE_METATYPE(BioMining::Crypto::BiologicalNoncePrediction)
+Q_DECLARE_METATYPE(BioMining::HCrypto::HybridLearningState)
+Q_DECLARE_METATYPE(BioMining::HCrypto::HybridMiningMetrics)
+Q_DECLARE_METATYPE(BioMining::HCrypto::BiologicalNoncePrediction)
 
 #endif // HYBRID_BITCOIN_MINER_H

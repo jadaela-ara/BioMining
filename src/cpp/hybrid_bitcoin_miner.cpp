@@ -9,7 +9,7 @@
 #include <random>
 
 namespace BioMining {
-namespace Crypto {
+namespace HCrypto {
 
 HybridBitcoinMiner::HybridBitcoinMiner(QObject* parent)
     : QObject(parent)
@@ -1240,7 +1240,7 @@ void HybridBitcoinMiner::cleanupMiningThreads()
 
 // Méthodes utilitaires supplémentaires
 
-void HybridBitcoinMiner::generateInitialTrainingData(std::vector<BiologicalTrainingData>& trainingData)
+void HybridBitcoinMiner::generateInitialTrainingData(std::vector<BioMining::Crypto::BiologicalTrainingData>& trainingData)
 {
     // Génération de données d'entraînement synthétiques pour l'apprentissage initial
     trainingData.clear();
@@ -1475,5 +1475,5 @@ void BiologicalLearningTask::run()
     m_miner->performInitialLearning(m_trainingData);
 }
 
-} // namespace Crypto
+} // namespace HCrypto
 } // namespace BioMining
