@@ -475,10 +475,10 @@ void TestBitcoinMiner::testLongRunning()
     
     // Simulation de plusieurs cycles de signaux
     for (int i = 0; i < 10; ++i) {
-        QVector<double> signals = (i % 2 == 0) ? createRandomSignals() : createPatternnedSignals();
+        QVector<double> currentSignals = (i % 2 == 0) ? createRandomSignals() : createPatternnedSignals();
         
         QMetaObject::invokeMethod(m_bitcoinMiner, "onBioSignalsReceived", 
-                                 Q_ARG(QVector<double>, signals));
+                                 Q_ARG(QVector<double>, currentSignals));
         
         QTest::qWait(100);
     }
