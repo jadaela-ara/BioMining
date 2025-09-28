@@ -7,8 +7,11 @@
 #include <QElapsedTimer>
 #include <iostream>
 #include <iomanip>
+#include <numeric> // For std::accumulate, std::max_element, std::min_element
+#include <algorithm> // For std::accumulate, std::max_element, std::min_element
+#include <QRandomGenerator> // For QRandomGenerator
 
-#include "bio/mea_interface.h"
+#include "bio/me-interface.h"
 #include "crypto/bitcoin_miner.h"
 
 class BiominingCLI : public QObject
@@ -23,7 +26,7 @@ public:
 
 private slots:
     void onMEASignalsReceived(const QVector<double> &signals);
-    void onMiningComplete(const BitcoinMiner::MiningResult &result);
+    void onMiningComplete(const BioMining::Crypto::BitcoinMiner::MiningResult &result);
     void onTimeout();
 
 private:
@@ -36,9 +39,10 @@ private:
     void runSingleMining();
     void setupMEA();
     void setupMiner();
+    void saveResultsToFile(); // Declared here
 
-    std::unique_ptr<MEAInterface> m_meaInterface;
-    std::unique_ptr<BitcoinMiner> m_bitcoinMiner;
+    std::unique_ptr<BioMining::Bio::MEAInterface> m_meaInterface;
+    std::unique_ptr<BioMining::Crypto::BitcoinMiner> m_bitcoinMiner;
     QTextStream m_out;
     QTextStream m_err;
     
@@ -53,7 +57,7 @@ private:
     // Statistiques
     int m_currentIteration;
     QElapsedTimer m_sessionTimer;
-    QVector<BitcoinMiner::MiningResult> m_results;
+    QVector<BioMining::Crypto::BitcoinMiner::MiningResult> m_results; // Corrected type
 };
 
 BiominingCLI::BiominingCLI(QObject *parent)
@@ -66,13 +70,13 @@ BiominingCLI::BiominingCLI(QObject *parent)
     , m_maxIterations(10)
     , m_currentIteration(0)
 {
-    m_meaInterface = std::make_unique<MEAInterface>(this);
-    m_bitcoinMiner = std::make_unique<BitcoinMiner>(this);
+    m_meaInterface = std::make_unique<BioMining::Bio::MEAInterface>(this);
+    m_bitcoinMiner = std::make_unique<BioMining::Crypto::BitcoinMiner>(this);
     
     // Connexions pour le mode automatique
-    connect(m_meaInterface.get(), &MEAInterface::signalsAcquired,
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::signalsAcquired,
             this, &BiominingCLI::onMEASignalsReceived);
-    connect(m_bitcoinMiner.get(), &BitcoinMiner::miningComplete,
+    connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::miningComplete,
             this, &BiominingCLI::onMiningComplete);
 }
 
@@ -147,7 +151,7 @@ int BiominingCLI::run(const QStringList &arguments)
         bool ok;
         uint64_t difficulty = parser.value(difficultyOption).toULongLong(&ok, 16);
         if (ok) {
-            BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
+            BioMining::Crypto::BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
             config.difficulty = difficulty;
             m_bitcoinMiner->setMiningConfig(config);
             
@@ -163,7 +167,7 @@ int BiominingCLI::run(const QStringList &arguments)
     if (parser.isSet(threadsOption)) {
         int threads = parser.value(threadsOption).toInt();
         if (threads > 0 && threads <= 32) {
-            BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
+            BioMining::Crypto::BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
             config.threadCount = threads;
             m_bitcoinMiner->setMiningConfig(config);
             
@@ -216,16 +220,16 @@ void BiominingCLI::printStatus()
     // État MEA
     QString meaStatus;
     switch (m_meaInterface->getStatus()) {
-        case MEAInterface::ConnectionStatus::Connected:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Connected:
             meaStatus = "Connecté";
             break;
-        case MEAInterface::ConnectionStatus::Connecting:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Connecting:
             meaStatus = "Connexion...";
             break;
-        case MEAInterface::ConnectionStatus::Disconnected:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Disconnected:
             meaStatus = "Déconnecté";
             break;
-        case MEAInterface::ConnectionStatus::Error:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Error:
             meaStatus = "Erreur";
             break;
     }
@@ -238,7 +242,7 @@ void BiominingCLI::printStatus()
     m_out << "Hashrate: " << QString::number(m_bitcoinMiner->getHashrate(), 'f', 0) << " H/s" << Qt::endl;
     m_out << "Succès: " << m_bitcoinMiner->getSuccessCount() << "/" << m_bitcoinMiner->getTotalAttempts() << Qt::endl;
     
-    BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
+    BioMining::Crypto::BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     m_out << "Difficulté: 0x" << Qt::hex << config.difficulty << Qt::dec << Qt::endl;
     m_out << "Threads: " << config.threadCount << Qt::endl;
     
@@ -252,7 +256,7 @@ void BiominingCLI::runBenchmark()
     m_out << Qt::endl;
     
     // Configuration pour benchmark
-    BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
+    BioMining::Crypto::BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     config.maxAttempts = 5000; // Limité pour benchmark
     m_bitcoinMiner->setMiningConfig(config);
     
@@ -269,7 +273,7 @@ void BiominingCLI::runBenchmark()
         QElapsedTimer cycleTimer;
         cycleTimer.start();
         
-        BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(testSignals);
+        BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(testSignals);
         m_results.append(result);
         
         m_out << (result.success ? "SUCCÈS" : "ÉCHEC") 
@@ -336,7 +340,7 @@ void BiominingCLI::runSingleMining()
     
     // Mining
     m_out << "Démarrage mining..." << Qt::endl;
-    BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(bioSignals);
+    BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(bioSignals);
     
     m_out << Qt::endl;
     m_out << "=== RÉSULTAT ===" << Qt::endl;
@@ -374,7 +378,7 @@ void BiominingCLI::setupMiner()
         m_out << "Configuration Bitcoin Miner..." << Qt::endl;
     }
     
-    BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
+    BioMining::Crypto::BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     
     // Configuration par défaut optimisée pour CLI
     config.maxAttempts = 20000;
@@ -433,39 +437,43 @@ void BiominingCLI::printMiningStats()
 
 void BiominingCLI::saveResultsToFile()
 {
-    QFile file(m_outputFile);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        m_err << "Erreur: Impossible d'ouvrir " << m_outputFile << " en écriture" << Qt::endl;
+    if (m_outputFile.isEmpty()) {
+        m_err << "Erreur: Aucun fichier de sortie spécifié." << Qt::endl;
         return;
     }
-    
-    QJsonObject root;
-    root["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
-    root["session_duration"] = m_sessionTimer.elapsed() / 1000.0;
-    root["total_cycles"] = m_results.size();
-    
-    QJsonArray resultsArray;
-    for (int i = 0; i < m_results.size(); ++i) {
-        const auto &result = m_results[i];
-        QJsonObject resultObj;
-        
-        resultObj["cycle"] = i + 1;
-        resultObj["success"] = result.success;
-        resultObj["nonce"] = result.nonce;
-        resultObj["hash"] = result.hash;
-        resultObj["compute_time"] = result.computeTime;
-        resultObj["attempts"] = result.attempts;
-        resultObj["hashrate"] = result.attempts / result.computeTime;
-        resultObj["signal_contribution"] = result.signalContribution;
-        
-        resultsArray.append(resultObj);
+
+    QFile file(m_outputFile);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        m_err << "Erreur: Impossible d'ouvrir le fichier de sortie: " << file.errorString() << Qt::endl;
+        return;
     }
-    
-    root["results"] = resultsArray;
-    
-    QJsonDocument doc(root);
-    file.write(doc.toJson());
-    
+
+    QTextStream out(&file);
+    out << "[
+";
+    for (int i = 0; i < m_results.size(); ++i) {
+        const auto &result = m_results.at(i);
+        QJsonObject obj;
+        obj["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+        obj["success"] = result.success;
+        obj["attempts"] = (qint64)result.attempts;
+        obj["nonce"] = (qint64)result.nonce;
+        obj["hash"] = result.hash;
+        obj["difficulty"] = (qint64)result.difficulty;
+        obj["computeTime"] = (qint64)result.computeTime;
+        obj["signalInfluence"] = result.signalInfluence;
+        out << QJsonDocument(obj).toJson(QJsonDocument::Indented);
+        if (i < m_results.size() - 1) {
+            out << ",
+";
+        } else {
+            out << "
+";
+        }
+    }
+    out << "]
+";
+    file.close();
     m_out << "Résultats sauvegardés dans: " << m_outputFile << Qt::endl;
 }
 
@@ -482,7 +490,7 @@ void BiominingCLI::onMEASignalsReceived(const QVector<double> &signals)
     }
 }
 
-void BiominingCLI::onMiningComplete(const BitcoinMiner::MiningResult &result)
+void BiominingCLI::onMiningComplete(const BioMining::Crypto::BitcoinMiner::MiningResult &result)
 {
     m_results.append(result);
     m_currentIteration++;

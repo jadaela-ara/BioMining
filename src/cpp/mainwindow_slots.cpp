@@ -4,6 +4,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QRandomGenerator> // Added for QRandomGenerator
+#include <QThread> // For QThread::msleep in onStartLearning()
 
 // === MEA CONTROL SLOTS ===
 
@@ -17,6 +19,24 @@ void MainWindow::onConnectMEA()
         m_btnDisconnectMEA->setEnabled(true);
         m_btnStartAcquisition->setEnabled(true);
         m_btnStartLearning->setEnabled(true);
+        connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::signalsAcquired,
+                this, &MainWindow::onMEASignalsReceived);
+        connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::statusChanged,
+                this, &MainWindow::onMEAStatusChanged);
+        connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::errorOccurred,
+                this, &MainWindow::onMEAError);
+        connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::calibrationChanged,
+                this, &MainWindow::onCalibrationChanged);
+
+        connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::miningComplete,
+                this, &MainWindow::onMiningComplete);
+        connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::hashRateUpdated,
+                this, &MainWindow::onHashRateUpdated);
+        connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::progressUpdate,
+                this, &MainWindow::onMiningProgress);
+        connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::difficultyAdjusted,
+                this, &MainWindow::onDifficultyAdjusted);
+
     } else {
         log("Échec de connexion MEA: " + m_meaInterface->getLastError(), "ERROR");
         QMessageBox::warning(this, "Erreur MEA", "Impossible de connecter au MEA: " + m_meaInterface->getLastError());
@@ -157,12 +177,12 @@ void MainWindow::onStartMining()
     log("Démarrage mining Bitcoin...");
     
     // Vérification de la connexion MEA
-    if (m_meaInterface->getStatus() != MEAInterface::ConnectionStatus::Connected) {
+    if (m_meaInterface->getStatus() != BioMining::Bio::MEAInterface::ConnectionStatus::Connected) {
         QMessageBox::warning(this, "Attention", "MEA non connecté. Mining avec signaux simulés.");
     }
     
     // Configuration du mining
-    BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
+    BioMining::Crypto::BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     config.blockHeader = m_editBlockHeader->text();
     config.maxAttempts = m_spinMaxAttempts->value();
     config.signalWeight = m_spinSignalWeight->value();
@@ -217,7 +237,7 @@ void MainWindow::onStartContinuousMining()
         m_btnContinuousMining->setStyleSheet("QPushButton { background-color: #ff9800; color: white; }");
         
         // Démarrage automatique de l'acquisition MEA si nécessaire
-        if (m_meaInterface->getStatus() == MEAInterface::ConnectionStatus::Connected) {
+        if (m_meaInterface->getStatus() == BioMining::Bio::MEAInterface::ConnectionStatus::Connected) {
             onStartAcquisition();
         }
         
@@ -242,25 +262,25 @@ void MainWindow::onConfigureMining()
 
 // === MEA EVENT SLOTS ===
 
-void MainWindow::onMEAStatusChanged(MEAInterface::ConnectionStatus status)
+void MainWindow::onMEAStatusChanged(BioMining::Bio::MEAInterface::ConnectionStatus status)
 {
     QString statusText;
     QString styleSheet;
     
     switch (status) {
-        case MEAInterface::ConnectionStatus::Disconnected:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Disconnected:
             statusText = "Déconnecté";
             styleSheet = "color: red;";
             break;
-        case MEAInterface::ConnectionStatus::Connecting:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Connecting:
             statusText = "Connexion...";
             styleSheet = "color: orange;";
             break;
-        case MEAInterface::ConnectionStatus::Connected:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Connected:
             statusText = "Connecté";
             styleSheet = "color: green;";
             break;
-        case MEAInterface::ConnectionStatus::Error:
+        case BioMining::Bio::MEAInterface::ConnectionStatus::Error:
             statusText = "Erreur";
             styleSheet = "color: red; font-weight: bold;";
             break;
@@ -300,7 +320,7 @@ void MainWindow::onCalibrationChanged(double factor)
 
 // === MINING EVENT SLOTS ===
 
-void MainWindow::onMiningComplete(const BitcoinMiner::MiningResult &result)
+void MainWindow::onMiningComplete(const BioMining::Crypto::BitcoinMiner::MiningResult &result)
 {
     QString resultText;
     QString logLevel;
@@ -376,10 +396,10 @@ void MainWindow::updateStatusDisplay()
     // Mise à jour du statut général
     QString status = "Prêt";
     
-    if (m_meaInterface->getStatus() == MEAInterface::ConnectionStatus::Connected &&
+    if (m_meaInterface->getStatus() == BioMining::Bio::MEAInterface::ConnectionStatus::Connected &&
         m_bitcoinMiner->getTotalAttempts() > 0) {
         status = "Opérationnel";
-    } else if (m_meaInterface->getStatus() == MEAInterface::ConnectionStatus::Connected) {
+    } else if (m_meaInterface->getStatus() == BioMining::Bio::MEAInterface::ConnectionStatus::Connected) {
         status = "MEA Connecté";
     } else if (m_bitcoinMiner->getTotalAttempts() > 0) {
         status = "Mining Actif";
@@ -563,7 +583,7 @@ void MainWindow::updateMiningStats()
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     // Nettoyage avant fermeture
-    if (m_meaInterface && m_meaInterface->getStatus() == MEAInterface::ConnectionStatus::Connected) {
+    if (m_meaInterface && m_meaInterface->getStatus() == BioMining::Bio::MEAInterface::ConnectionStatus::Connected) {
         m_meaInterface->stopContinuousAcquisition();
         m_meaInterface->disconnect();
     }

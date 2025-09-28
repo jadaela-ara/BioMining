@@ -63,13 +63,13 @@ private slots:
     void onConfigureMining();
 
     // MEA Events
-    void onMEAStatusChanged(MEAInterface::ConnectionStatus status);
+    void onMEAStatusChanged(BioMining::Bio::MEAInterface::ConnectionStatus status);
     void onMEASignalsReceived(const QVector<double> &signals);
     void onMEAError(const QString &error);
     void onCalibrationChanged(double factor);
 
     // Mining Events
-    void onMiningComplete(const BitcoinMiner::MiningResult &result);
+    void onMiningComplete(const BioMining::Crypto::BitcoinMiner::MiningResult &result);
     void onHashRateUpdated(double hashrate);
     void onMiningProgress(int attempts, double progress);
     void onDifficultyAdjusted(uint64_t difficulty);
@@ -91,13 +91,17 @@ private:
     void setupStatusBar();
     void setupConnections();
     
+    void setupMEATab(); // Declared here
+    void setupMiningTab(); // Declared here
+    void setupMonitorTab(); // Declared here
+    
     void log(const QString &message, const QString &level = "INFO");
     void updateMEADisplay(const QVector<double> &signals);
     void updateMiningStats();
     
     // Core components
-    std::unique_ptr<MEAInterface> m_meaInterface;
-    std::unique_ptr<BitcoinMiner> m_bitcoinMiner;
+    std::unique_ptr<BioMining::Bio::MEAInterface> m_meaInterface;
+    std::unique_ptr<BioMining::Crypto::BitcoinMiner> m_bitcoinMiner;
     
     // UI Components - Main Layout
     QWidget *m_centralWidget;

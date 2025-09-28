@@ -8,6 +8,8 @@
 #include <QPixmap>
 #include <QTimer>
 #include <QMessageBox>
+#include <QPainter> // Added for QPainter
+#include <cmath> // For M_PI
 
 #include "mainwindow.h"
 
