@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QVector>
 #include <QMainWindow>
 #include <QTimer>
 #include <QLabel>
@@ -20,7 +21,6 @@
 #include <QAction>
 #include <QSplitter>
 #include <QTabWidget>
-#include <QVector>
 #include <memory>
 
 #include "bio/mea_interface.h"
