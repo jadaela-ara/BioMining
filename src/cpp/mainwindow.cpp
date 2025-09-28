@@ -13,6 +13,9 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
+#include <QFile> // Added for QFile
+#include <QTextStream> // Added for QTextStream
+#include <QIODevice> // Added for QIODevice
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)

@@ -20,6 +20,7 @@
 #include <QAction>
 #include <QSplitter>
 #include <QTabWidget>
+#include <QVector>
 #include <memory>
 
 #include "bio/mea_interface.h"

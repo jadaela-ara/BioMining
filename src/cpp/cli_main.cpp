@@ -5,6 +5,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QElapsedTimer>
+#include <QVector> // Added for QVector
+#include <QFile> // Added for QFile
+#include <QIODevice> // Added for QIODevice
 #include <iostream>
 #include <iomanip>
 #include <numeric> // For std::accumulate, std::max_element, std::min_element

@@ -6,6 +6,9 @@
 #include <QInputDialog>
 #include <QRandomGenerator> // Added for QRandomGenerator
 #include <QThread> // For QThread::msleep in onStartLearning()
+#include <QFile> // Added for QFile
+#include <QTextStream> // Added for QTextStream
+#include <QIODevice> // Added for QIODevice
 
 // === MEA CONTROL SLOTS ===
 
