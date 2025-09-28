@@ -5,7 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QElapsedTimer>
-#include <QVector> // Added for QVector
+#include <QVector> // Moved for QVector
 #include <QFile> // Added for QFile
 #include <QIODevice> // Added for QIODevice
 #include <iostream>
@@ -467,15 +467,12 @@ void BiominingCLI::saveResultsToFile()
         obj["signalInfluence"] = result.signalInfluence;
         out << QJsonDocument(obj).toJson(QJsonDocument::Indented);
         if (i < m_results.size() - 1) {
-            out << ",
-";
+            out << ",\n";
         } else {
-            out << "
-";
+            out << "\n";
         }
     }
-    out << "]
-";
+    out << "]\n";
     file.close();
     m_out << "Résultats sauvegardés dans: " << m_outputFile << Qt::endl;
 }
