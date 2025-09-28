@@ -134,6 +134,8 @@ public:
     void updateInputSignals(const QVector<double> &currentSignals);
     void updateWeights();
     QVector<double> getOutputValues();
+    void forwardPropagation(const QVector<double> &inputs);
+    void backPropagation(const QVector<double> &targets);
 
 signals:
     void learningStateChanged(LearningState newState);
@@ -183,8 +185,6 @@ private:
     
     // Propagation des signaux (versions privées pour usage interne)
     QVector<double> getNetworkOutput() const;
-    void forwardPropagation(const QVector<double> &inputs);
-    void backPropagation(const QVector<double> &targets);
     
     // Apprentissage biologique
     void performLearningCycle(const QVector<double> &inputs, const QVector<double> &targets);
