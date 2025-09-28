@@ -1344,7 +1344,7 @@ void HybridBitcoinMiner::updateEnergyEfficiency()
 {
     // Calcul de l'efficacité énergétique (hashes par unité d'énergie biologique)
     double biologicalRatio = (double)m_metrics.biologicalPredictions.load() / 
-                           std::max(1ULL, (uint64_t)m_metrics.totalHashes.load());
+                           std::max((uint64_t)1ULL, (uint64_t)m_metrics.totalHashes.load());
     double accuracy = m_metrics.biologicalAccuracy.load();
     
     m_metrics.energyEfficiency = biologicalRatio * accuracy;
