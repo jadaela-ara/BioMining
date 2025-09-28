@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <numeric>
 
+using namespace BioMining::Network; 
+
 BiologicalNetwork::BiologicalNetwork(QObject *parent)
     : QObject(parent)
     , m_learningState(LearningState::Untrained)

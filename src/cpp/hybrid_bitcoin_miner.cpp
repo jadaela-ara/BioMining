@@ -112,7 +112,7 @@ bool HybridBitcoinMiner::configureBiologicalNetwork(const BiologicalLearningPara
     m_learningParams = params;
     
     // Configuration du réseau biologique avec les paramètres MEA
-    BiologicalNetwork::NetworkConfig networkConfig;
+    BioMining::Network::BiologicalNetwork::NetworkConfig networkConfig;
     networkConfig.inputSize = 60; // 60 électrodes MEA
     networkConfig.outputSize = 32; // Pour prédiction de nonce (32 bits)
     networkConfig.hiddenLayers = QVector<int>{128, 64, 32}; // Architecture profonde
@@ -310,7 +310,7 @@ bool HybridBitcoinMiner::initializeBiologicalLearning()
     
     try {
         // Initialisation du réseau avec des paramètres d'apprentissage
-        BiologicalNetwork::NetworkConfig learningConfig;
+        BioMining::Network::BiologicalNetwork::NetworkConfig learningConfig;
         learningConfig.learningRate = m_learningParams.initialLearningRate;
         learningConfig.momentum = m_learningParams.momentumFactor;
         learningConfig.decayRate = m_learningParams.decayRate;
