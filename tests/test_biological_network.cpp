@@ -1,6 +1,7 @@
 #include <QtTest/QtTest>
 #include <QCoreApplication>
 #include "bio/biological_network.h"
+#include "bio/mea_interface.h"
 
 using namespace BioMining::Bio;
 
