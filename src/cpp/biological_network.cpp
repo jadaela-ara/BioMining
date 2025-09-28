@@ -1190,4 +1190,72 @@ double BiologicalNetwork::getNetworkComplexity() const
     return 0.5; 
 }
 
+bool BiologicalNetwork::initialize()
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::initialize() called.";
+    initializeNetwork(); // Re-initialize or ensure network is set up
+    return true;
+}
+
+bool BiologicalNetwork::configureNetwork(const NetworkConfig &config)
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::configureNetwork() called.";
+    setNetworkConfig(config);
+    return true;
+}
+
+bool BiologicalNetwork::initializeLearning(const NetworkConfig &config)
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::initializeLearning() called.";
+    m_config = config; // Update config for learning
+    return startInitialLearning(m_config.maxEpochs);
+}
+
+void BiologicalNetwork::setAdaptiveLearning(bool enable)
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::setAdaptiveLearning() called with" << enable;
+    m_config.enableAdaptation = enable;
+    // Further logic to enable/disable adaptive learning features
+}
+
+void BiologicalNetwork::updateInputSignals(const QVector<double> &currentSignals)
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::updateInputSignals() called.";
+    onMEASignalsReceived(currentSignals); // Delegate to existing slot
+}
+
+void BiologicalNetwork::updateWeights()
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::updateWeights() called.";
+    // This would typically involve a learning cycle, for now, a simple adjustment.
+    adjustSynapticWeights(m_config.learningRate / 10.0); // Small adjustment
+}
+
+QVector<double> BiologicalNetwork::getOutputValues()
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] BiologicalNetwork::getOutputValues() called.";
+    return getNetworkOutput();
+}
+
+void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] Public BiologicalNetwork::forwardPropagation() called.";
+    BiologicalNetwork::forwardPropagation(inputs); // Call the private implementation
+}
+
+void BiologicalNetwork::backPropagation(const QVector<double> &targets)
+{
+    QMutexLocker locker(&m_networkMutex);
+    qDebug() << "[BIO-NET] Public BiologicalNetwork::backPropagation() called.";
+    BiologicalNetwork::backPropagation(targets); // Call the private implementation
+}
+
 #include "biological_network.moc"
