@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../include/bio/biological_network.h"
+#include "include/bio/biological_network.h"
 #include <QCoreApplication>
 
 class BiologicalNetworkTest : public ::testing::Test {

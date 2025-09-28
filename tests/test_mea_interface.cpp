@@ -3,7 +3,7 @@
 #include <QTimer>
 #include <QTemporaryFile>
 
-#include "bio/mea_interface.h"
+#include "includebio/mea_interface.h"
 
 class TestMEAInterface : public QObject
 {

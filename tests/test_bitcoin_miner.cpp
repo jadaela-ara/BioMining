@@ -3,7 +3,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 
-#include "crypto/bitcoin_miner.h"
+#include "include/crypto/bitcoin_miner.h"
 
 class TestBitcoinMiner : public QObject
 {

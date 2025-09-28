@@ -2,9 +2,9 @@
 #include <QObject>
 #include <QSignalSpy>
 #include <memory>
-#include "crypto/hybrid_bitcoin_miner.h"
-#include "bio/mea_interface.h"
-#include "bio/biological_network.h"
+#include "include/crypto/hybrid_bitcoin_miner.h"
+#include "include/bio/mea_interface.h"
+#include "include/bio/biological_network.h"
 
 using namespace BioMining::Crypto;
 using namespace BioMining::Bio;

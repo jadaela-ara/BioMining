@@ -4,8 +4,8 @@
 #include <QElapsedTimer>
 #include <QTemporaryFile>
 
-#include "bio/mea_interface.h"
-#include "crypto/bitcoin_miner.h"
+#include "include/bio/mea_interface.h"
+#include "include/crypto/bitcoin_miner.h"
 
 /**
  * @brief Tests d'intégration pour la plateforme bio-mining complète
