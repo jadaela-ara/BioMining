@@ -199,9 +199,9 @@ public:
 
     // Configuration et initialisation
     bool initialize();
-    bool configureBiologicalNetwork(const BioMining::Crypto::BiologicalLearningParams& params);
-    bool connectToMEA(std::shared_ptr<Bio::MEAInterface> meaInterface);
-    void setMiningParameters(const BioMining::Crypto::MiningConfig& config);
+    bool configureBiologicalNetwork(const BioMining::HCrypto::BiologicalLearningParams& params);
+    bool connectToMEA(std::shared_ptr<BioMining::Bio::MEAInterface> meaInterface);
+    void setMiningParameters(const BioMining::HCrypto::MiningConfig& config);
     
     // Contrôle du mining
     bool startHybridMining();
@@ -212,7 +212,7 @@ public:
     
     // Apprentissage biologique
     bool initializeBiologicalLearning();
-    bool performInitialLearning(const std::vector<BioMining::Crypto::BiologicalTrainingData>& trainingData);
+    bool performInitialLearning(const std::vector<BioMining::HCrypto::BiologicalTrainingData>& trainingData);
     bool performRetroLearning();
     void enableAdaptiveLearning(bool enable);
     
@@ -223,19 +223,19 @@ public:
     
     // Métriques et monitoring
     HybridMiningMetrics getMetrics() const;
-    BioMining::Crypto::HybridLearningState getLearningState() const;
+    BioMining::HCrypto::HybridLearningState getLearningState() const;
     double getNetworkAdaptationScore() const;
     QString getStatusReport() const;
     
     // Configuration avancée
-    void setLearningParameters(const BioMining::Crypto::BiologicalLearningParams& params);
-    BioMining::Crypto::BiologicalLearningParams getLearningParameters() const;
+    void setLearningParameters(const BioMining::HCrypto::BiologicalLearningParams& params);
+    BioMining::HCrypto::BiologicalLearningParams getLearningParameters() const;
     void setBiologicalWeight(double weight); // 0.0 = SHA-256 pur, 1.0 = biologique pur
     double getBiologicalWeight() const;
 
 public slots:
     void onMEADataReceived(const std::vector<double>& electrodeData);
-    void onNetworkStateChanged(BioMining::Bio::NetworkLearningState state);
+    void onNetworkStateChanged(BioMining::HBio::NetworkLearningState state);
     void onMiningDifficultyChanged(double newDifficulty);
     void updateLearningMetrics();
 
@@ -244,7 +244,7 @@ signals:
     void hybridMiningStopped();
     void blockFound(const QString& blockHash, uint32_t nonce, double biologicalContribution);
     void biologicalPredictionMade(const BiologicalNoncePrediction& prediction);
-    void learningStateChanged(BioMining::Crypto::HybridLearningState newState);
+    void learningStateChanged(BioMining::HCrypto::HybridLearningState newState);
     void metricsUpdated(const HybridMiningMetrics& metrics);
     void adaptationScoreChanged(double score);
     void errorOccurred(const QString& error);
@@ -286,8 +286,8 @@ private:
     void cleanupMiningThreads();
     
     // Méthodes utilitaires supplémentaires (manquantes)
-    void generateInitialTrainingData(std::vector<BioMining::Crypto::BiologicalTrainingData>& trainingData);
-    void prepareRetroLearningData(std::vector<BioMining::Crypto::BiologicalTrainingData>& retroData);
+    void generateInitialTrainingData(std::vector<BioMining::HCrypto::BiologicalTrainingData>& trainingData);
+    void prepareRetroLearningData(std::vector<BioMining::HCrypto::BiologicalTrainingData>& retroData);
     std::vector<double> convertNonceToOutput(uint32_t nonce);
     double calculatePredictionError(const std::vector<double>& predicted, const std::vector<double>& target);
     void updateBiologicalAccuracy();
@@ -302,23 +302,23 @@ private:
     
 private:
     // Composants principaux
-    std::unique_ptr<BioMining::Crypto::BitcoinMiner> m_traditionalMiner;
+    std::unique_ptr<BioMining::HCrypto::BitcoinMiner> m_traditionalMiner;
     std::unique_ptr<BioMining::Network::BiologicalNetwork> m_biologicalNetwork;
     std::shared_ptr<BioMining::Bio::MEAInterface> m_meaInterface;
     
     // Configuration
-    BioMining::Crypto::BiologicalLearningParams m_learningParams;
-    BioMining::Crypto::MiningConfig m_miningConfig;
+    BioMining::HCrypto::BiologicalLearningParams m_learningParams;
+    BioMining::HCrypto::MiningConfig m_miningConfig;
     double m_biologicalWeight;
     
     // État du système
     std::atomic<bool> m_isInitialized;
     std::atomic<bool> m_isMining;
     std::atomic<bool> m_isPaused;
-    std::atomic<BioMining::Crypto::HybridLearningState> m_learningState;
+    std::atomic<BioMining::HCrypto::HybridLearningState> m_learningState;
     
     // Données d'apprentissage
-    std::vector<BioMining::Crypto::BiologicalTrainingData> m_trainingHistory;
+    std::vector<BioMining::HCrypto::BiologicalTrainingData> m_trainingHistory;
     std::vector<BiologicalNoncePrediction> m_predictionHistory;
     QHash<QString, double> m_patternMemory;
     
@@ -371,12 +371,12 @@ private:
 class BiologicalLearningTask : public QRunnable
 {
 public:
-    explicit BiologicalLearningTask(HybridBitcoinMiner* miner, const std::vector<BioMining::Crypto::BiologicalTrainingData>& trainingData);
+    explicit BiologicalLearningTask(HybridBitcoinMiner* miner, const std::vector<BioMining::HCrypto::BiologicalTrainingData>& trainingData);
     void run() override;
 
 private:
     HybridBitcoinMiner* m_miner;
-    std::vector<BioMining::Crypto::BiologicalTrainingData> m_trainingData;
+    std::vector<BioMining::HCrypto::BiologicalTrainingData> m_trainingData;
 };
 
 } // namespace HCrypto
