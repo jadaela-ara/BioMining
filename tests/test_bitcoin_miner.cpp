@@ -506,8 +506,8 @@ void TestBitcoinMiner::testMemoryUsage()
     
     // Plusieurs cycles pour vérifier qu'il n'y a pas d'accumulation excessive
     for (int i = 0; i < 20; ++i) {
-        QVector<double> signals = createRandomSignals();
-        BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signals);
+        QVector<double> currentSignals = createRandomSignals();
+        BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(currentSignals);
         
         QVERIFY(result.attempts > 0);
         
