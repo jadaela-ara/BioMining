@@ -1,72 +1,104 @@
-#include <gtest/gtest.h>
-#include "../include/bio/biological_network.h"
+#include <QtTest/QtTest>
 #include <QCoreApplication>
+#include "bio/biological_network.h"
 
 using namespace BioMining::Bio;
 
-class BiologicalNetworkTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // Set up test fixture
-        int argc = 0;
-        char* argv[] = {nullptr};
-        if (!QCoreApplication::instance()) {
-            app = new QCoreApplication(argc, argv);
-        }
-        network = new BioMining::Bio::BiologicalNetwork();
-    }
+class TestBiologicalNetwork : public QObject
+{
+    Q_OBJECT
 
-    void TearDown() override {
-        delete network;
-        // Note: QCoreApplication cleanup is handled by Qt
-    }
+private slots:
+    void initTestCase();
+    void cleanupTestCase();
+    void init();
+    void cleanup();
 
-    BioMining::Bio::BiologicalNetwork* network;
-    QCoreApplication* app = nullptr;
+    // Tests de base
+    void testInitialization();
+    void testNetworkConfiguration();
+    void testLearningStateTransition();
+    void testNoncePrediction();
+
+private:
+    BioMining::Bio::BiologicalNetwork* m_network;
+    QCoreApplication* m_app;
 };
 
-TEST_F(BiologicalNetworkTest, Initialization) {
-    EXPECT_TRUE(network->initialize());
+void TestBiologicalNetwork::initTestCase()
+{
+    // Configuration globale pour tous les tests
+    int argc = 0;
+    char* argv[] = {nullptr};
+    if (!QCoreApplication::instance()) {
+        m_app = new QCoreApplication(argc, argv);
+    }
 }
 
-TEST_F(BiologicalNetworkTest, NetworkConfiguration) {
+void TestBiologicalNetwork::cleanupTestCase()
+{
+    // Nettoyage global après tous les tests
+}
+
+void TestBiologicalNetwork::init()
+{
+    // Préparation avant chaque test
+    m_network = new BioMining::Bio::BiologicalNetwork(this);
+}
+
+void TestBiologicalNetwork::cleanup()
+{
+    // Nettoyage après chaque test
+    if (m_network) {
+        delete m_network;
+        m_network = nullptr;
+    }
+}
+
+void TestBiologicalNetwork::testInitialization()
+{
+    QVERIFY(m_network->initialize());
+}
+
+void TestBiologicalNetwork::testNetworkConfiguration()
+{
     BioMining::Bio::BiologicalNetwork::NetworkConfig config;
     config.neuronCount = 64;
     config.learningRate = 0.02;
     
-    network->setNetworkConfig(config);
-    auto retrievedConfig = network->getNetworkConfig();
+    m_network->setNetworkConfig(config);
+    auto retrievedConfig = m_network->getNetworkConfig();
     
-    EXPECT_EQ(retrievedConfig.neuronCount, 64);
-    EXPECT_DOUBLE_EQ(retrievedConfig.learningRate, 0.02);
+    QCOMPARE(retrievedConfig.neuronCount, 64);
+    QCOMPARE(retrievedConfig.learningRate, 0.02);
 }
 
-TEST_F(BiologicalNetworkTest, LearningStateTransition) {
-    EXPECT_EQ(network->getLearningState(), BioMining::Bio::BiologicalNetwork::LearningState::Untrained);
+void TestBiologicalNetwork::testLearningStateTransition()
+{
+    QCOMPARE(m_network->getLearningState(), BioMining::Bio::BiologicalNetwork::LearningState::Untrained);
     
     // Start learning
-    EXPECT_TRUE(network->startInitialLearning(10));
+    QVERIFY(m_network->startInitialLearning(10));
     
     // Stop learning
-    network->stopLearning();
+    m_network->stopLearning();
 }
 
-TEST_F(BiologicalNetworkTest, NoncePredicition) {
+void TestBiologicalNetwork::testNoncePrediction()
+{
     // Initialize and configure network
-    EXPECT_TRUE(network->initialize());
+    QVERIFY(m_network->initialize());
     
     QString blockHeader = "0000000000000000000000000000000000000000000000000000000000000000";
     uint64_t difficulty = 1000;
     QVector<double> signalData = {0.1, 0.2, 0.3, 0.4, 0.5};
     
-    auto prediction = network->predictOptimalNonce(blockHeader, difficulty, signalData);
+    auto prediction = m_network->predictOptimalNonce(blockHeader, difficulty, signalData);
     
-    EXPECT_GT(prediction.confidence, 0.0);
-    EXPECT_LE(prediction.confidence, 1.0);
-    EXPECT_GT(prediction.suggestedNonce, 0);
+    QVERIFY(prediction.confidence > 0.0);
+    QVERIFY(prediction.confidence <= 1.0);
+    QVERIFY(prediction.suggestedNonce > 0);
 }
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+QTEST_MAIN(TestBiologicalNetwork)
+#include "test_biological_network.moc"
