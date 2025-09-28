@@ -140,6 +140,10 @@ target_link_libraries(biomining_cli
     biomining_core
 )
 
+set_target_properties(biomining_cli PROPERTIES
+    AUTOMOC ON
+)
+
 # === COMPOSANTS QUANTUM (Q+) ===
 
 if(ENABLE_QUANTUM_OPTIMIZATION)
