@@ -452,8 +452,7 @@ void BiominingCLI::saveResultsToFile()
     }
 
     QTextStream out(&file);
-    out << "[
-";
+    out << "[";
     for (int i = 0; i < m_results.size(); ++i) {
         const auto &result = m_results.at(i);
         QJsonObject obj;
