@@ -65,7 +65,7 @@ private slots:
 
     // MEA Events
     void onMEAStatusChanged(BioMining::Bio::MEAInterface::ConnectionStatus status);
-    void onMEASignalsReceived(const QVector<double> &signals);
+    void onMEASignalsReceived(const QVector<double> &currentSignals);
     void onMEAError(const QString &error);
     void onCalibrationChanged(double factor);
 
@@ -97,7 +97,7 @@ private:
     void setupMonitorTab(); // Declared here
     
     void log(const QString &message, const QString &level = "INFO");
-    void updateMEADisplay(const QVector<double> &signals);
+    void updateMEADisplay(const QVector<double> &currentSignals);
     void updateMiningStats();
     
     // Core components
