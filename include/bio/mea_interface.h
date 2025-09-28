@@ -13,6 +13,20 @@ namespace BioMining {
 namespace Bio {
 
 /**
+ * @brief Configuration pour l'interface MEA
+ */
+ struct MEAConfig {
+    int electrodeCount = 60;          // Nombre d'électrodes
+    double samplingRate = 25000.0;    // Fréquence d'échantillonnage (Hz)
+    double amplification = 1200.0;    // Facteur d'amplification
+    double filterLowCut = 300.0;      // Filtre passe-haut (Hz)
+    double filterHighCut = 8000.0;    // Filtre passe-bas (Hz)
+    bool thresholdDetection = true;   // Détection de seuil automatique
+    QString devicePath = "";          // Chemin du périphérique (optionnel)
+    int bufferSize = 1024;           // Taille du buffer d'acquisition
+};
+
+/**
  * @brief Interface pour la gestion des Multi-Electrode Arrays (MEA)
  * 
  * Cette classe fournit une interface standardisée pour l'acquisition et la stimulation
