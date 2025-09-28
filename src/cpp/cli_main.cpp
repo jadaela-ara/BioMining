@@ -11,7 +11,7 @@
 #include <algorithm> // For std::accumulate, std::max_element, std::min_element
 #include <QRandomGenerator> // For QRandomGenerator
 
-#include "bio/me-interface.h"
+#include "bio/mea_interface.h"
 #include "crypto/bitcoin_miner.h"
 
 class BiominingCLI : public QObject
