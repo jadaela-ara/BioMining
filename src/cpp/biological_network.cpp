@@ -1244,18 +1244,4 @@ QVector<double> BiologicalNetwork::getOutputValues()
     return getNetworkOutput();
 }
 
-void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
-{
-    QMutexLocker locker(&m_networkMutex);
-    qDebug() << "[BIO-NET] Public BiologicalNetwork::forwardPropagation() called.";
-    BiologicalNetwork::forwardPropagation(inputs); // Call the private implementation
-}
-
-void BiologicalNetwork::backPropagation(const QVector<double> &targets)
-{
-    QMutexLocker locker(&m_networkMutex);
-    qDebug() << "[BIO-NET] Public BiologicalNetwork::backPropagation() called.";
-    BiologicalNetwork::backPropagation(targets); // Call the private implementation
-}
-
 #include "biological_network.moc"

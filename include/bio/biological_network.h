@@ -134,8 +134,6 @@ public:
     void updateInputSignals(const QVector<double> &currentSignals);
     void updateWeights();
     QVector<double> getOutputValues();
-    void forwardPropagation(const QVector<double> &inputs);
-    void backPropagation(const QVector<double> &targets);
 
 signals:
     void learningStateChanged(LearningState newState);
