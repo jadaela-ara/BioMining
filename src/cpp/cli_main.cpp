@@ -459,11 +459,11 @@ void BiominingCLI::saveResultsToFile()
         obj["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
         obj["success"] = result.success;
         obj["attempts"] = (qint64)result.attempts;
-        obj["nonce"] = (qint64)result.nonce;
+        obj["nonce"] = result.nonce;
         obj["hash"] = result.hash;
-        obj["difficulty"] = (qint64)result.difficulty;
+        //obj["difficulty"] = (qint64)result.difficulty;
         obj["computeTime"] = (qint64)result.computeTime;
-        obj["signalInfluence"] = result.signalInfluence;
+        //obj["signalInfluence"] = result.signalInfluence;
         out << QJsonDocument(obj).toJson(QJsonDocument::Indented);
         if (i < m_results.size() - 1) {
             out << ",\n";
