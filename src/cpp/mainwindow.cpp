@@ -16,8 +16,8 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , m_meaInterface(std::make_unique<MEAInterface>(this))
-    , m_bitcoinMiner(std::make_unique<BitcoinMiner>(this))
+    , m_meaInterface(std::make_unique<BioMining::Bio::MEAInterface>(this))
+    , m_bitcoinMiner(std::make_unique<BioMining::Crypto::BitcoinMiner>(this))
     , m_updateTimer(std::make_unique<QTimer>(this))
     , m_sessionStartTime(QDateTime::currentSecsSinceEpoch())
     , m_totalMiningTime(0)
@@ -325,13 +325,13 @@ void MainWindow::setupConnections()
     connect(m_btnLoadCalibration, &QPushButton::clicked, this, &MainWindow::onLoadCalibration);
     
     // Signaux MEA
-    connect(m_meaInterface.get(), &MEAInterface::statusChanged,
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::statusChanged,
             this, &MainWindow::onMEAStatusChanged);
-    connect(m_meaInterface.get(), &MEAInterface::signalsAcquired,
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::signalsAcquired,
             this, &MainWindow::onMEASignalsReceived);
-    connect(m_meaInterface.get(), &MEAInterface::errorOccurred,
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::errorOccurred,
             this, &MainWindow::onMEAError);
-    connect(m_meaInterface.get(), &MEAInterface::calibrationChanged,
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::calibrationChanged,
             this, &MainWindow::onCalibrationChanged);
     
     // Connexions Mining
@@ -341,18 +341,18 @@ void MainWindow::setupConnections()
     connect(m_btnConfigureMining, &QPushButton::clicked, this, &MainWindow::onConfigureMining);
     
     // Signaux Mining
-    connect(m_bitcoinMiner.get(), &BitcoinMiner::miningComplete,
+    connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::miningComplete,
             this, &MainWindow::onMiningComplete);
-    connect(m_bitcoinMiner.get(), &BitcoinMiner::hashRateUpdated,
+    connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::hashRateUpdated,
             this, &MainWindow::onHashRateUpdated);
-    connect(m_bitcoinMiner.get(), &BitcoinMiner::progressUpdate,
+    connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::progressUpdate,
             this, &MainWindow::onMiningProgress);
-    connect(m_bitcoinMiner.get(), &BitcoinMiner::difficultyAdjusted,
+    connect(m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::difficultyAdjusted,
             this, &MainWindow::onDifficultyAdjusted);
     
     // Connexion MEA -> Mining pour le mode continu
-    connect(m_meaInterface.get(), &MEAInterface::signalsAcquired,
-            m_bitcoinMiner.get(), &BitcoinMiner::onBioSignalsReceived);
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::signalsAcquired,
+            m_bitcoinMiner.get(), &BioMining::Crypto::BitcoinMiner::onBioSignalsReceived);
     
     // Timer de mise à jour
     connect(m_updateTimer.get(), &QTimer::timeout, this, &MainWindow::onUpdateTimer);
