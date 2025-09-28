@@ -1,9 +1,9 @@
 #include <QtTest/QtTest>
 #include <QCoreApplication>
 #include "bio/biological_network.h"
-#include "bio/mea_interface.h"
 
-using namespace BioMining::Bio;
+
+using namespace BioMining::Network;
 
 class TestBiologicalNetwork : public QObject
 {
@@ -22,7 +22,7 @@ private slots:
     void testNoncePrediction();
 
 private:
-    BioMining::Bio::BiologicalNetwork* m_network;
+    BioMining::Network::BiologicalNetwork* m_network;
     QCoreApplication* m_app;
 };
 
@@ -44,7 +44,7 @@ void TestBiologicalNetwork::cleanupTestCase()
 void TestBiologicalNetwork::init()
 {
     // Préparation avant chaque test
-    m_network = new BioMining::Bio::BiologicalNetwork(this);
+    m_network = new BioMining::Network::BiologicalNetwork(this);
 }
 
 void TestBiologicalNetwork::cleanup()
@@ -63,7 +63,7 @@ void TestBiologicalNetwork::testInitialization()
 
 void TestBiologicalNetwork::testNetworkConfiguration()
 {
-    BioMining::Bio::BiologicalNetwork::NetworkConfig config;
+    BioMining::Network::BiologicalNetwork::NetworkConfig config;
     config.neuronCount = 64;
     config.learningRate = 0.02;
     
@@ -76,7 +76,7 @@ void TestBiologicalNetwork::testNetworkConfiguration()
 
 void TestBiologicalNetwork::testLearningStateTransition()
 {
-    QCOMPARE(m_network->getLearningState(), BioMining::Bio::BiologicalNetwork::LearningState::Untrained);
+    QCOMPARE(m_network->getLearningState(), BioMining::Network::BiologicalNetwork::LearningState::Untrained);
     
     // Start learning
     QVERIFY(m_network->startInitialLearning(10));

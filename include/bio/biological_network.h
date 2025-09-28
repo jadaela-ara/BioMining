@@ -10,6 +10,12 @@
 #include <memory>
 #include <functional>
 
+
+// Namespace pour éviter les conflits
+namespace BioMining {
+    namespace Network {
+
+
 /**
  * @brief Réseau biologique intelligent pour l'optimisation de recherche de nonce
  * 
@@ -252,5 +258,10 @@ private:
     // Alias pour la compatibilité
     typedef NetworkConfig LearningConfig;
 };
+
+
+
+} // namespace Network
+} // namespace BioMining
 
 #endif // BIOLOGICAL_NETWORK_H
