@@ -28,7 +28,7 @@ public:
     int run(const QStringList &arguments);
 
 private slots:
-    void onMEASignalsReceived(const QVector<double> &signals);
+    void onMEASignalsReceived(const QVector<double> &currentSignals);
     void onMiningComplete(const BioMining::Crypto::BitcoinMiner::MiningResult &result);
     void onTimeout();
 
@@ -477,14 +477,14 @@ void BiominingCLI::saveResultsToFile()
     m_out << "Résultats sauvegardés dans: " << m_outputFile << Qt::endl;
 }
 
-void BiominingCLI::onMEASignalsReceived(const QVector<double> &signals)
+void BiominingCLI::onMEASignalsReceived(const QVector<double> &currentSignals)
 {
     if (m_automaticMode && m_verbose) {
         static int signalCount = 0;
         if (++signalCount % 10 == 0) {
-            double avg = std::accumulate(signals.begin(), signals.end(), 0.0) / signals.size();
+            double avg = std::accumulate(currentSignals.begin(), currentSignals.end(), 0.0) / currentSignals.size();
             m_out << "[" << QTime::currentTime().toString("hh:mm:ss") 
-                  << "] Signaux MEA reçus (" << signals.size() 
+                  << "] Signaux MEA reçus (" << currentSignals.size() 
                   << " électrodes, moyenne: " << QString::number(avg, 'f', 4) << ")" << Qt::endl;
         }
     }
