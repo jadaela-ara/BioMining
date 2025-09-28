@@ -302,7 +302,7 @@ private:
     
 private:
     // Composants principaux
-    std::unique_ptr<BioMining::HCrypto::BitcoinMiner> m_traditionalMiner;
+    std::unique_ptr<BioMining::Crypto::BitcoinMiner> m_traditionalMiner;
     std::unique_ptr<BioMining::Network::BiologicalNetwork> m_biologicalNetwork;
     std::shared_ptr<BioMining::Bio::MEAInterface> m_meaInterface;
     
