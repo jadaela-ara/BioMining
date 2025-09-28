@@ -2,8 +2,11 @@
 #include <QSignalSpy>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <cmath>
 
-#include "include/crypto/bitcoin_miner.h"
+#include "crypto/bitcoin_miner.h"
+
+using namespace BioMining::Crypto;
 
 class TestBitcoinMiner : public QObject
 {
@@ -41,7 +44,7 @@ private slots:
     void testMemoryUsage();
 
 private:
-    BitcoinMiner *m_bitcoinMiner;
+    BioMining::Crypto::BitcoinMiner *m_bitcoinMiner;
     QVector<double> createTestSignals(int size = 60);
     QVector<double> createRandomSignals(int size = 60);
     QVector<double> createPatternnedSignals(int size = 60);
@@ -62,7 +65,7 @@ void TestBitcoinMiner::cleanupTestCase()
 
 void TestBitcoinMiner::init()
 {
-    m_bitcoinMiner = new BitcoinMiner(this);
+    m_bitcoinMiner = new BioMining::Crypto::BitcoinMiner(this);
 }
 
 void TestBitcoinMiner::cleanup()
@@ -77,34 +80,34 @@ void TestBitcoinMiner::cleanup()
 
 QVector<double> TestBitcoinMiner::createTestSignals(int size)
 {
-    QVector<double> signals(size);
+    QVector<double> signalData(size);
     for (int i = 0; i < size; ++i) {
-        signals[i] = 0.5 * std::sin(i * 0.1) + 0.3 * std::cos(i * 0.05);
+        signalData[i] = 0.5 * std::sin(i * 0.1) + 0.3 * std::cos(i * 0.05);
     }
-    return signals;
+    return signalData;
 }
 
 QVector<double> TestBitcoinMiner::createRandomSignals(int size)
 {
-    QVector<double> signals(size);
+    QVector<double> signalData(size);
     for (int i = 0; i < size; ++i) {
-        signals[i] = QRandomGenerator::global()->generateDouble() - 0.5;
+        signalData[i] = QRandomGenerator::global()->generateDouble() - 0.5;
     }
-    return signals;
+    return signalData;
 }
 
 QVector<double> TestBitcoinMiner::createPatternnedSignals(int size)
 {
-    QVector<double> signals(size);
+    QVector<double> signalData(size);
     for (int i = 0; i < size; ++i) {
         // Pattern biologique réaliste avec différentes fréquences
         double neural = 0.2 * std::sin(2 * M_PI * 10.0 * i / size); // 10 Hz neural
         double muscle = 0.1 * std::sin(2 * M_PI * 50.0 * i / size); // 50 Hz muscle
         double noise = 0.05 * (QRandomGenerator::global()->generateDouble() - 0.5);
         
-        signals[i] = neural + muscle + noise;
+        signalData[i] = neural + muscle + noise;
     }
-    return signals;
+    return signalData;
 }
 
 void TestBitcoinMiner::testInitialization()
@@ -148,7 +151,7 @@ void TestBitcoinMiner::testMiningConfiguration()
 
 void TestBitcoinMiner::testDifficultyAdjustment()
 {
-    QSignalSpy difficultySpy(m_bitcoinMiner, &BitcoinMiner::difficultyAdjusted);
+    QSignalSpy difficultySpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::difficultyAdjusted);
     
     BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     uint64_t originalDifficulty = config.difficulty;
@@ -211,8 +214,8 @@ void TestBitcoinMiner::testSingleMining()
 
 void TestBitcoinMiner::testAsyncMining()
 {
-    QSignalSpy miningSpy(m_bitcoinMiner, &BitcoinMiner::miningComplete);
-    QSignalSpy progressSpy(m_bitcoinMiner, &BitcoinMiner::progressUpdate);
+    QSignalSpy miningSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy progressSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::progressUpdate);
     
     // Configuration pour test
     BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
@@ -241,7 +244,7 @@ void TestBitcoinMiner::testAsyncMining()
 
 void TestBitcoinMiner::testContinuousMining()
 {
-    QSignalSpy miningSpy(m_bitcoinMiner, &BitcoinMiner::miningComplete);
+    QSignalSpy miningSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     
     // Démarrage du mode continu
     m_bitcoinMiner->startContinuousMining();
@@ -345,7 +348,7 @@ void TestBitcoinMiner::testNonceGeneration()
 
 void TestBitcoinMiner::testHashrateCalculation()
 {
-    QSignalSpy hashrateSpy(m_bitcoinMiner, &BitcoinMiner::hashRateUpdated);
+    QSignalSpy hashrateSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::hashRateUpdated);
     
     BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     config.maxAttempts = 1000;
@@ -462,7 +465,7 @@ void TestBitcoinMiner::testErrorHandling()
 void TestBitcoinMiner::testLongRunning()
 {
     // Test de stabilité sur une période plus longue
-    QSignalSpy miningSpy(m_bitcoinMiner, &BitcoinMiner::miningComplete);
+    QSignalSpy miningSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     
     BitcoinMiner::MiningConfig config = m_bitcoinMiner->getMiningConfig();
     config.maxAttempts = 1000; // Cycles rapides

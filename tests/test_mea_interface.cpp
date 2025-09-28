@@ -2,8 +2,15 @@
 #include <QSignalSpy>
 #include <QTimer>
 #include <QTemporaryFile>
+#include <QElapsedTimer>
+#include <QLoggingCategory>
+#include <QFile>
+#include <QThread>
+#include <cmath>
 
-#include "includebio/mea_interface.h"
+#include "bio/mea_interface.h"
+
+using namespace BioMining::Bio;
 
 class TestMEAInterface : public QObject
 {
@@ -41,7 +48,7 @@ private slots:
     void testPerformance();
 
 private:
-    MEAInterface *m_meaInterface;
+    BioMining::Bio::MEAInterface *m_meaInterface;
     QTemporaryFile *m_tempCalibFile;
 };
 
@@ -59,7 +66,7 @@ void TestMEAInterface::cleanupTestCase()
 void TestMEAInterface::init()
 {
     // Préparation avant chaque test
-    m_meaInterface = new MEAInterface(this);
+    m_meaInterface = new BioMining::Bio::MEAInterface(this);
     m_tempCalibFile = new QTemporaryFile(this);
     m_tempCalibFile->open();
 }
@@ -82,7 +89,7 @@ void TestMEAInterface::cleanup()
 void TestMEAInterface::testInitialization()
 {
     // Test de l'état initial
-    QCOMPARE(m_meaInterface->getStatus(), MEAInterface::ConnectionStatus::Disconnected);
+    QCOMPARE(m_meaInterface->getStatus(), BioMining::Bio::MEAInterface::ConnectionStatus::Disconnected);
     QCOMPARE(m_meaInterface->getCalibration(), 1.0);
     QVERIFY(m_meaInterface->getLastSignals().isEmpty());
     QCOMPARE(m_meaInterface->getSignalQuality(), 0.0);
@@ -91,32 +98,32 @@ void TestMEAInterface::testInitialization()
 void TestMEAInterface::testConnection()
 {
     // Test de connexion réussie
-    QSignalSpy statusSpy(m_meaInterface, &MEAInterface::statusChanged);
+    QSignalSpy statusSpy(m_meaInterface, &BioMining::Bio::MEAInterface::statusChanged);
     
     bool result = m_meaInterface->initialize();
     
     QVERIFY(result);
-    QCOMPARE(m_meaInterface->getStatus(), MEAInterface::ConnectionStatus::Connected);
+    QCOMPARE(m_meaInterface->getStatus(), BioMining::Bio::MEAInterface::ConnectionStatus::Connected);
     QVERIFY(statusSpy.count() >= 1);
     
     // Vérification du signal de changement de statut
     QList<QVariant> lastSignal = statusSpy.takeLast();
     QCOMPARE(lastSignal.at(0).value<MEAInterface::ConnectionStatus>(), 
-             MEAInterface::ConnectionStatus::Connected);
+             BioMining::Bio::MEAInterface::ConnectionStatus::Connected);
 }
 
 void TestMEAInterface::testDisconnection()
 {
     // Prérequis: connexion établie
     QVERIFY(m_meaInterface->initialize());
-    QCOMPARE(m_meaInterface->getStatus(), MEAInterface::ConnectionStatus::Connected);
+    QCOMPARE(m_meaInterface->getStatus(), BioMining::Bio::MEAInterface::ConnectionStatus::Connected);
     
-    QSignalSpy statusSpy(m_meaInterface, &MEAInterface::statusChanged);
+    QSignalSpy statusSpy(m_meaInterface, &BioMining::Bio::MEAInterface::statusChanged);
     
     // Test de déconnexion
     m_meaInterface->disconnect();
     
-    QCOMPARE(m_meaInterface->getStatus(), MEAInterface::ConnectionStatus::Disconnected);
+    QCOMPARE(m_meaInterface->getStatus(), BioMining::Bio::MEAInterface::ConnectionStatus::Disconnected);
     QVERIFY(statusSpy.count() >= 1);
 }
 
@@ -126,13 +133,13 @@ void TestMEAInterface::testSignalReading()
     QVERIFY(m_meaInterface->initialize());
     
     // Test de lecture de signaux
-    QVector<double> signals = m_meaInterface->readSignals();
+    QVector<double> signalData = m_meaInterface->readSignals();
     
-    QVERIFY(!signals.isEmpty());
-    QCOMPARE(signals.size(), 60); // 60 électrodes attendues
+    QVERIFY(!signalData.isEmpty());
+    QCOMPARE(signalData.size(), 60); // 60 électrodes attendues
     
     // Vérification que les signaux sont dans des valeurs raisonnables
-    for (double signal : signals) {
+    for (double signal : signalData) {
         QVERIFY(!std::isnan(signal));
         QVERIFY(!std::isinf(signal));
         QVERIFY(std::abs(signal) < 100.0); // Limite raisonnable
@@ -140,14 +147,14 @@ void TestMEAInterface::testSignalReading()
     
     // Vérification que les derniers signaux sont mémorisés
     QVector<double> lastSignals = m_meaInterface->getLastSignals();
-    QCOMPARE(lastSignals.size(), signals.size());
+    QCOMPARE(lastSignals.size(), signalData.size());
 }
 
 void TestMEAInterface::testContinuousAcquisition()
 {
     QVERIFY(m_meaInterface->initialize());
     
-    QSignalSpy signalsSpy(m_meaInterface, &MEAInterface::signalsAcquired);
+    QSignalSpy signalsSpy(m_meaInterface, &BioMining::Bio::MEAInterface::signalsAcquired);
     
     // Démarrage acquisition continue
     m_meaInterface->startContinuousAcquisition(50); // 20 Hz
@@ -177,7 +184,7 @@ void TestMEAInterface::testSignalQuality()
     QVERIFY(m_meaInterface->initialize());
     
     // Génération de signaux et calcul de qualité
-    QVector<double> signals = m_meaInterface->readSignals();
+    QVector<double> signalData = m_meaInterface->readSignals();
     double quality = m_meaInterface->getSignalQuality();
     
     QVERIFY(quality >= 0.0);
@@ -207,7 +214,7 @@ void TestMEAInterface::testStimulation()
 {
     QVERIFY(m_meaInterface->initialize());
     
-    QSignalSpy stimSpy(m_meaInterface, &MEAInterface::stimulationComplete);
+    QSignalSpy stimSpy(m_meaInterface, &BioMining::Bio::MEAInterface::stimulationComplete);
     
     // Création d'un pattern de stimulation
     QVector<double> pattern(60);
@@ -236,7 +243,7 @@ void TestMEAInterface::testStimulationParameters()
     // Pas d'accesseurs directs, mais on teste via stimulation
     QVector<double> pattern(60, 0.5);
     
-    QSignalSpy stimSpy(m_meaInterface, &MEAInterface::stimulationComplete);
+    QSignalSpy stimSpy(m_meaInterface, &BioMining::Bio::MEAInterface::stimulationComplete);
     m_meaInterface->stimulate(pattern);
     
     QVERIFY(stimSpy.wait(1000));
@@ -263,7 +270,7 @@ void TestMEAInterface::testCalibrationAdjustment()
 {
     QVERIFY(m_meaInterface->initialize());
     
-    QSignalSpy calibSpy(m_meaInterface, &MEAInterface::calibrationChanged);
+    QSignalSpy calibSpy(m_meaInterface, &BioMining::Bio::MEAInterface::calibrationChanged);
     
     double initialCalib = m_meaInterface->getCalibration();
     QCOMPARE(initialCalib, 1.0);
@@ -330,8 +337,8 @@ void TestMEAInterface::testCalibrationBounds()
 void TestMEAInterface::testErrorHandling()
 {
     // Test lecture sans connexion
-    QVector<double> signals = m_meaInterface->readSignals();
-    QVERIFY(signals.isEmpty());
+    QVector<double> signalData = m_meaInterface->readSignals();
+    QVERIFY(signalData.isEmpty());
     
     QString error = m_meaInterface->getLastError();
     QVERIFY(!error.isEmpty());
@@ -344,7 +351,7 @@ void TestMEAInterface::testErrorHandling()
     QVERIFY(m_meaInterface->initialize());
     QVector<double> invalidPattern(30, 0.5); // Mauvaise taille
     
-    QSignalSpy errorSpy(m_meaInterface, &MEAInterface::errorOccurred);
+    QSignalSpy errorSpy(m_meaInterface, &BioMining::Bio::MEAInterface::errorOccurred);
     m_meaInterface->stimulate(invalidPattern);
     
     QVERIFY(errorSpy.wait(100));
@@ -396,8 +403,8 @@ void TestMEAInterface::testPerformance()
     
     const int numReadings = 100;
     for (int i = 0; i < numReadings; ++i) {
-        QVector<double> signals = m_meaInterface->readSignals();
-        QVERIFY(!signals.isEmpty());
+        QVector<double> signalData = m_meaInterface->readSignals();
+        QVERIFY(!signalData.isEmpty());
     }
     
     qint64 elapsedMs = timer.elapsed();

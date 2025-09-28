@@ -2,9 +2,9 @@
 #include <QObject>
 #include <QSignalSpy>
 #include <memory>
-#include "include/crypto/hybrid_bitcoin_miner.h"
-#include "include/bio/mea_interface.h"
-#include "include/bio/biological_network.h"
+#include "crypto/hybrid_bitcoin_miner.h"
+#include "bio/mea_interface.h"
+#include "bio/biological_network.h"
 
 using namespace BioMining::Crypto;
 using namespace BioMining::Bio;
@@ -53,7 +53,7 @@ private slots:
 
 private:
     void createTestTrainingData(std::vector<BiologicalTrainingData>& trainingData, int count = 100);
-    void simulateMEASignals(std::vector<double>& signals);
+    void simulateMEASignals(std::vector<double>& signalData);
     bool validateMiningMetrics(const HybridMiningMetrics& metrics);
     
 private:
@@ -581,9 +581,9 @@ void TestHybridBitcoinMiner::createTestTrainingData(std::vector<BiologicalTraini
     }
 }
 
-void TestHybridBitcoinMiner::simulateMEASignals(std::vector<double>& signals)
+void TestHybridBitcoinMiner::simulateMEASignals(std::vector<double>& signalData)
 {
-    signals.resize(60);
+    signalData.resize(60);
     
     for (int i = 0; i < 60; ++i) {
         // Simulation de signaux biologiques réalistes
@@ -591,7 +591,7 @@ void TestHybridBitcoinMiner::simulateMEASignals(std::vector<double>& signals)
         double biologicalComponent = 0.05 * std::sin(i * 0.2 + QRandomGenerator::global()->generateDouble());
         double randomSpike = (QRandomGenerator::global()->generateDouble() > 0.9) ? 0.2 : 0.0;
         
-        signals[i] = baseSignal + biologicalComponent + randomSpike;
+        signalData[i] = baseSignal + biologicalComponent + randomSpike;
     }
 }
 
