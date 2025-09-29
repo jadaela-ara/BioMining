@@ -13,7 +13,7 @@ namespace HCrypto {
 
 HybridBitcoinMiner::HybridBitcoinMiner(QObject* parent)
     : QObject(parent)
-    , m_traditionalMiner(std::make_unique<BitcoinMiner>())
+    , m_traditionalMiner(std::make_unique<BioMining::Crypto::BitcoinMiner>())
     , m_biologicalNetwork(nullptr)
     , m_meaInterface(nullptr)
     , m_biologicalWeight(DEFAULT_BIOLOGICAL_WEIGHT)
@@ -72,7 +72,7 @@ bool HybridBitcoinMiner::initialize()
         }
         
         // Création du réseau biologique
-        m_biologicalNetwork = std::make_unique<BiologicalNetwork>();
+        m_biologicalNetwork = std::make_unique<BioMining::Network::BiologicalNetwork>();
         if (!m_biologicalNetwork->initialize()) {
             qCritical() << "Failed to initialize biological network";
             return false;
@@ -129,7 +129,7 @@ bool HybridBitcoinMiner::configureBiologicalNetwork(const BiologicalLearningPara
     return true;
 }
 
-bool HybridBitcoinMiner::connectToMEA(std::shared_ptr<Bio::MEAInterface> meaInterface)
+bool HybridBitcoinMiner::connectToMEA(std::shared_ptr<BioMining::Bio::MEAInterface> meaInterface)
 {
     QMutexLocker locker(&m_stateMutex);
     
@@ -743,23 +743,23 @@ void HybridBitcoinMiner::onMEADataReceived(const std::vector<double>& electrodeD
     }
 }
 
-void HybridBitcoinMiner::onNetworkStateChanged(Bio::NetworkLearningState state)
+void HybridBitcoinMiner::onNetworkStateChanged(BioMining::HBio::NetworkLearningState state)
 {
     // Synchronisation des états d'apprentissage
     switch (state) {
-        case Bio::NetworkLearningState::Untrained:
+        case BioMining::HBio::NetworkLearningState::Untrained:
             m_learningState = HybridLearningState::InitialLearning;
             break;
-        case Bio::NetworkLearningState::InitialLearning:
+        case BioMining::HBio::NetworkLearningState::InitialLearning:
             m_learningState = HybridLearningState::InitialLearning;
             break;
-        case Bio::NetworkLearningState::Trained:
+        case BioMining::HBio::NetworkLearningState::Trained:
             m_learningState = HybridLearningState::ActiveMining;
             break;
-        case Bio::NetworkLearningState::Retraining:
+        case BioMining::HBio::NetworkLearningState::Retraining:
             m_learningState = HybridLearningState::RetroLearning;
             break;
-        case Bio::NetworkLearningState::Optimizing:
+        case BioMining::HBio::NetworkLearningState::Optimizing:
             m_learningState = HybridLearningState::Optimizing;
             break;
         default:
@@ -1240,7 +1240,7 @@ void HybridBitcoinMiner::cleanupMiningThreads()
 
 // Méthodes utilitaires supplémentaires
 
-void HybridBitcoinMiner::generateInitialTrainingData(std::vector<BioMining::Crypto::BiologicalTrainingData>& trainingData)
+void HybridBitcoinMiner::generateInitialTrainingData(std::vector<BioMining::HCrypto::BiologicalTrainingData>& trainingData)
 {
     // Génération de données d'entraînement synthétiques pour l'apprentissage initial
     trainingData.clear();

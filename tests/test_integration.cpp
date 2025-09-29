@@ -315,7 +315,7 @@ void TestIntegration::testAdaptiveCalibration()
     for (int cycle = 0; cycle < 5; ++cycle) {
         // Acquisition et mining
         QVector<double> signalData = m_meaInterface->readSignals();
-        BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signals);
+        BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signalData);
         
         // Adaptation basée sur la performance
         double signalQuality = m_meaInterface->getSignalQuality();
