@@ -144,13 +144,13 @@ bool HybridBitcoinMiner::connectToMEA(std::shared_ptr<BioMining::Bio::MEAInterfa
     
     // Connexion des signaux MEA
     connect(m_meaInterface.get(), 
-                   static_cast<void (Bio::MEAInterface::*)(const QVector<double>&)>(&Bio::MEAInterface::dataReady),
+                   static_cast<void (BioMining::Bio::MEAInterface::*)(const QVector<double>&)>(&BioMining::Bio::MEAInterface::dataReady),
                    this, 
                    [this](const QVector<double>& data) {
                        std::vector<double> stdData(data.begin(), data.end());
                        this->onMEADataReceived(stdData);
                    });
-    connect(m_meaInterface.get(), &Bio::MEAInterface::errorOccurred,
+    connect(m_meaInterface.get(), &BioMining::Bio::MEAInterface::errorOccurred,
             this, &HybridBitcoinMiner::errorOccurred);
     
     // Vérification de la connectivité
