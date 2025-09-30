@@ -8,6 +8,7 @@
 
 using namespace BioMining::HCrypto;
 using namespace BioMining::HBio;
+using namespace BioMining::Bio;
 
 class TestHybridBitcoinMiner : public QObject
 {
@@ -58,7 +59,7 @@ private:
     
 private:
     std::unique_ptr<HybridBitcoinMiner> m_hybridMiner;
-    std::shared_ptr<MEAInterface> m_mockMEA;
+    std::shared_ptr<BioMining::Bio::MEAInterface> m_mockMEA;
     BiologicalLearningParams m_testParams;
     MiningConfig m_testMiningConfig;
 };
@@ -80,8 +81,8 @@ void TestHybridBitcoinMiner::initTestCase()
     
     // Configuration du mining
     m_testMiningConfig.targetDifficulty = 1.0;
-    m_testMiningConfig.maxNonce = 1000000;
-    m_testMiningConfig.threadCount = 2;
+    // Configuration des paramètres de mining de base
+    // Note: MiningConfig peut ne pas avoir tous les champs selon l'implémentation
 }
 
 void TestHybridBitcoinMiner::cleanupTestCase()
@@ -95,7 +96,7 @@ void TestHybridBitcoinMiner::init()
     m_hybridMiner = std::make_unique<HybridBitcoinMiner>();
     
     // Création d'un MEA mock pour les tests
-    m_mockMEA = std::make_shared<MEAInterface>();
+    m_mockMEA = std::make_shared<BioMining::Bio::MEAInterface>();
 }
 
 void TestHybridBitcoinMiner::cleanup()
@@ -198,7 +199,8 @@ void TestHybridBitcoinMiner::testNoncePrediction()
     // Simulation de signaux MEA
     std::vector<double> meaSignals(60);
     simulateMEASignals(meaSignals);
-    m_mockMEA->updateElectrodeData(meaSignals);
+    // Simulation de stimulation avec des signaux MEA
+    m_mockMEA->stimulate(QVector<double>(meaSignals.begin(), meaSignals.end()));
     
     // Test de prédiction de nonce
     QString testBlockHeader = "test_block_header_123456";
@@ -274,7 +276,8 @@ void TestHybridBitcoinMiner::testRetroLearning()
     // Simulation de quelques prédictions pour créer un historique
     std::vector<double> meaSignals(60);
     simulateMEASignals(meaSignals);
-    m_mockMEA->updateElectrodeData(meaSignals);
+    // Simulation de stimulation avec des signaux MEA
+    m_mockMEA->stimulate(QVector<double>(meaSignals.begin(), meaSignals.end()));
     
     // Création d'un historique de prédictions
     for (int i = 0; i < 10; ++i) {
@@ -339,7 +342,8 @@ void TestHybridBitcoinMiner::testPredictionValidation()
     // Simulation de signaux MEA
     std::vector<double> meaSignals(60);
     simulateMEASignals(meaSignals);
-    m_mockMEA->updateElectrodeData(meaSignals);
+    // Simulation de stimulation avec des signaux MEA
+    m_mockMEA->stimulate(QVector<double>(meaSignals.begin(), meaSignals.end()));
     
     // Génération d'une prédiction
     QString testBlockHeader = "validation_test_header";
@@ -443,8 +447,9 @@ void TestHybridBitcoinMiner::testMEADataProcessing()
     simulateMEASignals(testSignals);
     
     // Test du signal onMEADataReceived
-    QSignalSpy dataSpy(m_mockMEA.get(), &MEAInterface::dataReady);
-    m_mockMEA->updateElectrodeData(testSignals);
+    QSignalSpy dataSpy(m_mockMEA.get(), SIGNAL(dataReady()));
+    // Simulation de stimulation avec des signaux de test
+    m_mockMEA->stimulate(QVector<double>(testSignals.begin(), testSignals.end()));
     
     // Vérification que les données sont traitées
     // (Le signal peut ne pas être émis dans cette implémentation mock)
@@ -500,7 +505,8 @@ void TestHybridBitcoinMiner::testMiningCycle()
     // Simulation de données MEA
     std::vector<double> meaSignals(60);
     simulateMEASignals(meaSignals);
-    m_mockMEA->updateElectrodeData(meaSignals);
+    // Simulation de stimulation avec des signaux MEA
+    m_mockMEA->stimulate(QVector<double>(meaSignals.begin(), meaSignals.end()));
     
     // Démarrage du mining
     QSignalSpy blockSpy(m_hybridMiner.get(), &HybridBitcoinMiner::blockFound);
@@ -535,7 +541,8 @@ void TestHybridBitcoinMiner::testPatternConvergence()
         consistentSignals[i] = 0.5 + 0.1 * std::sin(i * 0.1); // Pattern cohérent
     }
     
-    m_mockMEA->updateElectrodeData(consistentSignals);
+    // Simulation de stimulation avec des signaux consistants
+    m_mockMEA->stimulate(QVector<double>(consistentSignals.begin(), consistentSignals.end()));
     
     // Génération de prédictions similaires pour tester la convergence
     for (int i = 0; i < 20; ++i) {
