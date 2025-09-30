@@ -1,0 +1,286 @@
+{
+  "supported_devices": {
+    "MultiChannelSystems_MCS": {
+      "name": "Multi Channel Systems MEA2100",
+      "description": "Système MEA professionnel avec 60 électrodes",
+      "protocol": "TCP",
+      "default_config": {
+        "network_host": "localhost",
+        "network_port": 3333,
+        "electrode_count": 60,
+        "sampling_rate": 25000.0,
+        "amplification": 1200.0,
+        "filter_low_cut": 300.0,
+        "filter_high_cut": 8000.0,
+        "electrode_spacing_um": 30,
+        "electrode_diameter_um": 10,
+        "setup_commands": [
+          "SET ELECTRODES 60",
+          "SET SAMPLING 25000",
+          "SET GAIN 1200",
+          "SET FILTER 300 8000",
+          "ENABLE ALL"
+        ]
+      }
+    },
+    
+    "AlphaOmega_AlphaMap": {
+      "name": "Alpha Omega AlphaMap",
+      "description": "Système d'électrophysiologie haute résolution",
+      "protocol": "Custom_API",
+      "default_config": {
+        "device_path": "/dev/alphamap0",
+        "electrode_count": 96,
+        "sampling_rate": 44000.0,
+        "amplification": 2000.0,
+        "filter_low_cut": 0.1,
+        "filter_high_cut": 10000.0,
+        "impedance_test_frequency": 1000.0,
+        "api_library": "libalphamap.so"
+      }
+    },
+    
+    "Blackrock_CerePlex": {
+      "name": "Blackrock CerePlex Direct",
+      "description": "Système d'acquisition Blackrock Microsystems",
+      "protocol": "Custom_API",
+      "default_config": {
+        "device_path": "/dev/cereplex0",
+        "electrode_count": 96,
+        "sampling_rate": 30000.0,
+        "amplification": 5000.0,
+        "filter_low_cut": 0.3,
+        "filter_high_cut": 7500.0,
+        "digital_filters": true,
+        "spike_detection": true,
+        "api_library": "libcereplex.so"
+      }
+    },
+    
+    "Plexon_OmniPlex": {
+      "name": "Plexon OmniPlex Neural Data Acquisition System",
+      "description": "Système multicanal Plexon pour enregistrements neuraux",
+      "protocol": "TCP",
+      "default_config": {
+        "network_host": "192.168.1.100",
+        "network_port": 6000,
+        "electrode_count": 128,
+        "sampling_rate": 40000.0,
+        "amplification": 1000.0,
+        "filter_low_cut": 150.0,
+        "filter_high_cut": 8000.0,
+        "spike_threshold": -50.0,
+        "online_sorting": true
+      }
+    },
+    
+    "Intan_RHD": {
+      "name": "Intan RHD USB Interface Board",
+      "description": "Interface USB Intan pour amplificateurs RHD2000",
+      "protocol": "SerialPort",
+      "default_config": {
+        "device_path": "/dev/ttyACM0",
+        "baud_rate": 921600,
+        "electrode_count": 64,
+        "sampling_rate": 20000.0,
+        "amplification": 200.0,
+        "filter_low_cut": 1.0,
+        "filter_high_cut": 10000.0,
+        "impedance_test": true,
+        "auxiliary_inputs": 3
+      }
+    },
+    
+    "OpenEphys_ONIX": {
+      "name": "Open Ephys ONIX Breakout Board",
+      "description": "Système open-source pour électrophysiologie",
+      "protocol": "Custom_API",
+      "default_config": {
+        "device_path": "/dev/onix0",
+        "electrode_count": 64,
+        "sampling_rate": 30000.0,
+        "amplification": 500.0,
+        "filter_low_cut": 300.0,
+        "filter_high_cut": 10000.0,
+        "headstage_type": "RHD2164",
+        "data_format": "int16"
+      }
+    },
+    
+    "NeuroNexus_SmartBox": {
+      "name": "NeuroNexus SmartBox Pro",
+      "description": "Interface NeuroNexus pour sondes silicium",
+      "protocol": "TCP", 
+      "default_config": {
+        "network_host": "localhost",
+        "network_port": 8001,
+        "electrode_count": 32,
+        "sampling_rate": 30000.0,
+        "amplification": 1000.0,
+        "filter_low_cut": 0.1,
+        "filter_high_cut": 10000.0,
+        "probe_type": "A4x8-5mm-100-400-177",
+        "reference_electrode": 31
+      }
+    },
+    
+    "Custom_Arduino": {
+      "name": "Arduino-based MEA Interface",
+      "description": "Interface MEA personnalisée basée sur Arduino/microcontrôleur",
+      "protocol": "SerialPort",
+      "default_config": {
+        "device_path": "/dev/ttyUSB0",
+        "baud_rate": 115200,
+        "electrode_count": 16,
+        "sampling_rate": 10000.0,
+        "amplification": 100.0,
+        "adc_resolution": 12,
+        "reference_voltage": 3.3,
+        "commands": {
+          "start_acquisition": "START\\n",
+          "stop_acquisition": "STOP\\n",
+          "read_data": "READ\\n",
+          "stimulate": "STIM {electrode} {amplitude} {duration}\\n"
+        }
+      }
+    },
+    
+    "Custom_Raspberry": {
+      "name": "Raspberry Pi MEA Interface",
+      "description": "Interface MEA basée sur Raspberry Pi avec ADC externe",
+      "protocol": "TCP",
+      "default_config": {
+        "network_host": "raspberrypi.local",
+        "network_port": 8080,
+        "electrode_count": 32,
+        "sampling_rate": 25000.0,
+        "amplification": 500.0,
+        "adc_type": "MCP3008",
+        "spi_channel": 0,
+        "data_format": "json"
+      }
+    },
+    
+    "Simulation_Mode": {
+      "name": "Mode Simulation",
+      "description": "Interface simulée pour tests et développement",
+      "protocol": "Custom_API",
+      "default_config": {
+        "electrode_count": 60,
+        "sampling_rate": 25000.0,
+        "noise_level": 0.1,
+        "spike_rate": 5.0,
+        "biological_patterns": true,
+        "real_time": true,
+        "data_recording": false
+      }
+    }
+  },
+  
+  "communication_protocols": {
+    "SerialPort": {
+      "description": "Communication série RS232/USB",
+      "parameters": ["device_path", "baud_rate", "data_bits", "parity", "stop_bits"],
+      "typical_paths": {
+        "linux": ["/dev/ttyUSB0", "/dev/ttyACM0", "/dev/ttyS0"],
+        "windows": ["COM1", "COM2", "COM3", "COM4"],
+        "macos": ["/dev/cu.usbserial", "/dev/cu.usbmodem"]
+      }
+    },
+    
+    "TCP": {
+      "description": "Socket TCP/IP",
+      "parameters": ["network_host", "network_port", "timeout_ms"],
+      "default_ports": {
+        "MCS": 3333,
+        "Plexon": 6000,
+        "Generic": 8080
+      }
+    },
+    
+    "UDP": {
+      "description": "Socket UDP",
+      "parameters": ["network_host", "network_port", "buffer_size"],
+      "use_cases": ["Real-time streaming", "Low latency"]
+    },
+    
+    "SharedMemory": {
+      "description": "Mémoire partagée inter-processus",
+      "parameters": ["memory_key", "memory_size", "sync_method"],
+      "platforms": ["Linux", "Windows"]
+    },
+    
+    "Custom_API": {
+      "description": "API propriétaire du fabricant",
+      "parameters": ["api_library", "device_path", "config_file"],
+      "note": "Nécessite les bibliothèques du fabricant"
+    }
+  },
+  
+  "calibration_procedures": {
+    "impedance_test": {
+      "description": "Test d'impédance des électrodes",
+      "frequency_hz": 1000.0,
+      "amplitude_mv": 10.0,
+      "acceptable_range_mohm": [0.1, 10.0],
+      "duration_ms": 1000
+    },
+    
+    "noise_measurement": {
+      "description": "Mesure du bruit de fond",
+      "duration_ms": 5000,
+      "acceptable_rms_uv": 20.0,
+      "frequency_bands": [
+        {"name": "LFP", "low_hz": 0.1, "high_hz": 300},
+        {"name": "Spikes", "low_hz": 300, "high_hz": 6000}
+      ]
+    },
+    
+    "crosstalk_test": {
+      "description": "Test de diaphonie entre électrodes",
+      "stimulation_amplitude_mv": 100.0,
+      "acceptable_crosstalk_db": -40.0,
+      "test_pairs": "adjacent_only"
+    }
+  },
+  
+  "safety_limits": {
+    "stimulation": {
+      "max_voltage_v": 5.0,
+      "max_current_ua": 100.0,
+      "max_duration_ms": 1000.0,
+      "min_interval_ms": 100.0,
+      "charge_balanced": true
+    },
+    
+    "acquisition": {
+      "max_sampling_rate_hz": 50000.0,
+      "max_electrodes": 256,
+      "max_amplification": 10000.0,
+      "input_range_mv": [-5.0, 5.0]
+    }
+  },
+  
+  "troubleshooting": {
+    "connection_failed": [
+      "Vérifiez que le dispositif est connecté et sous tension",
+      "Vérifiez les permissions d'accès au périphérique",
+      "Testez avec un autre câble USB/série",
+      "Vérifiez que le bon pilote est installé"
+    ],
+    
+    "poor_signal_quality": [
+      "Vérifiez les connexions des électrodes",
+      "Testez l'impédance des électrodes",
+      "Vérifiez la mise à la terre du système",
+      "Réduisez les sources d'interférences électriques"
+    ],
+    
+    "high_noise": [
+      "Vérifiez la configuration des filtres",
+      "Isolez électriquement le système",
+      "Utilisez des câbles blindés",
+      "Vérifiez la qualité de l'alimentation"
+    ]
+  }
+}

@@ -39,11 +39,22 @@ target_link_libraries(example_custom_benchmark
     Qt6::Core
 )
 
+# Exemple d'interface MEA réelle
+add_executable(example_real_mea
+    real_mea_example.cpp
+)
+target_link_libraries(example_real_mea
+    biomining_core
+    Qt6::Core
+    Qt6::SerialPort
+)
+
 # Installation des exemples
 install(TARGETS 
     example_mea_basic 
     example_mining_basic 
     example_complete_workflow
     example_custom_benchmark
+    example_real_mea
     RUNTIME DESTINATION bin/examples
 )

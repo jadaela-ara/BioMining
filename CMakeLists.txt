@@ -26,6 +26,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Widgets 
     Network 
     Concurrent
+    SerialPort
 )
 
 # Charts est optionnel pour certains environnements
@@ -72,6 +73,7 @@ include_directories(
 # Sources de la bibliothèque core
 set(LIB_SOURCES
     src/cpp/mea_interface.cpp
+    src/cpp/real_mea_interface.cpp
     src/cpp/bitcoin_miner.cpp
     src/cpp/biological_network.cpp
     src/cpp/hybrid_bitcoin_miner.cpp
@@ -80,6 +82,7 @@ set(LIB_SOURCES
 # Headers
 set(LIB_HEADERS
     include/bio/mea_interface.h
+    include/bio/real_mea_interface.h
     include/crypto/bitcoin_miner.h
     include/bio/biological_network.h
     include/crypto/hybrid_bitcoin_miner.h
@@ -99,6 +102,7 @@ target_link_libraries(biomining_core
     Qt6::Core
     Qt6::Network
     Qt6::Concurrent
+    Qt6::SerialPort
     OpenSSL::SSL
     OpenSSL::Crypto
     Threads::Threads
