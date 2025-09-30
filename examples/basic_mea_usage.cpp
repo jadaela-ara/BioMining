@@ -2,8 +2,11 @@
 #include <QDebug>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QThread>
 
 #include "bio/mea_interface.h"
+
+using namespace BioMining::Bio;
 
 /**
  * @brief Exemple basique d'utilisation de l'interface MEA
@@ -43,30 +46,30 @@ int main(int argc, char *argv[])
         QElapsedTimer timer;
         timer.start();
         
-        QVector<double> signals = meaInterface.readSignals();
+        QVector<double> signalData = meaInterface.readSignals();
         
-        if (signals.isEmpty()) {
+        if (signalData.isEmpty()) {
             qWarning() << "Aucun signal reçu au cycle" << cycle + 1;
             continue;
         }
         
         // Analyse basique des signaux
-        double sum = 0.0, min = signals[0], max = signals[0];
-        for (double signal : signals) {
+        double sum = 0.0, minVal = signalData[0], maxVal = signalData[0];
+        for (double signal : signalData) {
             sum += signal;
-            if (signal < min) min = signal;
-            if (signal > max) max = signal;
+            if (signal < minVal) minVal = signal;
+            if (signal > maxVal) maxVal = signal;
         }
         
-        double average = sum / signals.size();
+        double average = sum / signalData.size();
         double quality = meaInterface.getSignalQuality();
         
         qDebug() << QString("Cycle %1 - Électrodes: %2, Moyenne: %3, Min: %4, Max: %5, Qualité: %6%, Temps: %7ms")
                     .arg(cycle + 1)
-                    .arg(signals.size())
+                    .arg(signalData.size())
                     .arg(average, 0, 'f', 4)
-                    .arg(min, 0, 'f', 4)
-                    .arg(max, 0, 'f', 4)
+                    .arg(minVal, 0, 'f', 4)
+                    .arg(maxVal, 0, 'f', 4)
                     .arg(quality * 100, 0, 'f', 1)
                     .arg(timer.elapsed());
         
@@ -94,127 +97,64 @@ int main(int argc, char *argv[])
         stimulationPattern[i] = 0.5 * (1.0 + sin(i * 0.1)) * 0.8;
     }
     
-    // Connexion au signal de completion
-    QObject::connect(&meaInterface, &MEAInterface::stimulationComplete, [&]() {
-        qDebug() << "Stimulation terminée avec succès!";
-    });
-    
     // Envoi de la stimulation
     meaInterface.stimulate(stimulationPattern);
+    qDebug() << "Stimulation envoyée avec succès!";
     
     // Attente courte pour la completion
-    QTimer::singleShot(200, [&]() {
-        // Lecture de la réponse après stimulation
-        qDebug() << "\n5. Lecture de la réponse post-stimulation...";
-        
-        QVector<double> responseSignals = meaInterface.readSignals();
-        if (!responseSignals.isEmpty()) {
-            double responseQuality = meaInterface.getSignalQuality();
-            
-            double responseSum = 0.0;
-            for (double signal : responseSignals) {
-                responseSum += signal;
-            }
-            double responseAvg = responseSum / responseSignals.size();
-            
-            qDebug() << QString("Réponse - Moyenne: %1, Qualité: %2%")
-                        .arg(responseAvg, 0, 'f', 4)
-                        .arg(responseQuality * 100, 0, 'f', 1);
-        }
-        
-        // === ÉTAPE 6: CALIBRATION ADAPTATIVE ===
-        qDebug() << "\n6. Test de calibration adaptative...";
-        
-        double originalCalibration = meaInterface.getCalibration();
-        qDebug() << "Calibration originale:" << originalCalibration;
-        
-        // Connexion au signal de calibration
-        QObject::connect(&meaInterface, &MEAInterface::calibrationChanged, [](double newFactor) {
-            qDebug() << "Calibration mise à jour:" << newFactor;
-        });
-        
-        // Ajustements progressifs basés sur la qualité
-        for (int adjustment = 0; adjustment < 3; ++adjustment) {
-            QVector<double> testSignals = meaInterface.readSignals();
-            double currentQuality = meaInterface.getSignalQuality();
-            
-            // Algorithme d'ajustement simple
-            double adjustmentFactor = 1.0;
-            if (currentQuality > 0.7) {
-                adjustmentFactor = 1.05; // Amélioration légère
-            } else if (currentQuality < 0.3) {
-                adjustmentFactor = 0.95; // Réduction
-            } else {
-                adjustmentFactor = 1.02; // Ajustement minimal
-            }
-            
-            meaInterface.adjustCalibration(adjustmentFactor);
-            
-            qDebug() << QString("Ajustement %1 - Qualité: %2%, Facteur: %3, Nouvelle calibration: %4")
-                        .arg(adjustment + 1)
-                        .arg(currentQuality * 100, 0, 'f', 1)
-                        .arg(adjustmentFactor, 0, 'f', 3)
-                        .arg(meaInterface.getCalibration(), 0, 'f', 3);
-            
-            QThread::msleep(300);
-        }
-        
-        // === ÉTAPE 7: ACQUISITION CONTINUE ===
-        qDebug() << "\n7. Test d'acquisition continue...";
-        
-        QObject::connect(&meaInterface, &MEAInterface::signalsAcquired, [](const QVector<double> &signals) {
-            static int acquisitionCount = 0;
-            acquisitionCount++;
-            
-            if (acquisitionCount <= 5) { // Log seulement les 5 premières
-                double avg = 0.0;
-                for (double signal : signals) {
-                    avg += signal;
-                }
-                avg /= signals.size();
-                
-                qDebug() << QString("Acquisition continue #%1 - Moyenne: %2")
-                            .arg(acquisitionCount)
-                            .arg(avg, 0, 'f', 4);
-            }
-        });
-        
-        // Démarrage de l'acquisition continue (5 Hz)
-        meaInterface.startContinuousAcquisition(200);
-        qDebug() << "Acquisition continue démarrée (5 Hz)...";
-        
-        // Laisser tourner 2 secondes
-        QTimer::singleShot(2000, [&]() {
-            meaInterface.stopContinuousAcquisition();
-            qDebug() << "Acquisition continue arrêtée.";
-            
-            // === ÉTAPE 8: SAUVEGARDE DE CALIBRATION ===
-            qDebug() << "\n8. Sauvegarde de la calibration...";
-            
-            QString calibrationFile = "example_mea_calibration.json";
-            meaInterface.saveCalibration(calibrationFile);
-            qDebug() << "Calibration sauvegardée dans:" << calibrationFile;
-            
-            // Test de rechargement
-            meaInterface.resetCalibration();
-            qDebug() << "Calibration réinitialisée à:" << meaInterface.getCalibration();
-            
-            if (meaInterface.loadCalibration(calibrationFile)) {
-                qDebug() << "Calibration rechargée avec succès:" << meaInterface.getCalibration();
-            } else {
-                qWarning() << "Erreur lors du rechargement:" << meaInterface.getLastError();
-            }
-            
-            // === FINALISATION ===
-            qDebug() << "\n=== Exemple terminé ===";
-            qDebug() << "Déconnexion de l'interface MEA...";
-            
-            meaInterface.disconnect();
-            qDebug() << "Statut final:" << static_cast<int>(meaInterface.getStatus());
-            
-            app.quit();
-        });
-    });
+    QThread::msleep(200);
     
-    return app.exec();
+    // === ÉTAPE 5: LECTURE POST-STIMULATION ===
+    qDebug() << "\n5. Lecture de la réponse post-stimulation...";
+    
+    QVector<double> responseSignalData = meaInterface.readSignals();
+    if (!responseSignalData.isEmpty()) {
+        double responseQuality = meaInterface.getSignalQuality();
+        
+        double responseSum = 0.0;
+        for (double signal : responseSignalData) {
+            responseSum += signal;
+        }
+        double responseAvg = responseSum / responseSignalData.size();
+        
+        qDebug() << QString("Réponse - Moyenne: %1, Qualité: %2%")
+                    .arg(responseAvg, 0, 'f', 4)
+                    .arg(responseQuality * 100, 0, 'f', 1);
+    }
+    
+    // === ÉTAPE 6: CALIBRATION ADAPTATIVE ===
+    qDebug() << "\n6. Test de calibration adaptative...";
+    
+    double originalCalibration = meaInterface.getCalibration();
+    qDebug() << "Calibration originale:" << originalCalibration;
+    
+    // Ajustements progressifs basés sur la qualité
+    for (int adjustment = 0; adjustment < 3; ++adjustment) {
+        QVector<double> testSignalData = meaInterface.readSignals();
+        double currentQuality = meaInterface.getSignalQuality();
+        
+        // Algorithme d'ajustement simple
+        double adjustmentFactor = 1.0;
+        if (currentQuality > 0.7) {
+            adjustmentFactor = 1.05; // Amélioration légère
+        } else if (currentQuality < 0.3) {
+            adjustmentFactor = 0.95; // Réduction
+        } else {
+            adjustmentFactor = 1.02; // Ajustement minimal
+        }
+        
+        meaInterface.adjustCalibration(adjustmentFactor);
+        
+        qDebug() << QString("Ajustement %1 - Qualité: %2%, Facteur: %3, Nouvelle calibration: %4")
+                    .arg(adjustment + 1)
+                    .arg(currentQuality * 100, 0, 'f', 1)
+                    .arg(adjustmentFactor, 0, 'f', 3)
+                    .arg(meaInterface.getCalibration(), 0, 'f', 3);
+        
+        QThread::msleep(300);
+    }
+    
+    qDebug() << "\n=== Test MEA terminé avec succès! ===";
+    
+    return 0;
 }

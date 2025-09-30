@@ -1,5 +1,8 @@
 # CMakeLists.txt pour les exemples
 
+# Configuration Qt pour les exemples
+set(CMAKE_AUTOMOC ON)
+
 # Exemple simple d'utilisation MEA
 add_executable(example_mea_basic
     basic_mea_usage.cpp

@@ -16,7 +16,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
 
 # Options du projet
 option(BUILD_TESTS "Build unit tests" ON)
-option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_EXAMPLES "Build examples" OFF)
 option(ENABLE_QUANTUM_OPTIMIZATION "Enable Q+ quantum optimization" OFF)
 option(ENABLE_PROFILING "Enable performance profiling" OFF)
 

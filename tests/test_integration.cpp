@@ -55,7 +55,8 @@ private:
     void simulateLabConditions();
     QVector<double> simulateNeuralActivity(int duration_ms = 1000);
     QVector<double> simulateMuscleTension(int electrodes = 60);
-    void verifyMiningQuality(const BioMining::Crypto::BioMining::Crypto::BitcoinMiner::MiningResult &result);
+    QVector<double> createPatternnedSignals(int size);
+    void verifyMiningQuality(const BioMining::Crypto::BitcoinMiner::MiningResult &result);
 };
 
 void TestIntegration::initTestCase()
@@ -76,7 +77,7 @@ void TestIntegration::init()
     
     // Connexion du pipeline MEA -> Miner
     connect(m_meaInterface, &BioMining::Bio::MEAInterface::signalsAcquired,
-            m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::onBioSignalsReceived);
+            m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::onBioSignalsReceived);
 }
 
 void TestIntegration::cleanup()
@@ -221,7 +222,7 @@ void TestIntegration::testMEAToMinerPipeline()
     setupRealisticMEA();
     simulateLabConditions();
     
-    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     QSignalSpy signalsAcquiredSpy(m_meaInterface, &BioMining::Bio::MEAInterface::signalsAcquired);
     
     // Démarrage du pipeline
@@ -253,9 +254,9 @@ void TestIntegration::testContinuousOperation()
     setupRealisticMEA();
     simulateLabConditions();
     
-    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     QSignalSpy calibrationSpy(m_meaInterface, &BioMining::Bio::MEAInterface::calibrationChanged);
-    QSignalSpy hashrateSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::hashRateUpdated);
+    QSignalSpy hashrateSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::hashRateUpdated);
     
     // Opération continue avec calibration adaptative
     m_bitcoinMiner->startContinuousMining();
@@ -304,7 +305,7 @@ void TestIntegration::testAdaptiveCalibration()
     simulateLabConditions();
     
     QSignalSpy calibrationSpy(m_meaInterface, &BioMining::Bio::MEAInterface::calibrationChanged);
-    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     
     // Démarrage avec calibration sous-optimale
     m_meaInterface->adjustCalibration(0.5); // Facteur faible
@@ -392,7 +393,7 @@ void TestIntegration::testFullWorkflowSimulation()
     // === PHASE 3: MINING OPÉRATIONNEL ===
     simulateLabConditions();
     
-    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     
     // Session de mining avec différents types de signaux
     QVector<QVector<double>> signalTypes = {
@@ -403,8 +404,8 @@ void TestIntegration::testFullWorkflowSimulation()
     
     QVector<BioMining::Crypto::BitcoinMiner::MiningResult> results;
     
-    for (const auto &signals : signalTypes) {
-        BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signals);
+    for (const auto &signalData : signalTypes) {
+        BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signalData);
         results.append(result);
         verifyMiningQuality(result);
         
@@ -448,7 +449,7 @@ void TestIntegration::testLongTermStability()
     setupRealisticMEA();
     simulateLabConditions();
     
-    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy miningCompleteSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     QSignalSpy errorSpy(m_meaInterface, &BioMining::Bio::MEAInterface::errorOccurred);
     
     // Opération continue pour test de stabilité
@@ -538,14 +539,14 @@ void TestIntegration::testErrorRecovery()
     
     // Tentative de mining pendant déconnexion
     QVector<double> signalData = m_meaInterface->readSignals();
-    QVERIFY(signals.isEmpty());
+    QVERIFY(signalData.isEmpty());
     
     // Reconnexion
     QVERIFY(m_meaInterface->initialize());
     QCOMPARE(m_meaInterface->getStatus(), MEAInterface::ConnectionStatus::Connected);
     
     // Vérification fonctionnement normal après reconnexion
-    signals = m_meaInterface->readSignals();
+    signalData = m_meaInterface->readSignals();
     QVERIFY(!signalData.isEmpty());
     
     // === TEST 2: GESTION D'ERREUR DE STIMULATION ===
@@ -597,7 +598,7 @@ void TestIntegration::testEndToEndPerformance()
     QElapsedTimer miningTimer;
     miningTimer.start();
     
-    BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signals);
+    BioMining::Crypto::BitcoinMiner::MiningResult result = m_bitcoinMiner->mine(signalData);
     qint64 miningLatency = miningTimer.elapsed();
     
     // === MESURE: CYCLE COMPLET ===
@@ -631,7 +632,7 @@ void TestIntegration::testConcurrentOperations()
     simulateLabConditions();
     
     QSignalSpy acquisitionSpy(m_meaInterface, &BioMining::Bio::MEAInterface::signalsAcquired);
-    QSignalSpy miningSpy(m_bitcoinMiner, &BioMining::Crypto::BioMining::Crypto::BitcoinMiner::miningComplete);
+    QSignalSpy miningSpy(m_bitcoinMiner, &BioMining::Crypto::BitcoinMiner::miningComplete);
     
     // Démarrage des opérations concurrentes
     m_meaInterface->startContinuousAcquisition(100); // 10 Hz
