@@ -20,23 +20,40 @@ option(BUILD_EXAMPLES "Build examples" ON)
 option(ENABLE_QUANTUM_OPTIMIZATION "Enable Q+ quantum optimization" OFF)
 option(ENABLE_PROFILING "Enable performance profiling" OFF)
 
-# Recherche des dépendances
+# Recherche des dépendances Qt6
 find_package(Qt6 REQUIRED COMPONENTS 
     Core 
     Widgets 
     Network 
     Concurrent
-    Charts
 )
+
+# Charts est optionnel pour certains environnements
+find_package(Qt6 COMPONENTS Charts QUIET)
+if(Qt6Charts_FOUND)
+    message(STATUS "Qt6 Charts found - GUI features enabled")
+    set(CHARTS_AVAILABLE TRUE)
+else()
+    message(STATUS "Qt6 Charts not found - GUI will use basic components")
+    set(CHARTS_AVAILABLE FALSE)
+endif()
 
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
 # Boost (optionnel pour certaines optimisations)
-find_package(Boost COMPONENTS system filesystem thread QUIET)
-if(Boost_FOUND)
+# Compatible avec Cloud Shell et autres environnements
+set(Boost_NO_WARN_NEW_VERSIONS 1)
+if(NOT DEFINED CMAKE_DISABLE_FIND_PACKAGE_Boost)
+    find_package(Boost COMPONENTS system filesystem thread QUIET)
+endif()
+
+if(Boost_FOUND AND NOT CMAKE_DISABLE_FIND_PACKAGE_Boost)
     message(STATUS "Boost found - enabling advanced features")
     add_compile_definitions(BOOST_AVAILABLE)
+else()
+    message(STATUS "Boost not found or disabled - using standard library alternatives")
+    add_compile_definitions(NO_BOOST_AVAILABLE)
 endif()
 
 # Configuration des répertoires
@@ -118,8 +135,13 @@ add_executable(biomining_gui ${GUI_SOURCES} ${GUI_HEADERS})
 target_link_libraries(biomining_gui
     biomining_core
     Qt6::Widgets
-    Qt6::Charts
 )
+
+# Ajouter Qt6::Charts seulement si disponible
+if(CHARTS_AVAILABLE)
+    target_link_libraries(biomining_gui Qt6::Charts)
+    target_compile_definitions(biomining_gui PRIVATE CHARTS_AVAILABLE)
+endif()
 
 # MOC pour Qt
 set_target_properties(biomining_gui PROPERTIES
