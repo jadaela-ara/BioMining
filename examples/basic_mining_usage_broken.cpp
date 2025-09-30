@@ -6,11 +6,6 @@
 #include "../include/bio/biological_network.h"
 #include "../include/bio/mea_interface.h"
 
-// Using correct namespaces
-using namespace BioMining::HCrypto;
-using namespace BioMining::Network;
-using namespace BioMining::Bio;
-
 /**
  * @brief Basic usage example of the BioMining platform
  * 
@@ -55,12 +50,12 @@ public slots:
         qDebug() << "2. Setting up MEA interface...";
         MEAInterface meaInterface;
         
-        MEAConfig meaConfig;
+        MEAInterface::MEAConfig meaConfig;
         meaConfig.electrodeCount = 60;
         meaConfig.samplingRate = 25000.0;
         meaConfig.amplification = 1200.0;
         
-        if (!meaInterface.initialize()) {
+        if (!meaInterface.initialize(meaConfig)) {
             qDebug() << "ERROR: Failed to initialize MEA interface";
             QCoreApplication::quit();
             return;
@@ -72,53 +67,63 @@ public slots:
         qDebug() << "3. Initializing hybrid Bitcoin miner...";
         HybridBitcoinMiner miner;
         
-        // Note: Using a simplified initialization approach
-        qDebug() << "✓ Hybrid miner initialized successfully";
-
-        // 4. Start initial training simulation
-        qDebug() << "4. Starting biological network training simulation...";
-        
-        // Simulate training with mock data
-        for (int i = 0; i < 5; ++i) {
-            QVector<double> mockSignals(60);
-            for (int j = 0; j < 60; ++j) {
-                mockSignals[j] = 0.1 + (i * 0.1) + (j * 0.01);
-            }
-            // Simulate processing
-            QThread::msleep(100);
-            qDebug() << "  Training cycle" << (i + 1) << "completed";
+        if (!miner.initializeWithBiologicalNetwork(&network)) {
+            qDebug() << "ERROR: Failed to initialize hybrid miner";
+            QCoreApplication::quit();
+            return;
         }
         
-        qDebug() << "✓ Training simulation completed";
+        qDebug() << "✓ Hybrid miner initialized successfully";
 
-        // 5. Simulate basic mining operation
+        // 4. Connect MEA to biological network
+        connect(&meaInterface, &MEAInterface::signalDataReceived,
+                &network, &BiologicalNetwork::onMEASignalsReceived);
+
+        // 5. Start initial training
+        qDebug() << "4. Starting biological network training...";
+        if (!network.startInitialLearning(50)) {
+            qDebug() << "ERROR: Failed to start network training";
+            QCoreApplication::quit();
+            return;
+        }
+        
+        qDebug() << "✓ Training started (50 cycles)";
+
+        // 6. Simulate basic mining operation
         qDebug() << "5. Running basic mining simulation...";
         
         QString blockHeader = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
-        uint32_t difficulty = 486604799;  // Early Bitcoin difficulty
+        uint64_t difficulty = 486604799;  // Early Bitcoin difficulty
         
         qDebug() << "Block Header:" << blockHeader;
-        qDebug() << "Target Difficulty:" << difficulty;
+        qDebug() << "Difficulty:" << difficulty;
         
-        // Simulate mining process
-        qDebug() << "Mining in progress...";
-        QThread::msleep(500); // Simulate mining time
+        // Start mining
+        auto result = miner.mineBlock(blockHeader, difficulty);
         
-        // Mock successful result
-        qDebug() << "✓ Mining simulation completed!";
-        qDebug() << "   Simulated nonce found: 2083236893";
-        qDebug() << "   Simulated hash attempts: 15000";
-        qDebug() << "   Simulated mining time: 450ms";
-        qDebug() << "   Simulated biological contribution: 23.5%";
+        if (result.success) {
+            qDebug() << "✓ Mining successful!";
+            qDebug() << "   Nonce found:" << result.nonce;
+            qDebug() << "   Hash attempts:" << result.hashAttempts;
+            qDebug() << "   Mining time:" << result.miningTime << "ms";
+            qDebug() << "   Biological contribution:" << result.biologicalContribution << "%";
+        } else {
+            qDebug() << "✗ Mining failed after" << result.hashAttempts << "attempts";
+        }
 
-        // 6. Show network diagnostics
-        qDebug() << "6. Network diagnostics simulation:";
-        qDebug() << "   Simulated training progress: 85%";
-        qDebug() << "   Simulated network efficiency: 78%";
-        qDebug() << "   Status: Operational";
+        // 7. Show network diagnostics
+        qDebug() << "6. Network diagnostics:";
+        qDebug() << "   Training progress:" << network.getTrainingProgress() << "%";
+        qDebug() << "   Learning state:" << (int)network.getLearningState();
+        qDebug() << "   Network efficiency:" << network.getNetworkEfficiency() << "%";
+        
+        QString diagnostic = network.getNetworkDiagnostic();
+        qDebug() << "   Diagnostic:" << diagnostic;
 
-        // 7. Cleanup and exit
+        // 8. Cleanup and exit
         qDebug() << "7. Cleaning up...";
+        network.stopLearning();
+        meaInterface.disconnect();
         
         qDebug() << "=== Example completed successfully ===";
         
