@@ -58,5 +58,5 @@ echo "Use Ctrl+C to stop the application"
 echo ""
 
 # Run the GUI application
-cd /home/user/webapp
+cd /home/jadaela/Biomining
 $GUI_EXEC "$@"
