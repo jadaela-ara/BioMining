@@ -1,0 +1,117 @@
+{
+  "mea_device_config": {
+    "device_type": "MultiChannelSystems_MEA2100",
+    "connection": {
+      "protocol": "tcp",
+      "host": "192.168.1.100",
+      "port": 6340,
+      "timeout_ms": 5000
+    },
+    "electrodes": {
+      "total_count": 60,
+      "active_electrodes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+      "layout": "8x8_grid",
+      "spacing_um": 200,
+      "impedance_range": [0.1, 5.0]
+    },
+    "acquisition": {
+      "sampling_rate_hz": 25000,
+      "buffer_duration_ms": 1000,
+      "gain": 1200,
+      "filter_low_hz": 0.1,
+      "filter_high_hz": 8000
+    },
+    "stimulation": {
+      "enabled": true,
+      "max_amplitude_uv": 200,
+      "pulse_width_us": 100,
+      "max_frequency_hz": 1000,
+      "safety_limits": {
+        "max_charge_nc": 100,
+        "max_current_ua": 1000
+      }
+    }
+  },
+  "bitcoin_learning_config": {
+    "training_parameters": {
+      "max_iterations_per_block": 1000,
+      "difficulty_progression": [0, 1, 2, 3],
+      "learning_rate": 0.01,
+      "adaptation_threshold": 0.1
+    },
+    "blocks_database": {
+      "genesis_block": {
+        "version": 1,
+        "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "merkle_root": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+        "timestamp": 1231006505,
+        "bits": "0x1d00ffff",
+        "nonce": 2083236893,
+        "target_hash": "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+      },
+      "block_1": {
+        "version": 1,
+        "previous_hash": "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+        "merkle_root": "0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098",
+        "timestamp": 1231469665,
+        "bits": "0x1d00ffff",
+        "nonce": 2573394689,
+        "target_hash": "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048"
+      }
+    },
+    "electrode_mapping": {
+      "block_data_encoding": {
+        "version_electrodes": [0, 1, 2, 3],
+        "previous_hash_electrodes": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35],
+        "merkle_root_electrodes": [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+        "timestamp_electrodes": [0, 1, 2, 3],
+        "bits_electrodes": [4, 5, 6, 7]
+      },
+      "nonce_extraction": {
+        "primary_electrodes": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+        "spike_threshold_multiplier": 2.5,
+        "response_window_ms": 1000
+      }
+    },
+    "simulation_parameters": {
+      "biological_noise_amplitude_uv": 10,
+      "spike_probability_per_ms": 0.02,
+      "response_delay_ms": 10,
+      "attenuation_factor": 0.7,
+      "adaptation_learning_rate": 0.05
+    }
+  },
+  "monitoring_config": {
+    "real_time_display": {
+      "enabled": true,
+      "update_interval_ms": 100,
+      "max_history_points": 10000
+    },
+    "logging": {
+      "level": "INFO",
+      "file_path": "tests/mea_bitcoin_learning.log",
+      "include_electrode_data": true,
+      "include_nonce_attempts": true
+    },
+    "performance_metrics": {
+      "track_success_rate": true,
+      "track_convergence_time": true,
+      "track_hash_distance_improvement": true,
+      "save_best_patterns": true
+    }
+  },
+  "safety_limits": {
+    "max_stimulation_amplitude_uv": 200,
+    "max_stimulation_duration_ms": 5000,
+    "max_stimulation_frequency_hz": 100,
+    "electrode_impedance_check": true,
+    "automatic_shutdown_on_error": true
+  },
+  "output_config": {
+    "results_directory": "tests/results",
+    "save_intermediate_results": true,
+    "export_formats": ["json", "csv", "hdf5"],
+    "include_raw_electrode_data": false,
+    "compress_large_datasets": true
+  }
+}
