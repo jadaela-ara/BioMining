@@ -1,0 +1,263 @@
+{
+  "application": {
+    "name": "BioMining Platform",
+    "version": "1.0.0",
+    "environment": "production",
+    "debug": false
+  },
+  
+  "server": {
+    "http_port": 8080,
+    "host": "0.0.0.0",
+    "max_connections": 100,
+    "timeout_seconds": 300,
+    "enable_cors": true,
+    "enable_compression": true
+  },
+  
+  "mea": {
+    "device_type": "MultiChannelSystems_MEA2100",
+    "connection": {
+      "protocol": "tcp",
+      "host": "localhost", 
+      "port": 6340,
+      "timeout_ms": 5000
+    },
+    "hardware": {
+      "num_electrodes": 60,
+      "electrode_layout": "8x8_grid",
+      "spacing_micrometers": 200,
+      "sampling_rate": 25000,
+      "max_voltage_uv": 200.0,
+      "impedance_threshold_mohm": 5.0,
+      "noise_floor_uv": 5.0
+    },
+    "acquisition": {
+      "buffer_duration_ms": 1000,
+      "gain": 1200,
+      "filter_low_hz": 0.1,
+      "filter_high_hz": 8000,
+      "spike_detection_threshold": 2.5,
+      "enable_artifact_rejection": true
+    },
+    "stimulation": {
+      "enabled": true,
+      "max_amplitude_uv": 200,
+      "pulse_width_us": 100,
+      "max_frequency_hz": 1000,
+      "safety_limits": {
+        "max_charge_nc": 100,
+        "max_current_ua": 1000,
+        "impedance_check": true
+      }
+    },
+    "simulation": {
+      "enabled": true,
+      "noise_amplitude_uv": 10,
+      "spike_rate_hz": 1.0,
+      "biological_variability": 0.1
+    }
+  },
+  
+  "neural_network": {
+    "type": "hybrid",
+    "architecture": {
+      "input_size": 60,
+      "hidden_layers": [128, 64, 32],
+      "output_size": 32,
+      "activation": "tanh",
+      "dropout_rate": 0.2
+    },
+    "training": {
+      "learning_rate": 0.001,
+      "batch_size": 32,
+      "max_epochs": 1000,
+      "patience": 50,
+      "validation_split": 0.2,
+      "shuffle_data": true
+    },
+    "biological_component": {
+      "plasticity_rate": 0.01,
+      "hebbian_learning": true,
+      "homeostasis": {
+        "enabled": true,
+        "target_activity": 0.1,
+        "adaptation_rate": 0.001
+      }
+    },
+    "hybrid_configuration": {
+      "bio_artificial_ratio": 0.7,
+      "fusion_method": "weighted_average",
+      "cross_training": true,
+      "adaptation_enabled": true
+    },
+    "optimization": {
+      "use_gpu": false,
+      "parallel_training": true,
+      "memory_efficient": true,
+      "checkpoint_interval": 100
+    }
+  },
+  
+  "bitcoin_mining": {
+    "enabled": true,
+    "mode": "testnet",
+    "performance": {
+      "max_threads": 0,
+      "difficulty_target": 4,
+      "hash_algorithm": "SHA256d",
+      "target_hashrate": "auto"
+    },
+    "neural_assistance": {
+      "enabled": true,
+      "nonce_prediction": true,
+      "pattern_learning": true,
+      "adaptive_difficulty": true
+    },
+    "pool_configuration": {
+      "enabled": false,
+      "pool_url": "",
+      "username": "",
+      "password": "",
+      "stratum_protocol": "v1"
+    },
+    "wallet": {
+      "address": "",
+      "backup_enabled": false,
+      "encryption_enabled": false
+    },
+    "limits": {
+      "max_power_watts": 1000,
+      "thermal_throttling": true,
+      "cpu_usage_limit": 0.8
+    }
+  },
+  
+  "data_management": {
+    "storage": {
+      "data_directory": "/data",
+      "max_size_gb": 10,
+      "compression": "gzip",
+      "retention_days": 30
+    },
+    "datasets": {
+      "auto_import": true,
+      "validation": true,
+      "preprocessing": {
+        "normalization": "z-score",
+        "artifact_removal": true,
+        "baseline_correction": true
+      }
+    },
+    "export": {
+      "formats": ["json", "hdf5", "csv"],
+      "include_metadata": true,
+      "include_raw_data": false
+    }
+  },
+  
+  "monitoring": {
+    "metrics": {
+      "enabled": true,
+      "collection_interval_seconds": 1,
+      "retention_hours": 24,
+      "export_prometheus": true
+    },
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "output": "stdout",
+      "max_file_size_mb": 100,
+      "max_files": 10
+    },
+    "performance": {
+      "cpu_monitoring": true,
+      "memory_monitoring": true,
+      "network_monitoring": true,
+      "disk_monitoring": true
+    },
+    "alerts": {
+      "enabled": false,
+      "webhook_url": "",
+      "thresholds": {
+        "cpu_usage": 90,
+        "memory_usage": 85,
+        "error_rate": 5,
+        "response_time_ms": 1000
+      }
+    }
+  },
+  
+  "cloud_run": {
+    "service_name": "biomining-platform",
+    "region": "us-central1",
+    "cpu_allocation": "2",
+    "memory": "2Gi",
+    "concurrency": 100,
+    "timeout": 300,
+    "min_instances": 0,
+    "max_instances": 10,
+    "ingress": "all",
+    "vpc_access": {
+      "connector": "",
+      "egress": "private-ranges-only"
+    },
+    "environment_variables": {
+      "BIOMINING_ENVIRONMENT": "cloud",
+      "GOOGLE_CLOUD_PROJECT": "${GOOGLE_CLOUD_PROJECT}",
+      "DEPLOYMENT_TIMESTAMP": "${DEPLOYMENT_TIMESTAMP}"
+    }
+  },
+  
+  "security": {
+    "authentication": {
+      "enabled": false,
+      "method": "bearer_token",
+      "token_lifetime_hours": 24
+    },
+    "authorization": {
+      "enabled": false,
+      "rbac": false
+    },
+    "encryption": {
+      "data_at_rest": false,
+      "data_in_transit": true,
+      "key_rotation_days": 30
+    },
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 100,
+      "burst_size": 20
+    }
+  },
+  
+  "features": {
+    "realtime_visualization": {
+      "enabled": true,
+      "websocket_port": 8081,
+      "update_frequency_hz": 10
+    },
+    "api_versioning": {
+      "enabled": true,
+      "current_version": "v1",
+      "supported_versions": ["v1"]
+    },
+    "experiment_tracking": {
+      "enabled": true,
+      "auto_save": true,
+      "versioning": true
+    },
+    "multi_tenant": {
+      "enabled": false,
+      "isolation_level": "namespace"
+    }
+  },
+  
+  "development": {
+    "hot_reload": false,
+    "debug_endpoints": false,
+    "profiling": false,
+    "test_mode": false,
+    "mock_hardware": true
+  }
+}

@@ -1,0 +1,219 @@
+# BioMining Platform - Docker Compose pour développement
+version: '3.8'
+
+services:
+  # ====================================================================
+  # APPLICATION PRINCIPALE
+  # ====================================================================
+  biomining:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: debug-runtime
+      args:
+        - BUILD_TYPE=Debug
+        - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-biomining-dev}
+    
+    container_name: biomining-app
+    
+    ports:
+      - "8080:8080"     # HTTP API
+      - "8081:8081"     # WebSocket (si activé)
+    
+    environment:
+      - PORT=8080
+      - BIOMINING_ENVIRONMENT=development
+      - BIOMINING_LOG_LEVEL=debug
+      - BIOMINING_CONFIG_PATH=/config/biomining_config.json
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-biomining-dev}
+    
+    volumes:
+      - ./config:/config:ro
+      - ./data:/data
+      - ./logs:/logs
+      - biomining_data:/app/data
+    
+    networks:
+      - biomining-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Limites de ressources pour dev
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+  
+  # ====================================================================
+  # MONITORING ET OBSERVABILITÉ
+  # ====================================================================
+  
+  # Prometheus pour métriques
+  prometheus:
+    image: prom/prometheus:v2.40.0
+    container_name: biomining-prometheus
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    
+    networks:
+      - biomining-network
+    
+    restart: unless-stopped
+    
+    depends_on:
+      - biomining
+
+  # Grafana pour dashboards
+  grafana:
+    image: grafana/grafana:9.3.0
+    container_name: biomining-grafana
+    
+    ports:
+      - "3000:3000"
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    networks:
+      - biomining-network
+    
+    restart: unless-stopped
+    
+    depends_on:
+      - prometheus
+
+  # ====================================================================
+  # BASE DE DONNÉES (OPTIONNEL)
+  # ====================================================================
+  
+  # Redis pour cache et sessions
+  redis:
+    image: redis:7-alpine
+    container_name: biomining-redis
+    
+    ports:
+      - "6379:6379"
+    
+    volumes:
+      - redis_data:/data
+    
+    networks:
+      - biomining-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL pour données persistantes (si nécessaire)
+  postgres:
+    image: postgres:15-alpine
+    container_name: biomining-postgres
+    
+    environment:
+      - POSTGRES_DB=biomining
+      - POSTGRES_USER=biomining
+      - POSTGRES_PASSWORD=biomining_dev_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    
+    ports:
+      - "5432:5432"
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    
+    networks:
+      - biomining-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U biomining -d biomining"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ====================================================================
+  # OUTILS DE DÉVELOPPEMENT
+  # ====================================================================
+  
+  # Nginx pour reverse proxy (optionnel)
+  nginx:
+    image: nginx:alpine
+    container_name: biomining-nginx
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    
+    networks:
+      - biomining-network
+    
+    restart: unless-stopped
+    
+    depends_on:
+      - biomining
+
+# ====================================================================
+# VOLUMES PERSISTANTS
+# ====================================================================
+volumes:
+  biomining_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# ====================================================================
+# RÉSEAU
+# ====================================================================
+networks:
+  biomining-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
