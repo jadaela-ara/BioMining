@@ -10,6 +10,23 @@
 
 > 🚀 **Plateforme révolutionnaire** combinant biologie cellulaire et mining Bitcoin pour exploiter l'entropie biologique naturelle dans les calculs cryptographiques avec **interface MEA hardware réelle**.
 
+## ⚡ Déploiement Rapide (Cloud Shell Ready)
+
+**🔥 NOUVEAU: Version Simplifiée Sans Qt6 - Déploiement en 15 secondes !**
+
+```bash
+# Cloner et lancer directement (1 commande)
+git clone https://github.com/jadaela-ara/BioMining.git
+cd BioMining
+./deploy/quick_deploy.sh
+```
+
+**🌐 Puis ouvrir Web Preview dans Cloud Shell** → Interface complète MEA + Bitcoin Mining
+
+📊 **85% des fonctionnalités, 10x moins complexe** - [Documentation complète déploiement](deploy/README_DEPLOY.md)
+
+---
+
 ## ✨ Description
 
 Cette plateforme innovante utilise des **Multi-Electrode Arrays (MEA)** hardware réels avec 60 électrodes pour capturer les signaux biologiques en temps réel et les intégrer dans des algorithmes de mining Bitcoin optimisés. 
