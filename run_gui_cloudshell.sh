@@ -7,7 +7,7 @@ echo "🖥️  BioMining GUI Cloud Shell Runner"
 echo "====================================="
 
 # Check if GUI executable exists
-GUI_EXEC="./build/bin/biomining_gui"
+GUI_EXEC="./bin/biomining_gui"
 if [ ! -f "$GUI_EXEC" ]; then
     echo "❌ Error: GUI executable not found at $GUI_EXEC"
     echo "Please build the project first with:"
@@ -58,5 +58,5 @@ echo "Use Ctrl+C to stop the application"
 echo ""
 
 # Run the GUI application
-cd /home/user/webapp
+cd /home/jadaela/Biomining
 $GUI_EXEC "$@"
