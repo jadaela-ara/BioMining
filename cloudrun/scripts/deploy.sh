@@ -146,6 +146,16 @@ deploy_to_cloud_run() {
     local image_tag="$1"
     
     echo "☁️  Déploiement vers Cloud Run..."
+
+    echo "=================================================="
+echo "Project ID: ${PROJECT_ID}"
+echo "Region: ${REGION}"
+echo "Service Name: ${SERVICE_NAME}"
+echo "Memory: ${MEMORY}"
+echo "CPU: ${CPU}"
+echo "Dockerfile: ${DOCKERFILE}"
+echo "Image Tag: $image_tag"
+echo "=================================================="
     
     # Variables d'environnement pour l'application
     local env_vars=(
