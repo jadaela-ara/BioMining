@@ -27,6 +27,7 @@ MAX_INSTANCES="10"
 BUILD_TAG="latest"
 REGISTRY="gcr.io"
 DOCKERFILE="Dockerfile.simple"  # Use simple dockerfile by default
+IMAGE_TAG=""  # Will be set during build
 
 echo "🧬 === BIOMINING PLATFORM CLOUD RUN DEPLOYMENT ==="
 echo "=================================================="
@@ -111,7 +112,8 @@ enable_services() {
 build_and_push_image() {
     echo "🐳 Build de l'image Docker..."
     
-    local image_tag="${REGISTRY}/${PROJECT_ID}/${APP_NAME}:${BUILD_TAG}"
+    # Définir l'image tag globalement
+    IMAGE_TAG="${REGISTRY}/${PROJECT_ID}/${APP_NAME}:${BUILD_TAG}"
     
     # Configurer Docker pour utiliser gcloud comme helper
     gcloud auth configure-docker --quiet
@@ -119,23 +121,20 @@ build_and_push_image() {
     # Build de l'image avec BuildKit pour optimisation
     export DOCKER_BUILDKIT=1
     
-    echo "   Building image: $image_tag (using $DOCKERFILE)"
+    echo "   Building image: $IMAGE_TAG (using $DOCKERFILE)"
     docker build \
         --platform linux/amd64 \
         --file "$PROJECT_DIR/$DOCKERFILE" \
-        --tag "$image_tag" \
+        --tag "$IMAGE_TAG" \
         --build-arg BUILD_TYPE=Release \
         --build-arg GOOGLE_CLOUD_PROJECT="$PROJECT_ID" \
         "$PROJECT_DIR"
     
     # Push de l'image
-    echo "   Pushing image: $image_tag"
-    docker push "$image_tag"
+    echo "   Pushing image: $IMAGE_TAG"
+    docker push "$IMAGE_TAG"
     
-    echo "✅ Image Docker buildée et pushée: $image_tag"
-    
-    # Retourner le tag pour utilisation ultérieure
-    echo "$image_tag"
+    echo "✅ Image Docker buildée et pushée: $IMAGE_TAG"
 }
 
 # ====================================================================
@@ -143,7 +142,7 @@ build_and_push_image() {
 # ====================================================================
 
 deploy_to_cloud_run() {
-    local image_tag="$1"
+    local image_tag="$IMAGE_TAG"
     
     echo "☁️  Déploiement vers Cloud Run..."
 
@@ -288,11 +287,10 @@ main() {
     enable_services
     
     # Build et push de l'image
-    local image_tag
-    image_tag=$(build_and_push_image)
+    build_and_push_image
     
     # Déploiement
-    deploy_to_cloud_run "$image_tag"
+    deploy_to_cloud_run
     
     # Récupération de l'URL du service
     local service_url
