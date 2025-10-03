@@ -192,7 +192,7 @@ echo "=================================================="
     
     # Labels pour organisation
     deploy_cmd+=(
-        --labels "app=biomining,version=1.0.0,environment=production"
+        --labels "app=biomining,version=1-0-0,environment=production"
         --tag "latest"
     )
     
