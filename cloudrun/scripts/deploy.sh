@@ -122,6 +122,8 @@ build_and_push_image() {
     export DOCKER_BUILDKIT=1
     
     echo "   Building image: $IMAGE_TAG (using $DOCKERFILE)"
+    echo "   Dockerfile path: $PROJECT_DIR/$DOCKERFILE"
+    
     docker build \
         --platform linux/amd64 \
         --file "$PROJECT_DIR/$DOCKERFILE" \
