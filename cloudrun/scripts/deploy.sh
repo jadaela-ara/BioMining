@@ -172,7 +172,6 @@ deploy_to_cloud_run() {
         --allow-unauthenticated
         --ingress all
         --execution-environment gen2
-        //--cpu-throttling="false"
     )
     
     # Ajouter les variables d'environnement
