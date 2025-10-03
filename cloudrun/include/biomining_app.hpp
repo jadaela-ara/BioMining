@@ -254,7 +254,7 @@ private:
     MEADataset current_session_data_;
     
     // Performance monitoring
-    std::mutex performance_mutex_;
+    mutable std::mutex performance_mutex_;
     json performance_metrics_;
     std::thread metrics_thread_;
     std::atomic<bool> monitoring_active_{false};

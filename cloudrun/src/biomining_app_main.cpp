@@ -1,5 +1,10 @@
 #include "biomining_app.hpp"
 #include <iostream>
+
+// Forward declare app_log function from biomining_app.cpp
+namespace biomining {
+    extern void app_log(const std::string& level, const std::string& message);
+}
 #include <fstream>
 #include <signal.h>
 
@@ -34,21 +39,21 @@ BioMiningApp::~BioMiningApp() {
 }
 
 bool BioMiningApp::initialize() {
-    log("info", "Initializing BioMining Platform");
+    app_log("INFO", "Initializing BioMining Platform");
     
     // Initialize neural network
     neural_network_ = NetworkFactory::create_network(
         config_.network.type, config_.network);
     
     if (!neural_network_ || !neural_network_->initialize(config_.network)) {
-        log("error", "Failed to initialize neural network");
+        app_log("ERROR", "Failed to initialize neural network");
         return false;
     }
     
     // Initialize Bitcoin miner
     bitcoin_miner_ = std::make_unique<BitcoinMiner>(config_.bitcoin);
     if (!bitcoin_miner_->initialize()) {
-        log("error", "Failed to initialize Bitcoin miner");
+        app_log("ERROR", "Failed to initialize Bitcoin miner");
         return false;
     }
     
@@ -60,21 +65,21 @@ bool BioMiningApp::initialize() {
     monitoring_active_.store(true);
     metrics_thread_ = std::thread(&BioMiningApp::performance_monitoring_thread, this);
     
-    log("info", "BioMining Platform initialized successfully");
+    app_log("INFO", "BioMining Platform initialized successfully");
     return true;
 }
 
 void BioMiningApp::run() {
-    log("info", "Starting BioMining Platform on port " + std::to_string(config_.http_port));
+    app_log("INFO", "Starting BioMining Platform on port " + std::to_string(config_.http_port));
     
     if (!http_server_->listen("0.0.0.0", config_.http_port)) {
-        log("error", "Failed to start HTTP server on port " + std::to_string(config_.http_port));
+        app_log("ERROR", "Failed to start HTTP server on port " + std::to_string(config_.http_port));
         return;
     }
 }
 
 void BioMiningApp::shutdown() {
-    log("info", "Shutting down BioMining Platform");
+    app_log("INFO", "Shutting down BioMining Platform");
     
     // Stop all running operations
     stop_training();
@@ -92,14 +97,14 @@ void BioMiningApp::shutdown() {
         http_server_->stop();
     }
     
-    log("info", "BioMining Platform shutdown complete");
+    app_log("INFO", "BioMining Platform shutdown complete");
 }
 
 bool BioMiningApp::load_configuration(const std::string& config_file) {
     try {
         std::ifstream file(config_file);
         if (!file.is_open()) {
-            log("warning", "Config file not found, using defaults: " + config_file);
+            app_log("WARNING", "Config file not found, using defaults: " + config_file);
             return true; // Use default config
         }
         
@@ -145,11 +150,11 @@ bool BioMiningApp::load_configuration(const std::string& config_file) {
         config_.http_port = config_json.value("http_port", config_.http_port);
         config_.log_level = config_json.value("log_level", config_.log_level);
         
-        log("info", "Configuration loaded from " + config_file);
+        app_log("INFO", "Configuration loaded from " + config_file);
         return true;
         
     } catch (const std::exception& e) {
-        log("error", "Failed to load configuration: " + std::string(e.what()));
+        app_log("ERROR", "Failed to load configuration: " + std::string(e.what()));
         return false;
     }
 }
@@ -203,22 +208,22 @@ bool BioMiningApp::save_configuration(const std::string& config_file) const {
         std::ofstream file(config_file);
         file << config_json.dump(2);
         
-        log("info", "Configuration saved to " + config_file);
+        app_log("INFO", "Configuration saved to " + config_file);
         return true;
         
     } catch (const std::exception& e) {
-        log("error", "Failed to save configuration: " + std::string(e.what()));
+        app_log("ERROR", "Failed to save configuration: " + std::string(e.what()));
         return false;
     }
 }
 
 bool BioMiningApp::import_training_data(const std::string& data_path) {
-    log("info", "Importing training data from " + data_path);
+    app_log("INFO", "Importing training data from " + data_path);
     
     try {
         std::ifstream file(data_path);
         if (!file.is_open()) {
-            log("error", "Cannot open training data file: " + data_path);
+            app_log("ERROR", "Cannot open training data file: " + data_path);
             return false;
         }
         
@@ -252,29 +257,29 @@ bool BioMiningApp::import_training_data(const std::string& data_path) {
         }
         
         training_datasets_.push_back(dataset);
-        log("info", "Imported " + std::to_string(dataset.electrodes.size()) + 
+        app_log("INFO", "Imported " + std::to_string(dataset.electrodes.size()) + 
             " electrodes from " + data_path);
         
         return true;
         
     } catch (const std::exception& e) {
-        log("error", "Failed to import training data: " + std::string(e.what()));
+        app_log("ERROR", "Failed to import training data: " + std::string(e.what()));
         return false;
     }
 }
 
 bool BioMiningApp::start_training() {
     if (training_active_.load()) {
-        log("warning", "Training already in progress");
+        app_log("WARNING", "Training already in progress");
         return false;
     }
     
     if (training_datasets_.empty()) {
-        log("error", "No training data available");
+        app_log("ERROR", "No training data available");
         return false;
     }
     
-    log("info", "Starting neural network training");
+    app_log("INFO", "Starting neural network training");
     training_active_.store(true);
     training_progress_.store(0.0);
     
@@ -282,10 +287,10 @@ bool BioMiningApp::start_training() {
     std::thread([this]() {
         for (size_t i = 0; i < training_datasets_.size() && training_active_.load(); ++i) {
             const auto& dataset = training_datasets_[i];
-            log("info", "Training on dataset " + dataset.session_id);
+            app_log("INFO", "Training on dataset " + dataset.session_id);
             
             if (!neural_network_->train(dataset)) {
-                log("error", "Training failed on dataset " + dataset.session_id);
+                app_log("ERROR", "Training failed on dataset " + dataset.session_id);
                 break;
             }
             
@@ -296,20 +301,20 @@ bool BioMiningApp::start_training() {
         }
         
         training_active_.store(false);
-        log("info", "Neural network training completed");
+        app_log("INFO", "Neural network training completed");
     }).detach();
     
     return true;
 }
 
 bool BioMiningApp::start_bitcoin_mining() {
-    log("info", "Starting Bitcoin mining");
+    app_log("INFO", "Starting Bitcoin mining");
     bitcoin_miner_->start_mining();
     return true;
 }
 
 bool BioMiningApp::stop_bitcoin_mining() {
-    log("info", "Stopping Bitcoin mining");
+    app_log("INFO", "Stopping Bitcoin mining");
     bitcoin_miner_->stop_mining();
     return true;
 }

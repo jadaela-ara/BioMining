@@ -6,12 +6,17 @@
 
 namespace biomining {
 
+// Simple logging function to avoid conflict with std::log
+void app_log(const std::string& level, const std::string& message) {
+    std::cout << "[" << level << "] " << message << std::endl;
+}
+
 // ====================================================================
 // BIOLOGICAL NETWORK IMPLEMENTATION
 // ====================================================================
 
 bool BiologicalNetwork::initialize(const NetworkConfiguration& config) {
-    log("info", "Initializing Biological Network");
+    app_log("INFO", "Initializing Biological Network");
     
     // Initialize connection weights (simplified Hebbian learning)
     int total_connections = config.neurons_per_layer * config.neurons_per_layer;
@@ -30,13 +35,13 @@ bool BiologicalNetwork::initialize(const NetworkConfiguration& config) {
     
     neuron_states_.resize(config.neurons_per_layer, 0.0);
     
-    log("info", "Biological Network initialized with " + 
+    app_log("INFO", "Biological Network initialized with " + 
         std::to_string(config.hidden_layers) + " layers");
     return true;
 }
 
 bool BiologicalNetwork::train(const MEADataset& training_data) {
-    log("info", "Training Biological Network on MEA data");
+    app_log("INFO", "Training Biological Network on MEA data");
     
     // Implement bio-inspired learning based on MEA electrode data
     for (const auto& electrode : training_data.electrodes) {
@@ -121,7 +126,7 @@ json BiologicalNetwork::get_metrics() const {
 // ====================================================================
 
 bool HybridNetwork::initialize(const NetworkConfiguration& config) {
-    log("info", "Initializing Hybrid Bio-Artificial Network");
+    app_log("INFO", "Initializing Hybrid Bio-Artificial Network");
     
     // Initialize biological component
     bio_component_ = std::make_unique<BiologicalNetwork>();
@@ -142,7 +147,7 @@ bool HybridNetwork::initialize(const NetworkConfiguration& config) {
         }
     }
     
-    log("info", "Hybrid Network initialized (Bio: " + 
+    app_log("INFO", "Hybrid Network initialized (Bio: " + 
         std::to_string(bio_artificial_ratio_ * 100) + "%, Artificial: " +
         std::to_string((1.0 - bio_artificial_ratio_) * 100) + "%)");
     
@@ -229,9 +234,9 @@ BitcoinMiner::~BitcoinMiner() {
 }
 
 bool BitcoinMiner::initialize() {
-    log("info", "Initializing Bitcoin Miner");
-    log("info", "Max threads: " + std::to_string(config_.max_threads));
-    log("info", "Testnet: " + std::string(config_.use_testnet ? "enabled" : "disabled"));
+    app_log("INFO", "Initializing Bitcoin Miner");
+    app_log("INFO", "Max threads: " + std::to_string(config_.max_threads));
+    app_log("INFO", "Testnet: " + std::string(config_.use_testnet ? "enabled" : "disabled"));
     return true;
 }
 
@@ -258,7 +263,7 @@ std::string BitcoinMiner::double_sha256(const std::vector<uint8_t>& data) const 
 void BitcoinMiner::start_mining() {
     if (mining_active_.load()) return;
     
-    log("info", "Starting Bitcoin mining with " + std::to_string(config_.max_threads) + " threads");
+    app_log("INFO", "Starting Bitcoin mining with " + std::to_string(config_.max_threads) + " threads");
     mining_active_.store(true);
     start_time_ = std::chrono::steady_clock::now();
     
@@ -272,7 +277,7 @@ void BitcoinMiner::start_mining() {
 void BitcoinMiner::stop_mining() {
     if (!mining_active_.load()) return;
     
-    log("info", "Stopping Bitcoin mining");
+    app_log("INFO", "Stopping Bitcoin mining");
     mining_active_.store(false);
     
     for (auto& thread : mining_threads_) {
@@ -311,7 +316,7 @@ void BitcoinMiner::mining_thread_worker(int thread_id) {
             // Check if hash meets difficulty target
             if (block.is_valid_hash(hash, config_.difficulty_target)) {
                 blocks_found_.fetch_add(1);
-                log("info", "Block found! Thread " + std::to_string(thread_id) + 
+                app_log("INFO", "Block found! Thread " + std::to_string(thread_id) + 
                     " - Hash: " + hash.substr(0, 20) + "...");
             }
         }
@@ -450,26 +455,20 @@ std::unique_ptr<NeuralNetwork> NetworkFactory::create_network(
         case NetworkConfiguration::HYBRID_BIO_ARTIFICIAL:
             return std::make_unique<HybridNetwork>();
         case NetworkConfiguration::ARTIFICIAL_ASSISTED:
+        {
             // For now, return hybrid with low bio ratio
             auto hybrid = std::make_unique<HybridNetwork>();
             // This would need more configuration in a real implementation
             return hybrid;
+        }
         default:
             return std::make_unique<HybridNetwork>();
     }
 }
 
 // ====================================================================
-// UTILITY FUNCTIONS (Implementation in biomining_app_main.cpp)
+// UTILITY FUNCTIONS
 // ====================================================================
-
-void log(const std::string& level, const std::string& message) {
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto tm = *std::localtime(&time_t);
-    
-    std::cout << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] "
-              << "[" << level << "] " << message << std::endl;
-}
+// Logging is handled by app_log function above
 
 } // namespace biomining

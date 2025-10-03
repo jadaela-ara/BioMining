@@ -26,6 +26,7 @@ MAX_INSTANCES="10"
 # Build configuration
 BUILD_TAG="latest"
 REGISTRY="gcr.io"
+DOCKERFILE="Dockerfile.simple"  # Use simple dockerfile by default
 
 echo "🧬 === BIOMINING PLATFORM CLOUD RUN DEPLOYMENT ==="
 echo "=================================================="
@@ -34,6 +35,7 @@ echo "Region: ${REGION}"
 echo "Service Name: ${SERVICE_NAME}"
 echo "Memory: ${MEMORY}"
 echo "CPU: ${CPU}"
+echo "Dockerfile: ${DOCKERFILE}"
 echo "=================================================="
 
 # ====================================================================
@@ -117,9 +119,10 @@ build_and_push_image() {
     # Build de l'image avec BuildKit pour optimisation
     export DOCKER_BUILDKIT=1
     
-    echo "   Building image: $image_tag"
+    echo "   Building image: $image_tag (using $DOCKERFILE)"
     docker build \
         --platform linux/amd64 \
+        --file "$PROJECT_DIR/$DOCKERFILE" \
         --tag "$image_tag" \
         --build-arg BUILD_TYPE=Release \
         --build-arg GOOGLE_CLOUD_PROJECT="$PROJECT_ID" \
@@ -331,6 +334,7 @@ Options:
   --service NAME  Nom du service (défaut: biomining)
   --memory SIZE   Mémoire allouée (défaut: 2Gi)
   --cpu COUNT     CPU alloués (défaut: 2)
+  --dockerfile NAME Dockerfile à utiliser (défaut: Dockerfile.simple)
 
 Variables d'environnement:
   GOOGLE_CLOUD_PROJECT  Project ID (requis)
@@ -339,6 +343,8 @@ Variables d'environnement:
 Exemples:
   $0
   $0 --project my-project --region europe-west1
+  $0 --dockerfile Dockerfile  # Use advanced dockerfile
+  $0 --dockerfile Dockerfile.simple  # Use simple dockerfile
   
 EOF
 }
@@ -368,6 +374,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --cpu)
             CPU="$2"
+            shift 2
+            ;;
+        --dockerfile)
+            DOCKERFILE="$2"
             shift 2
             ;;
         *)
