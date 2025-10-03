@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 APP_NAME="biomining-platform"
 SERVICE_NAME="biomining"
-REGION="${GOOGLE_CLOUD_REGION:-us-central1}"
+REGION="${GOOGLE_CLOUD_REGION:europe-west1}"
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-}"
 
 # Configuration Cloud Run
