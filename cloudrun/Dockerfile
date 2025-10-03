@@ -23,16 +23,14 @@ RUN apt-get update && apt-get install -y \
     # Compilateur moderne
     gcc-11 \
     g++-11 \
-    # Bibliothèques système
+    # Bibliothèques système requises
     libssl-dev \
     libcrypto++-dev \
+    nlohmann-json3-dev \
     # Outils réseau et utilitaires
     curl \
     wget \
     git \
-    # Outils de profiling (optionnel)
-    valgrind \
-    gdb \
     # Nettoyage
     && rm -rf /var/lib/apt/lists/*
 
@@ -59,7 +57,8 @@ COPY . .
 # Configuration CMake avec optimisations Cloud Run
 RUN cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -march=x86-64 -mtune=generic -flto" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -march=x86-64 -mtune=generic" \
     -DCMAKE_EXE_LINKER_FLAGS="-Wl,--strip-all -Wl,--gc-sections" \
     -DBUILD_TESTS=OFF \
     -B build-release \
@@ -105,9 +104,8 @@ RUN mkdir -p /data /logs
 # Exposer le port Cloud Run
 EXPOSE ${PORT}
 
-# Health check pour Cloud Run
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+# Note: Health check disabled for distroless image (no curl available)
+# Cloud Run will use HTTP probes instead
 
 # Point d'entrée avec configuration flexible
 ENTRYPOINT ["/app/biomining_server"]
@@ -156,7 +154,7 @@ ENV BIOMINING_CONFIG_PATH=/config/biomining_config.json
 
 EXPOSE ${PORT}
 
-# Health check
+# Health check pour debug image
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 

@@ -1,0 +1,50 @@
+# BioMining Platform - Dockerfile Simple pour Google Cloud Run
+# Version simplifiée pour éviter les erreurs de build
+
+FROM ubuntu:22.04
+
+# Éviter les interactions
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Variables d'environnement
+ENV PORT=8080
+ENV HOST=0.0.0.0
+
+# Installer les dépendances
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    libssl-dev \
+    nlohmann-json3-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Créer répertoire de travail
+WORKDIR /app
+
+# Copier les sources
+COPY . .
+
+# Build simple
+RUN mkdir -p build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          .. && \
+    make -j$(nproc) && \
+    ls -la biomining_server && \
+    ./biomining_server --help
+
+# Copier l'exécutable au bon endroit
+RUN cp build/biomining_server /usr/local/bin/
+
+# Exposer le port
+EXPOSE ${PORT}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Point d'entrée
+ENTRYPOINT ["/usr/local/bin/biomining_server"]
+CMD ["--config", "/app/config/biomining_config.json"]
