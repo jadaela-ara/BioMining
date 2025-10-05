@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy requirements first for better Docker layer caching
-COPY web/requirements.txt ./requirements.txt
+COPY requirements-minimal.txt ./requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
