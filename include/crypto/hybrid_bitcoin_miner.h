@@ -32,6 +32,7 @@
 #include "bitcoin_miner.h"
 #include "../bio/biological_network.h"
 #include "../bio/mea_interface.h"
+#include "../bio/real_mea_interface.h"
 
 // Forward declarations to avoid circular dependencies
 namespace BioMining {
@@ -184,6 +185,72 @@ struct BiologicalNoncePrediction {
 };
 
 /**
+ * @brief Énumération des méthodes de mining disponibles
+ */
+enum class MiningMethod {
+    TraditionalSHA256,      // Mining SHA-256 classique
+    BiologicalNetwork,      // Réseau biologique
+    RealMEANeurons,        // Neurones biologiques via MEA
+    HybridFusion           // Fusion intelligente des trois
+};
+
+/**
+ * @brief Structure de prédiction unifiée pour les trois systèmes
+ */
+struct TripleSystemPrediction {
+    // Prédictions individuelles
+    uint32_t sha256Nonce = 0;
+    uint32_t networkNonce = 0;
+    uint32_t meaNonce = 0;
+    
+    // Confidences individuelles
+    double sha256Confidence = 0.0;
+    double networkConfidence = 0.0;
+    double meaConfidence = 0.0;
+    
+    // Prédiction fusionnée
+    uint32_t fusedNonce = 0;
+    double fusedConfidence = 0.0;
+    MiningMethod selectedMethod = MiningMethod::TraditionalSHA256;
+    
+    // Métriques de performance
+    qint64 predictionTime = 0;
+    qint64 sha256Time = 0;
+    qint64 networkTime = 0;
+    qint64 meaTime = 0;
+    
+    // Validation
+    bool isValidated = false;
+    bool wasSuccessful = false;
+    MiningMethod actualSuccessMethod = MiningMethod::TraditionalSHA256;
+};
+
+/**
+ * @brief Configuration pour optimisation triple
+ */
+struct TripleOptimizationConfig {
+    // Poids dynamiques des systèmes (somme = 1.0)
+    double sha256Weight = 0.4;
+    double networkWeight = 0.3;
+    double meaWeight = 0.3;
+    
+    // Seuils de confiance minimum
+    double minSha256Confidence = 0.1;
+    double minNetworkConfidence = 0.5;
+    double minMeaConfidence = 0.4;
+    
+    // Paramètres d'adaptation
+    double adaptationRate = 0.02;
+    double convergenceThreshold = 0.05;
+    bool enableDynamicWeighting = true;
+    
+    // Critères de sélection
+    bool preferHighConfidence = true;
+    bool enableCrossLearning = true;
+    bool enablePerformanceTracking = true;
+};
+
+/**
  * @brief Classe principale pour le mining Bitcoin hybride
  * 
  * Cette classe combine la méthode SHA-256 traditionnelle avec un réseau biologique
@@ -201,7 +268,55 @@ public:
     bool initialize();
     bool configureBiologicalNetwork(const BioMining::HCrypto::BiologicalLearningParams& params);
     bool connectToMEA(std::shared_ptr<BioMining::Bio::MEAInterface> meaInterface);
+    bool connectToRealMEA(std::shared_ptr<BioMining::Bio::RealMEAInterface> realMeaInterface);
     void setMiningParameters(const BioMining::HCrypto::MiningConfig& config);
+    
+    // === SYSTÈME TRIPLE HYBRIDE ===
+    
+    /**
+     * @brief Initialise le système d'optimisation triple
+     */
+    bool initializeTripleSystem(const TripleOptimizationConfig& config);
+    
+    /**
+     * @brief Configuration des trois systèmes en parallèle
+     */
+    bool configureTripleSystemLearning();
+    
+    /**
+     * @brief Prédiction parallèle avec les trois systèmes
+     */
+    TripleSystemPrediction predictNonceTriple(const QString& blockHeader);
+    
+    /**
+     * @brief Fusion intelligente des prédictions
+     */
+    uint32_t fuseTriplePredictions(const TripleSystemPrediction& predictions);
+    
+    /**
+     * @brief Sélection dynamique de la meilleure méthode
+     */
+    MiningMethod selectOptimalMethod(const TripleSystemPrediction& predictions);
+    
+    /**
+     * @brief Validation croisée des trois systèmes
+     */
+    bool validateTriplePrediction(const TripleSystemPrediction& prediction, bool wasSuccessful);
+    
+    /**
+     * @brief Apprentissage croisé entre systèmes
+     */
+    bool performCrossSystemLearning();
+    
+    /**
+     * @brief Optimisation dynamique des poids
+     */
+    void optimizeSystemWeights();
+    
+    /**
+     * @brief Mining avec optimisation triple
+     */
+    bool performTripleOptimizedMining(const QString& blockHeader, uint32_t& nonce, QString& blockHash);
     
     // Contrôle du mining
     bool startHybridMining();
@@ -248,6 +363,13 @@ signals:
     void metricsUpdated(const HybridMiningMetrics& metrics);
     void adaptationScoreChanged(double score);
     void errorOccurred(const QString& error);
+    
+    // Nouveaux signaux pour système triple
+    void triplePredictionReady(const TripleSystemPrediction& prediction);
+    void systemWeightsUpdated(double sha256Weight, double networkWeight, double meaWeight);
+    void optimalMethodSelected(MiningMethod method, double confidence);
+    void crossLearningCompleted(bool success, double improvement);
+    void tripleSystemOptimized(double overallImprovement);
 
 private slots:
     void performHybridMiningCycle();
@@ -300,16 +422,63 @@ private:
     QString generateTestBlockHeader();
     QString calculateSHA256Hash(const QString& data, uint32_t nonce);
     
+    // === MÉTHODES SYSTÈME TRIPLE ===
+    
+    // Prédictions individuelles par système
+    uint32_t predictWithSHA256(const QString& blockHeader, double& confidence, qint64& processTime);
+    uint32_t predictWithBiologicalNetwork(const QString& blockHeader, double& confidence, qint64& processTime);
+    uint32_t predictWithRealMEA(const QString& blockHeader, double& confidence, qint64& processTime);
+    
+    // Algorithmes de fusion
+    uint32_t weightedAverageFusion(const TripleSystemPrediction& predictions);
+    uint32_t confidenceBasedFusion(const TripleSystemPrediction& predictions);
+    uint32_t adaptiveFusion(const TripleSystemPrediction& predictions);
+    
+    // Apprentissage croisé
+    bool trainNetworkFromMEASuccess(const TripleSystemPrediction& successfulPrediction);
+    bool trainMEAFromNetworkSuccess(const TripleSystemPrediction& successfulPrediction);
+    bool shareSuccessfulPatterns();
+    
+    // Optimisation dynamique  
+    void updateSystemPerformanceMetrics();
+    double calculateSystemEfficiency(MiningMethod method);
+    void adaptWeightsBasedOnPerformance();
+    bool detectPerformancePattern();
+    
+    // Validation et apprentissage
+    void validateAndLearnFromResult(const TripleSystemPrediction& prediction, bool wasSuccessful);
+    void updateSuccessCounters(MiningMethod method, bool wasSuccessful);
+    double calculateTripleSystemAccuracy();
+    
+    // Utilitaires système triple
+    QString blockHeaderToMEAPattern(const QString& blockHeader);
+    QVector<double> blockHeaderToNetworkInput(const QString& blockHeader);
+    bool isTripleSystemReady() const;
+    
 private:
-    // Composants principaux
+    // Composants principaux - SYSTÈME TRIPLE
     std::unique_ptr<BioMining::Crypto::BitcoinMiner> m_traditionalMiner;
     std::unique_ptr<BioMining::Network::BiologicalNetwork> m_biologicalNetwork;
     std::shared_ptr<BioMining::Bio::MEAInterface> m_meaInterface;
+    std::shared_ptr<BioMining::Bio::RealMEAInterface> m_realMeaInterface;
     
     // Configuration
     BioMining::HCrypto::BiologicalLearningParams m_learningParams;
     BioMining::HCrypto::MiningConfig m_miningConfig;
     double m_biologicalWeight;
+    
+    // Configuration système triple
+    TripleOptimizationConfig m_tripleConfig;
+    std::atomic<bool> m_tripleSystemEnabled;
+    
+    // Historique des prédictions triples
+    std::vector<TripleSystemPrediction> m_tripleHistory;
+    
+    // Métriques de performance par système
+    std::atomic<uint64_t> m_sha256Successes;
+    std::atomic<uint64_t> m_networkSuccesses; 
+    std::atomic<uint64_t> m_meaSuccesses;
+    std::atomic<uint64_t> m_fusionSuccesses;
     
     // État du système
     std::atomic<bool> m_isInitialized;
@@ -385,5 +554,8 @@ private:
 Q_DECLARE_METATYPE(BioMining::HCrypto::HybridLearningState)
 Q_DECLARE_METATYPE(BioMining::HCrypto::HybridMiningMetrics)
 Q_DECLARE_METATYPE(BioMining::HCrypto::BiologicalNoncePrediction)
+Q_DECLARE_METATYPE(BioMining::HCrypto::MiningMethod)
+Q_DECLARE_METATYPE(BioMining::HCrypto::TripleSystemPrediction)
+Q_DECLARE_METATYPE(BioMining::HCrypto::TripleOptimizationConfig)
 
 #endif // HYBRID_BITCOIN_MINER_H

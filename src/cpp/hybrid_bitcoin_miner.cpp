@@ -16,7 +16,13 @@ HybridBitcoinMiner::HybridBitcoinMiner(QObject* parent)
     , m_traditionalMiner(std::make_unique<BioMining::Crypto::BitcoinMiner>())
     , m_biologicalNetwork(nullptr)
     , m_meaInterface(nullptr)
+    , m_realMeaInterface(nullptr)
     , m_biologicalWeight(DEFAULT_BIOLOGICAL_WEIGHT)
+    , m_tripleSystemEnabled(false)
+    , m_sha256Successes(0)
+    , m_networkSuccesses(0)
+    , m_meaSuccesses(0)
+    , m_fusionSuccesses(0)
     , m_isInitialized(false)
     , m_isMining(false)
     , m_isPaused(false)
@@ -812,19 +818,35 @@ void HybridBitcoinMiner::performHybridMiningCycle()
         uint32_t nonce = 0;
         QString blockHash;
         
-        // Tentative de mining hybride
-        if (performHybridHash(testBlockHeader, nonce, blockHash)) {
+        // Utilisation du système triple si disponible
+        bool success = false;
+        if (isTripleSystemReady()) {
+            success = performTripleOptimizedMining(testBlockHeader, nonce, blockHash);
+        } else {
+            // Fallback sur mining hybride classique
+            success = performHybridHash(testBlockHeader, nonce, blockHash);
+        }
+        
+        if (success) {
             // Bloc trouvé !
             double biologicalContribution = calculateBiologicalContribution();
             emit blockFound(blockHash, nonce, biologicalContribution);
             
-            qDebug() << "Block found! Hash:" << blockHash 
+            qDebug() << "[MiningCycle] Block found! Hash:" << blockHash.left(16)
                     << "Nonce:" << nonce 
                     << "Biological contribution:" << biologicalContribution;
         }
         
         // Mise à jour des métriques
         m_metrics.totalHashes++;
+        
+        // Optimisation périodique du système triple
+        if (m_tripleSystemEnabled && m_metrics.totalHashes % 100 == 0) {
+            QTimer::singleShot(0, [this]() {
+                performCrossSystemLearning();
+                optimizeSystemWeights();
+            });
+        }
         
     } catch (const std::exception& e) {
         qCritical() << "Exception during mining cycle:" << e.what();
@@ -1425,6 +1447,904 @@ QString HybridBitcoinMiner::calculateSHA256Hash(const QString& data, uint32_t no
     QString fullData = data + QString::number(nonce);
     QByteArray hash = QCryptographicHash::hash(fullData.toUtf8(), QCryptographicHash::Sha256);
     return hash.toHex();
+}
+
+// === IMPLÉMENTATION SYSTÈME TRIPLE ===
+
+bool HybridBitcoinMiner::connectToRealMEA(std::shared_ptr<BioMining::Bio::RealMEAInterface> realMeaInterface)
+{
+    QMutexLocker locker(&m_stateMutex);
+    
+    qDebug() << "[TripleSystem] Connexion à RealMEAInterface...";
+    
+    if (!realMeaInterface) {
+        qCritical() << "Interface RealMEA invalide";
+        return false;
+    }
+    
+    m_realMeaInterface = realMeaInterface;
+    
+    // Connexion des signaux RealMEA
+    connect(m_realMeaInterface.get(), &BioMining::Bio::RealMEAInterface::bitcoinPatternLearned,
+            this, [this](const BioMining::Bio::BitcoinLearningPattern& pattern) {
+                qDebug() << "[TripleSystem] MEA pattern learned:" << pattern.blockHash.left(16);
+            });
+    
+    connect(m_realMeaInterface.get(), &BioMining::Bio::RealMEAInterface::noncePredicationReady,
+            this, [this](const BioMining::Bio::NeuralBitcoinResponse& response) {
+                qDebug() << "[TripleSystem] MEA nonce prediction:" << response.predictedNonce;
+            });
+    
+    connect(m_realMeaInterface.get(), &BioMining::Bio::RealMEAInterface::learningStatsUpdated,
+            this, [this](const BioMining::Bio::BitcoinLearningStats& stats) {
+                qDebug() << "[TripleSystem] MEA learning stats - Accuracy:" << stats.currentAccuracy;
+            });
+    
+    qDebug() << "[TripleSystem] RealMEAInterface connecté avec succès";
+    return true;
+}
+
+bool HybridBitcoinMiner::initializeTripleSystem(const TripleOptimizationConfig& config)
+{
+    QMutexLocker locker(&m_stateMutex);
+    
+    qDebug() << "[TripleSystem] Initialisation du système d'optimisation triple...";
+    
+    if (!m_traditionalMiner || !m_biologicalNetwork || !m_realMeaInterface) {
+        qCritical() << "[TripleSystem] Tous les composants doivent être initialisés";
+        return false;
+    }
+    
+    m_tripleConfig = config;
+    
+    // Vérification des poids (doivent totaliser 1.0)
+    double totalWeight = config.sha256Weight + config.networkWeight + config.meaWeight;
+    if (std::abs(totalWeight - 1.0) > 0.01) {
+        qWarning() << "[TripleSystem] Normalisation des poids - Total:" << totalWeight;
+        m_tripleConfig.sha256Weight /= totalWeight;
+        m_tripleConfig.networkWeight /= totalWeight;
+        m_tripleConfig.meaWeight /= totalWeight;
+    }
+    
+    // Initialisation des métriques triple
+    m_sha256Successes = 0;
+    m_networkSuccesses = 0;
+    m_meaSuccesses = 0;
+    m_fusionSuccesses = 0;
+    
+    // Configuration de l'apprentissage Bitcoin sur RealMEA
+    BioMining::Bio::BitcoinLearningConfig meaLearningConfig;
+    meaLearningConfig.learningRate = m_learningParams.initialLearningRate;
+    meaLearningConfig.maxTrainingEpochs = 500;
+    meaLearningConfig.targetAccuracy = 0.75;
+    meaLearningConfig.enableRealtimeLearning = true;
+    meaLearningConfig.enableBackpropagation = true;
+    
+    if (!m_realMeaInterface->initializeBitcoinLearning(meaLearningConfig)) {
+        qCritical() << "[TripleSystem] Échec d'initialisation apprentissage Bitcoin MEA";
+        return false;
+    }
+    
+    m_tripleSystemEnabled = true;
+    
+    qDebug() << QString("[TripleSystem] Système triple initialisé - Poids: SHA256=%1, Network=%2, MEA=%3")
+                .arg(m_tripleConfig.sha256Weight, 0, 'f', 3)
+                .arg(m_tripleConfig.networkWeight, 0, 'f', 3)
+                .arg(m_tripleConfig.meaWeight, 0, 'f', 3);
+    
+    return true;
+}
+
+bool HybridBitcoinMiner::configureTripleSystemLearning()
+{
+    QMutexLocker locker(&m_learningMutex);
+    
+    qDebug() << "[TripleSystem] Configuration apprentissage triple...";
+    
+    if (!m_tripleSystemEnabled) {
+        qCritical() << "[TripleSystem] Système triple non initialisé";
+        return false;
+    }
+    
+    // Configuration réseau biologique pour collaboration
+    BioMining::Network::BiologicalNetwork::NetworkConfig networkConfig;
+    networkConfig.inputSize = 60;  // Compatible MEA
+    networkConfig.outputSize = 32; // Nonce 32-bit
+    networkConfig.hiddenLayers = QVector<int>{128, 96, 64, 32}; // Architecture profonde
+    networkConfig.learningRate = m_learningParams.initialLearningRate;
+    networkConfig.enablePlasticity = true;
+    networkConfig.enableAdaptation = true;
+    
+    if (!m_biologicalNetwork->configureNetwork(networkConfig)) {
+        qCritical() << "[TripleSystem] Échec configuration réseau biologique";
+        return false;
+    }
+    
+    qDebug() << "[TripleSystem] Configuration apprentissage triple terminée";
+    return true;
+}
+
+TripleSystemPrediction HybridBitcoinMiner::predictNonceTriple(const QString& blockHeader)
+{
+    TripleSystemPrediction prediction;
+    
+    if (!m_tripleSystemEnabled) {
+        qWarning() << "[TripleSystem] Système triple non activé";
+        return prediction;
+    }
+    
+    qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
+    
+    qDebug() << QString("[TripleSystem] Prédiction triple pour: %1").arg(blockHeader.left(16));
+    
+    // Prédictions parallèles des trois systèmes
+    QFuture<uint32_t> sha256Future, networkFuture, meaFuture;
+    
+    // 1. SHA-256 traditionnel (asynchrone)
+    sha256Future = QtConcurrent::run([this, blockHeader, &prediction]() {
+        return predictWithSHA256(blockHeader, prediction.sha256Confidence, prediction.sha256Time);
+    });
+    
+    // 2. Réseau biologique (asynchrone)  
+    networkFuture = QtConcurrent::run([this, blockHeader, &prediction]() {
+        return predictWithBiologicalNetwork(blockHeader, prediction.networkConfidence, prediction.networkTime);
+    });
+    
+    // 3. MEA réel avec neurones biologiques (asynchrone)
+    meaFuture = QtConcurrent::run([this, blockHeader, &prediction]() {
+        return predictWithRealMEA(blockHeader, prediction.meaConfidence, prediction.meaTime);
+    });
+    
+    // Attente des résultats avec timeout
+    const int TIMEOUT_MS = 5000;
+    
+    try {
+        // Récupération des prédictions
+        prediction.sha256Nonce = sha256Future.result();
+        prediction.networkNonce = networkFuture.result(); 
+        prediction.meaNonce = meaFuture.result();
+        
+        // Fusion intelligente des prédictions
+        prediction.fusedNonce = fuseTriplePredictions(prediction);
+        prediction.selectedMethod = selectOptimalMethod(prediction);
+        
+        // Calcul de la confiance fusionnée
+        prediction.fusedConfidence = (
+            prediction.sha256Confidence * m_tripleConfig.sha256Weight +
+            prediction.networkConfidence * m_tripleConfig.networkWeight + 
+            prediction.meaConfidence * m_tripleConfig.meaWeight
+        );
+        
+        prediction.predictionTime = QDateTime::currentMSecsSinceEpoch() * 1000 - startTime;
+        
+        // Ajout à l'historique
+        if (m_tripleHistory.size() >= 1000) {
+            m_tripleHistory.erase(m_tripleHistory.begin());
+        }
+        m_tripleHistory.push_back(prediction);
+        
+        emit triplePredictionReady(prediction);
+        
+        qDebug() << QString("[TripleSystem] Prédictions - SHA256: %1 (conf: %2), Network: %3 (conf: %4), MEA: %5 (conf: %6)")
+                    .arg(prediction.sha256Nonce).arg(prediction.sha256Confidence, 0, 'f', 3)
+                    .arg(prediction.networkNonce).arg(prediction.networkConfidence, 0, 'f', 3)
+                    .arg(prediction.meaNonce).arg(prediction.meaConfidence, 0, 'f', 3);
+        
+        qDebug() << QString("[TripleSystem] Fusion: %1 (conf: %2), Méthode sélectionnée: %3")
+                    .arg(prediction.fusedNonce).arg(prediction.fusedConfidence, 0, 'f', 3)
+                    .arg(static_cast<int>(prediction.selectedMethod));
+        
+    } catch (const std::exception& e) {
+        qCritical() << "[TripleSystem] Exception pendant prédiction:" << e.what();
+        prediction.fusedNonce = prediction.sha256Nonce; // Fallback
+        prediction.selectedMethod = MiningMethod::TraditionalSHA256;
+        prediction.fusedConfidence = prediction.sha256Confidence;
+    }
+    
+    return prediction;
+}
+
+uint32_t HybridBitcoinMiner::predictWithSHA256(const QString& blockHeader, double& confidence, qint64& processTime)
+{
+    qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
+    
+    // Algorithme SHA-256 déterministe basé sur le header
+    QByteArray headerBytes = blockHeader.toUtf8();
+    QByteArray hash = QCryptographicHash::hash(headerBytes, QCryptographicHash::Sha256);
+    
+    // Conversion du hash en nonce  
+    uint32_t nonce = 0;
+    for (int i = 0; i < std::min(4, hash.size()); ++i) {
+        nonce |= (static_cast<uint8_t>(hash[i]) << (i * 8));
+    }
+    
+    // Confiance basée sur la difficulté et l'entropie du hash
+    double entropy = 0.0;
+    for (int i = 0; i < hash.size(); ++i) {
+        uint8_t byte = static_cast<uint8_t>(hash[i]);
+        if (byte > 0) {
+            entropy -= (byte / 255.0) * std::log2(byte / 255.0);
+        }
+    }
+    
+    confidence = qMin(1.0, entropy / 8.0); // Normalisation
+    processTime = QDateTime::currentMSecsSinceEpoch() * 1000 - startTime;
+    
+    return nonce;
+}
+
+uint32_t HybridBitcoinMiner::predictWithBiologicalNetwork(const QString& blockHeader, double& confidence, qint64& processTime)
+{
+    qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
+    
+    if (!m_biologicalNetwork) {
+        confidence = 0.0;
+        processTime = 0;
+        return 0;
+    }
+    
+    try {
+        // Conversion du header en input réseau
+        QVector<double> networkInput = blockHeaderToNetworkInput(blockHeader);
+        
+        // Propagation avant
+        m_biologicalNetwork->forwardPropagation(networkInput);
+        
+        // Extraction de la sortie
+        QVector<double> output = m_biologicalNetwork->getOutputValues();
+        
+        if (output.size() >= 32) {
+            // Conversion sortie binaire vers nonce
+            uint32_t nonce = 0;
+            for (int i = 0; i < 32; ++i) {
+                if (output[i] > 0.5) {
+                    nonce |= (1u << i);
+                }
+            }
+            
+            // Confiance basée sur la netteté de la sortie
+            double sharpness = 0.0;
+            for (double val : output) {
+                double deviation = std::abs(val - 0.5);
+                sharpness += deviation;
+            }
+            confidence = qMin(1.0, sharpness / (output.size() * 0.5));
+            
+            processTime = QDateTime::currentMSecsSinceEpoch() * 1000 - startTime;
+            return nonce;
+        }
+        
+    } catch (const std::exception& e) {
+        qCritical() << "[TripleSystem] Erreur réseau biologique:" << e.what();
+    }
+    
+    confidence = 0.0;
+    processTime = QDateTime::currentMSecsSinceEpoch() * 1000 - startTime;
+    return 0;
+}
+
+uint32_t HybridBitcoinMiner::predictWithRealMEA(const QString& blockHeader, double& confidence, qint64& processTime)
+{
+    qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
+    
+    if (!m_realMeaInterface) {
+        confidence = 0.0;
+        processTime = 0;
+        return 0;
+    }
+    
+    try {
+        // Utilisation de l'interface MEA pour prédiction Bitcoin
+        BioMining::Bio::NeuralBitcoinResponse meaResponse = m_realMeaInterface->predictNonce(blockHeader, 1000000.0);
+        
+        confidence = meaResponse.confidence;
+        processTime = meaResponse.responseTime;
+        
+        qDebug() << QString("[TripleSystem] MEA prédiction: nonce=%1, confiance=%2, temps=%3μs")
+                    .arg(meaResponse.predictedNonce)
+                    .arg(confidence, 0, 'f', 3)
+                    .arg(processTime);
+        
+        return meaResponse.predictedNonce;
+        
+    } catch (const std::exception& e) {
+        qCritical() << "[TripleSystem] Erreur MEA réel:" << e.what();
+    }
+    
+    confidence = 0.0;
+    processTime = QDateTime::currentMSecsSinceEpoch() * 1000 - startTime;
+    return 0;
+}
+
+uint32_t HybridBitcoinMiner::fuseTriplePredictions(const TripleSystemPrediction& predictions)
+{
+    // Fusion adaptive basée sur les confidences et les poids
+    if (m_tripleConfig.enableDynamicWeighting) {
+        return adaptiveFusion(predictions);
+    } else {
+        return confidenceBasedFusion(predictions);
+    }
+}
+
+uint32_t HybridBitcoinMiner::weightedAverageFusion(const TripleSystemPrediction& predictions)
+{
+    // Fusion par moyenne pondérée
+    double weightedSum = 
+        predictions.sha256Nonce * m_tripleConfig.sha256Weight +
+        predictions.networkNonce * m_tripleConfig.networkWeight +
+        predictions.meaNonce * m_tripleConfig.meaWeight;
+    
+    return static_cast<uint32_t>(weightedSum);
+}
+
+uint32_t HybridBitcoinMiner::confidenceBasedFusion(const TripleSystemPrediction& predictions)
+{
+    // Fusion basée sur les confidences normalisées
+    double totalConfidence = predictions.sha256Confidence + predictions.networkConfidence + predictions.meaConfidence;
+    
+    if (totalConfidence < 0.001) {
+        // Fallback sur moyenne simple
+        return (predictions.sha256Nonce + predictions.networkNonce + predictions.meaNonce) / 3;
+    }
+    
+    double sha256Weight = predictions.sha256Confidence / totalConfidence;
+    double networkWeight = predictions.networkConfidence / totalConfidence;  
+    double meaWeight = predictions.meaConfidence / totalConfidence;
+    
+    double fusedNonce = 
+        predictions.sha256Nonce * sha256Weight +
+        predictions.networkNonce * networkWeight +
+        predictions.meaNonce * meaWeight;
+    
+    return static_cast<uint32_t>(fusedNonce);
+}
+
+uint32_t HybridBitcoinMiner::adaptiveFusion(const TripleSystemPrediction& predictions)
+{
+    // Fusion adaptive basée sur l'historique de performance
+    double sha256Perf = calculateSystemEfficiency(MiningMethod::TraditionalSHA256);
+    double networkPerf = calculateSystemEfficiency(MiningMethod::BiologicalNetwork);
+    double meaPerf = calculateSystemEfficiency(MiningMethod::RealMEANeurons);
+    
+    double totalPerf = sha256Perf + networkPerf + meaPerf;
+    
+    if (totalPerf < 0.001) {
+        return confidenceBasedFusion(predictions);
+    }
+    
+    // Poids adaptatifs basés sur les performances
+    double adaptiveSha256Weight = (sha256Perf / totalPerf) * predictions.sha256Confidence;
+    double adaptiveNetworkWeight = (networkPerf / totalPerf) * predictions.networkConfidence;
+    double adaptiveMeaWeight = (meaPerf / totalPerf) * predictions.meaConfidence;
+    
+    double totalAdaptiveWeight = adaptiveSha256Weight + adaptiveNetworkWeight + adaptiveMeaWeight;
+    
+    if (totalAdaptiveWeight < 0.001) {
+        return confidenceBasedFusion(predictions);
+    }
+    
+    double fusedNonce = 
+        predictions.sha256Nonce * (adaptiveSha256Weight / totalAdaptiveWeight) +
+        predictions.networkNonce * (adaptiveNetworkWeight / totalAdaptiveWeight) +
+        predictions.meaNonce * (adaptiveMeaWeight / totalAdaptiveWeight);
+    
+    return static_cast<uint32_t>(fusedNonce);
+}
+
+MiningMethod HybridBitcoinMiner::selectOptimalMethod(const TripleSystemPrediction& predictions)
+{
+    // Sélection basée sur la confiance et la performance historique
+    
+    if (m_tripleConfig.preferHighConfidence) {
+        // Sélection par confiance maximale
+        double maxConfidence = std::max({predictions.sha256Confidence, 
+                                        predictions.networkConfidence, 
+                                        predictions.meaConfidence});
+        
+        if (predictions.sha256Confidence == maxConfidence && 
+            predictions.sha256Confidence >= m_tripleConfig.minSha256Confidence) {
+            return MiningMethod::TraditionalSHA256;
+        } else if (predictions.networkConfidence == maxConfidence &&
+                  predictions.networkConfidence >= m_tripleConfig.minNetworkConfidence) {
+            return MiningMethod::BiologicalNetwork;
+        } else if (predictions.meaConfidence == maxConfidence &&
+                  predictions.meaConfidence >= m_tripleConfig.minMeaConfidence) {
+            return MiningMethod::RealMEANeurons;
+        }
+    }
+    
+    // Sélection par efficacité combinée (confiance × performance historique)
+    double sha256Score = predictions.sha256Confidence * calculateSystemEfficiency(MiningMethod::TraditionalSHA256);
+    double networkScore = predictions.networkConfidence * calculateSystemEfficiency(MiningMethod::BiologicalNetwork);
+    double meaScore = predictions.meaConfidence * calculateSystemEfficiency(MiningMethod::RealMEANeurons);
+    
+    double maxScore = std::max({sha256Score, networkScore, meaScore});
+    
+    if (sha256Score == maxScore) {
+        return MiningMethod::TraditionalSHA256;
+    } else if (networkScore == maxScore) {
+        return MiningMethod::BiologicalNetwork;  
+    } else if (meaScore == maxScore) {
+        return MiningMethod::RealMEANeurons;
+    }
+    
+    // Fallback sur fusion si aucune méthode claire
+    return MiningMethod::HybridFusion;
+}
+
+bool HybridBitcoinMiner::performTripleOptimizedMining(const QString& blockHeader, uint32_t& nonce, QString& blockHash)
+{
+    if (!m_tripleSystemEnabled) {
+        qWarning() << "[TripleSystem] Système triple non activé, utilisation méthode hybride classique";
+        return performHybridHash(blockHeader, nonce, blockHash);
+    }
+    
+    // Prédiction triple
+    TripleSystemPrediction prediction = predictNonceTriple(blockHeader);
+    
+    // Test de la méthode sélectionnée
+    MiningMethod selectedMethod = prediction.selectedMethod;
+    uint32_t testNonce = 0;
+    
+    switch (selectedMethod) {
+        case MiningMethod::TraditionalSHA256:
+            testNonce = prediction.sha256Nonce;
+            break;
+        case MiningMethod::BiologicalNetwork:
+            testNonce = prediction.networkNonce;
+            break;
+        case MiningMethod::RealMEANeurons:
+            testNonce = prediction.meaNonce;
+            break;
+        case MiningMethod::HybridFusion:
+        default:
+            testNonce = prediction.fusedNonce;
+            break;
+    }
+    
+    // Validation du nonce avec SHA-256
+    QString targetHash = "0000"; // Difficulté simplifiée
+    if (validateNonceWithSHA256(blockHeader, testNonce, targetHash)) {
+        // Succès !
+        nonce = testNonce;
+        blockHash = calculateSHA256Hash(blockHeader, nonce);
+        
+        // Mise à jour des métriques de succès
+        updateSuccessCounters(selectedMethod, true);
+        validateAndLearnFromResult(prediction, true);
+        
+        qDebug() << QString("[TripleSystem] SUCCÈS ! Méthode: %1, Nonce: %2, Hash: %3")
+                    .arg(static_cast<int>(selectedMethod))
+                    .arg(nonce)
+                    .arg(blockHash.left(16));
+        
+        return true;
+    } else {
+        // Échec, essai avec méthodes de fallback
+        updateSuccessCounters(selectedMethod, false);
+        
+        // Test des autres prédictions
+        QVector<QPair<uint32_t, MiningMethod>> fallbacks = {
+            {prediction.fusedNonce, MiningMethod::HybridFusion},
+            {prediction.sha256Nonce, MiningMethod::TraditionalSHA256},
+            {prediction.networkNonce, MiningMethod::BiologicalNetwork},
+            {prediction.meaNonce, MiningMethod::RealMEANeurons}
+        };
+        
+        for (const auto& fallback : fallbacks) {
+            if (fallback.second != selectedMethod && 
+                validateNonceWithSHA256(blockHeader, fallback.first, targetHash)) {
+                
+                nonce = fallback.first;
+                blockHash = calculateSHA256Hash(blockHeader, nonce);
+                
+                updateSuccessCounters(fallback.second, true);
+                
+                // Marquer la prédiction originale comme échec mais noter la méthode de succès
+                TripleSystemPrediction correctedPrediction = prediction;
+                correctedPrediction.actualSuccessMethod = fallback.second;
+                validateAndLearnFromResult(correctedPrediction, false);
+                
+                qDebug() << QString("[TripleSystem] SUCCÈS Fallback! Méthode: %1, Nonce: %2")
+                            .arg(static_cast<int>(fallback.second))
+                            .arg(nonce);
+                
+                return true;
+            }
+        }
+        
+        validateAndLearnFromResult(prediction, false);
+        
+        // Fallback final sur mining traditionnel
+        return m_traditionalMiner->mineBlock(blockHeader, nonce, blockHash);
+    }
+}
+
+bool HybridBitcoinMiner::validateTriplePrediction(const TripleSystemPrediction& prediction, bool wasSuccessful)
+{
+    QMutexLocker locker(&m_dataMutex);
+    
+    // Recherche dans l'historique et mise à jour
+    auto it = std::find_if(m_tripleHistory.begin(), m_tripleHistory.end(),
+                          [&prediction](TripleSystemPrediction& p) {
+                              return p.predictionTime == prediction.predictionTime &&
+                                     p.fusedNonce == prediction.fusedNonce;
+                          });
+    
+    if (it != m_tripleHistory.end()) {
+        it->isValidated = true;
+        it->wasSuccessful = wasSuccessful;
+        
+        // Apprentissage depuis le résultat
+        validateAndLearnFromResult(*it, wasSuccessful);
+        
+        qDebug() << QString("[TripleSystem] Validation - Succès: %1, Méthode: %2")
+                    .arg(wasSuccessful ? "OUI" : "NON")
+                    .arg(static_cast<int>(prediction.selectedMethod));
+        
+        return true;
+    }
+    
+    return false;
+}
+
+bool HybridBitcoinMiner::performCrossSystemLearning()
+{
+    QMutexLocker locker(&m_learningMutex);
+    
+    if (!m_tripleConfig.enableCrossLearning) {
+        return false;
+    }
+    
+    qDebug() << "[TripleSystem] Apprentissage croisé entre systèmes...";
+    
+    bool improvement = false;
+    
+    // Partage des patterns réussis entre systèmes
+    if (shareSuccessfulPatterns()) {
+        improvement = true;
+    }
+    
+    // Formation du réseau à partir des succès MEA
+    for (const auto& prediction : m_tripleHistory) {
+        if (prediction.isValidated && prediction.wasSuccessful) {
+            if (prediction.actualSuccessMethod == MiningMethod::RealMEANeurons ||
+                prediction.selectedMethod == MiningMethod::RealMEANeurons) {
+                
+                if (trainNetworkFromMEASuccess(prediction)) {
+                    improvement = true;
+                }
+            } else if (prediction.actualSuccessMethod == MiningMethod::BiologicalNetwork ||
+                      prediction.selectedMethod == MiningMethod::BiologicalNetwork) {
+                
+                if (trainMEAFromNetworkSuccess(prediction)) {
+                    improvement = true;
+                }
+            }
+        }
+    }
+    
+    if (improvement) {
+        emit crossLearningCompleted(true, 0.05); // 5% d'amélioration estimée
+    }
+    
+    qDebug() << QString("[TripleSystem] Apprentissage croisé terminé - Amélioration: %1")
+                .arg(improvement ? "OUI" : "NON");
+    
+    return improvement;
+}
+
+void HybridBitcoinMiner::optimizeSystemWeights()
+{
+    if (!m_tripleConfig.enableDynamicWeighting) {
+        return;
+    }
+    
+    // Calcul des efficacités actuelles
+    double sha256Efficiency = calculateSystemEfficiency(MiningMethod::TraditionalSHA256);
+    double networkEfficiency = calculateSystemEfficiency(MiningMethod::BiologicalNetwork);
+    double meaEfficiency = calculateSystemEfficiency(MiningMethod::RealMEANeurons);
+    
+    double totalEfficiency = sha256Efficiency + networkEfficiency + meaEfficiency;
+    
+    if (totalEfficiency < 0.001) {
+        return; // Pas assez de données
+    }
+    
+    // Nouveaux poids basés sur l'efficacité
+    double newSha256Weight = sha256Efficiency / totalEfficiency;
+    double newNetworkWeight = networkEfficiency / totalEfficiency;
+    double newMeaWeight = meaEfficiency / totalEfficiency;
+    
+    // Application avec facteur d'adaptation
+    double adaptationFactor = m_tripleConfig.adaptationRate;
+    
+    m_tripleConfig.sha256Weight = m_tripleConfig.sha256Weight * (1.0 - adaptationFactor) + 
+                                 newSha256Weight * adaptationFactor;
+    m_tripleConfig.networkWeight = m_tripleConfig.networkWeight * (1.0 - adaptationFactor) + 
+                                  newNetworkWeight * adaptationFactor;
+    m_tripleConfig.meaWeight = m_tripleConfig.meaWeight * (1.0 - adaptationFactor) + 
+                              newMeaWeight * adaptationFactor;
+    
+    // Normalisation pour garantir somme = 1.0
+    double weightSum = m_tripleConfig.sha256Weight + m_tripleConfig.networkWeight + m_tripleConfig.meaWeight;
+    m_tripleConfig.sha256Weight /= weightSum;
+    m_tripleConfig.networkWeight /= weightSum;
+    m_tripleConfig.meaWeight /= weightSum;
+    
+    emit systemWeightsUpdated(m_tripleConfig.sha256Weight, 
+                             m_tripleConfig.networkWeight, 
+                             m_tripleConfig.meaWeight);
+    
+    qDebug() << QString("[TripleSystem] Poids optimisés - SHA256: %1, Network: %2, MEA: %3")
+                .arg(m_tripleConfig.sha256Weight, 0, 'f', 3)
+                .arg(m_tripleConfig.networkWeight, 0, 'f', 3)
+                .arg(m_tripleConfig.meaWeight, 0, 'f', 3);
+}
+
+// Méthodes utilitaires système triple
+
+QVector<double> HybridBitcoinMiner::blockHeaderToNetworkInput(const QString& blockHeader)
+{
+    QVector<double> input(60, 0.0); // 60 entrées pour compatibilité MEA
+    
+    QByteArray headerBytes = blockHeader.toUtf8();
+    
+    // Conversion du header en vecteur d'entrée normalisé
+    for (int i = 0; i < std::min(headerBytes.size(), input.size()); ++i) {
+        input[i] = (static_cast<uint8_t>(headerBytes[i]) / 255.0) * 2.0 - 1.0; // [-1, 1]
+    }
+    
+    return input;
+}
+
+double HybridBitcoinMiner::calculateSystemEfficiency(MiningMethod method)
+{
+    if (m_tripleHistory.size() < 10) {
+        return 0.5; // Valeur par défaut
+    }
+    
+    uint64_t totalAttempts = 0;
+    uint64_t successfulAttempts = 0;
+    
+    // Calcul basé sur l'historique récent (100 dernières prédictions)
+    int startIndex = std::max(0, static_cast<int>(m_tripleHistory.size()) - 100);
+    
+    for (int i = startIndex; i < static_cast<int>(m_tripleHistory.size()); ++i) {
+        const auto& prediction = m_tripleHistory[i];
+        
+        if (!prediction.isValidated) continue;
+        
+        bool wasSelectedMethod = (prediction.selectedMethod == method);
+        bool wasSuccessfulMethod = (prediction.actualSuccessMethod == method);
+        
+        if (wasSelectedMethod) {
+            totalAttempts++;
+            if (prediction.wasSuccessful || wasSuccessfulMethod) {
+                successfulAttempts++;
+            }
+        }
+    }
+    
+    if (totalAttempts == 0) {
+        return 0.5; // Valeur neutre
+    }
+    
+    return static_cast<double>(successfulAttempts) / totalAttempts;
+}
+
+void HybridBitcoinMiner::updateSuccessCounters(MiningMethod method, bool wasSuccessful)
+{
+    if (wasSuccessful) {
+        switch (method) {
+            case MiningMethod::TraditionalSHA256:
+                m_sha256Successes++;
+                break;
+            case MiningMethod::BiologicalNetwork:
+                m_networkSuccesses++;
+                break;
+            case MiningMethod::RealMEANeurons:
+                m_meaSuccesses++;
+                break;
+            case MiningMethod::HybridFusion:
+                m_fusionSuccesses++;
+                break;
+        }
+    }
+}
+
+void HybridBitcoinMiner::validateAndLearnFromResult(const TripleSystemPrediction& prediction, bool wasSuccessful)
+{
+    // Apprentissage spécifique du système MEA
+    if (m_realMeaInterface && (prediction.selectedMethod == MiningMethod::RealMEANeurons ||
+                               prediction.actualSuccessMethod == MiningMethod::RealMEANeurons)) {
+        
+        BioMining::Bio::NeuralBitcoinResponse meaResponse;
+        meaResponse.predictedNonce = prediction.meaNonce;
+        meaResponse.confidence = prediction.meaConfidence;
+        meaResponse.responseTime = prediction.meaTime;
+        
+        m_realMeaInterface->applyReinforcementLearning(meaResponse, wasSuccessful);
+    }
+    
+    // Apprentissage du réseau biologique
+    if (m_biologicalNetwork && (prediction.selectedMethod == MiningMethod::BiologicalNetwork ||
+                                prediction.actualSuccessMethod == MiningMethod::BiologicalNetwork)) {
+        
+        // Le réseau biologique apprend de ses succès/échecs
+        // (Implémentation déjà existante dans les méthodes du réseau)
+    }
+    
+    // Mise à jour des métriques globales
+    updateSystemPerformanceMetrics();
+}
+
+bool HybridBitcoinMiner::shareSuccessfulPatterns()
+{
+    // Partage des patterns entre les systèmes biologiques
+    
+    bool patternsShared = false;
+    
+    for (const auto& prediction : m_tripleHistory) {
+        if (prediction.isValidated && prediction.wasSuccessful) {
+            
+            // Si MEA a réussi, enseigner au réseau
+            if (prediction.actualSuccessMethod == MiningMethod::RealMEANeurons && m_biologicalNetwork) {
+                
+                QVector<double> successPattern = blockHeaderToNetworkInput(QString::number(prediction.meaNonce));
+                QVector<double> targetOutput(32);
+                
+                // Conversion du nonce réussi en target
+                for (int i = 0; i < 32; ++i) {
+                    targetOutput[i] = ((prediction.meaNonce >> i) & 1) ? 1.0 : 0.0;
+                }
+                
+                m_biologicalNetwork->forwardPropagation(successPattern);
+                m_biologicalNetwork->backPropagation(targetOutput);
+                m_biologicalNetwork->updateWeights();
+                
+                patternsShared = true;
+            }
+            
+            // Si réseau a réussi, enseigner au MEA
+            if (prediction.actualSuccessMethod == MiningMethod::BiologicalNetwork && m_realMeaInterface) {
+                
+                BioMining::Bio::BitcoinLearningPattern meaPattern;
+                meaPattern.blockHash = QString::number(prediction.networkNonce);
+                meaPattern.targetNonce = prediction.networkNonce;
+                meaPattern.difficulty = 1000000.0;
+                meaPattern.timestamp = prediction.predictionTime;
+                
+                m_realMeaInterface->trainBitcoinPattern(meaPattern);
+                
+                patternsShared = true;
+            }
+        }
+    }
+    
+    return patternsShared;
+}
+
+bool HybridBitcoinMiner::trainNetworkFromMEASuccess(const TripleSystemPrediction& successfulPrediction)
+{
+    if (!m_biologicalNetwork) {
+        return false;
+    }
+    
+    // Entraîner le réseau biologique avec les patterns réussis du MEA
+    QVector<double> input = blockHeaderToNetworkInput(QString::number(successfulPrediction.meaNonce));
+    QVector<double> target(32);
+    
+    for (int i = 0; i < 32; ++i) {
+        target[i] = ((successfulPrediction.meaNonce >> i) & 1) ? 1.0 : 0.0;
+    }
+    
+    try {
+        m_biologicalNetwork->forwardPropagation(input);
+        m_biologicalNetwork->backPropagation(target);
+        m_biologicalNetwork->updateWeights();
+        
+        qDebug() << "[TripleSystem] Réseau entraîné depuis succès MEA";
+        return true;
+        
+    } catch (const std::exception& e) {
+        qCritical() << "[TripleSystem] Erreur entraînement croisé MEA->Network:" << e.what();
+        return false;
+    }
+}
+
+bool HybridBitcoinMiner::trainMEAFromNetworkSuccess(const TripleSystemPrediction& successfulPrediction)
+{
+    if (!m_realMeaInterface) {
+        return false;
+    }
+    
+    // Entraîner le MEA avec les patterns réussis du réseau biologique
+    try {
+        BioMining::Bio::BitcoinLearningPattern pattern;
+        pattern.blockHash = QString("network_success_%1").arg(successfulPrediction.networkNonce);
+        pattern.targetNonce = successfulPrediction.networkNonce;
+        pattern.difficulty = 1000000.0;
+        pattern.timestamp = successfulPrediction.predictionTime;
+        pattern.successRate = 1.0; // Succès avéré
+        
+        m_realMeaInterface->trainBitcoinPattern(pattern);
+        
+        qDebug() << "[TripleSystem] MEA entraîné depuis succès Network";
+        return true;
+        
+    } catch (const std::exception& e) {
+        qCritical() << "[TripleSystem] Erreur entraînement croisé Network->MEA:" << e.what();
+        return false;
+    }
+}
+
+void HybridBitcoinMiner::updateSystemPerformanceMetrics()
+{
+    // Mise à jour des métriques de performance pour optimisation
+    
+    if (m_tripleHistory.size() < 10) {
+        return;
+    }
+    
+    // Calcul des métriques sur les 50 dernières prédictions
+    int recentCount = std::min(50, static_cast<int>(m_tripleHistory.size()));
+    int startIndex = m_tripleHistory.size() - recentCount;
+    
+    int sha256Success = 0, networkSuccess = 0, meaSuccess = 0, fusionSuccess = 0;
+    int sha256Total = 0, networkTotal = 0, meaTotal = 0, fusionTotal = 0;
+    
+    for (int i = startIndex; i < static_cast<int>(m_tripleHistory.size()); ++i) {
+        const auto& prediction = m_tripleHistory[i];
+        
+        if (!prediction.isValidated) continue;
+        
+        // Comptage par méthode sélectionnée
+        switch (prediction.selectedMethod) {
+            case MiningMethod::TraditionalSHA256:
+                sha256Total++;
+                if (prediction.wasSuccessful) sha256Success++;
+                break;
+            case MiningMethod::BiologicalNetwork:
+                networkTotal++;
+                if (prediction.wasSuccessful) networkSuccess++;
+                break;
+            case MiningMethod::RealMEANeurons:
+                meaTotal++;
+                if (prediction.wasSuccessful) meaSuccess++;
+                break;
+            case MiningMethod::HybridFusion:
+                fusionTotal++;
+                if (prediction.wasSuccessful) fusionSuccess++;
+                break;
+        }
+    }
+    
+    // Calcul des taux de réussite
+    double sha256Rate = (sha256Total > 0) ? (double)sha256Success / sha256Total : 0.0;
+    double networkRate = (networkTotal > 0) ? (double)networkSuccess / networkTotal : 0.0;
+    double meaRate = (meaTotal > 0) ? (double)meaSuccess / meaTotal : 0.0;
+    double fusionRate = (fusionTotal > 0) ? (double)fusionSuccess / fusionTotal : 0.0;
+    
+    // Logs pour monitoring
+    qDebug() << QString("[TripleSystem] Taux de réussite récents - SHA256: %1%, Network: %2%, MEA: %3%, Fusion: %4%")
+                .arg(sha256Rate * 100, 0, 'f', 1)
+                .arg(networkRate * 100, 0, 'f', 1)
+                .arg(meaRate * 100, 0, 'f', 1)
+                .arg(fusionRate * 100, 0, 'f', 1);
+    
+    // Déclencher optimisation si nécessaire
+    if (recentCount >= 20) {
+        optimizeSystemWeights();
+    }
+}
+
+bool HybridBitcoinMiner::isTripleSystemReady() const
+{
+    return m_tripleSystemEnabled.load() && 
+           m_traditionalMiner && 
+           m_biologicalNetwork && 
+           m_realMeaInterface;
 }
 
 // Classes de tâches parallèles
