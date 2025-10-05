@@ -715,11 +715,25 @@ async def shutdown_event():
     logger.info("✅ API Server shutdown complete")
 
 if __name__ == "__main__":
-    # Development server
-    uvicorn.run(
-        "server:app",
-        host="0.0.0.0",
-        port=8080,
-        reload=True,
-        log_level="info"
-    )
+    # Get port from environment (CloudRun compatibility)
+    import os
+    port = int(os.getenv("PORT", 8080))
+    
+    # Check if we're in development or production
+    if os.getenv("NODE_ENV") == "production":
+        # Production server
+        uvicorn.run(
+            "web.api.server:app",
+            host="0.0.0.0",
+            port=port,
+            log_level="info"
+        )
+    else:
+        # Development server with reload
+        uvicorn.run(
+            "server:app",
+            host="0.0.0.0",
+            port=port,
+            reload=True,
+            log_level="info"
+        )
