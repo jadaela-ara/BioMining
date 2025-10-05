@@ -1,6 +1,6 @@
 # ================================================================
-# HYBRID BITCOIN MINING PLATFORM - WEB REQUIREMENTS
-# Python dependencies for the web interface and API server
+# HYBRID BITCOIN MINING PLATFORM - WEB REQUIREMENTS (FIXED)
+# Minimal dependencies for production deployment
 # ================================================================
 
 # Core web framework
@@ -9,67 +9,29 @@ uvicorn[standard]>=0.24.0
 
 # WebSocket support
 websockets>=12.0
-python-socketio>=5.9.0
 
 # HTTP and async support
 httpx>=0.25.0
 aiofiles>=23.2.0
-aiohttp>=3.8.0
 
 # Data handling
 python-multipart>=0.0.6
 pydantic>=2.4.0
-pydantic-settings>=2.0.0
 
 # System monitoring
 psutil>=5.9.0
 
-# Database (optional, for persistence)
-sqlalchemy>=2.0.0
-alembic>=1.12.0
-
-# Caching
-redis>=5.0.0
-aioredis>=2.0.0
-
 # Authentication and security
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-python-multipart>=0.0.6
-
-# Monitoring and logging
-prometheus-client>=0.17.0
-structlog>=23.2.0
-
-# Scientific computing (for data analysis)
-numpy>=1.24.0
-scipy>=1.11.0
-pandas>=2.1.0
-
-# Plotting and visualization
-matplotlib>=3.7.0
-plotly>=5.17.0
-
-# Machine learning integration
-scikit-learn>=1.3.0
-torch>=2.1.0
-
-# Bitcoin and crypto utilities
-hashlib
 cryptography>=41.0.0
-
-# Development and testing
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-black>=23.9.0
-isort>=5.12.0
-mypy>=1.6.0
 
 # Environment and configuration
 python-dotenv>=1.0.0
-click>=8.1.0
 
 # Additional utilities
 requests>=2.31.0
-pytz>=2023.3
-python-dateutil>=2.8.2
+
+# Scientific computing (minimal for web interface)
+numpy>=1.24.0
+
+# Note: hashlib is a Python standard library module, not a pip package
+# Note: torch>=2.1.0 removed to avoid build issues (can be added back if needed)
