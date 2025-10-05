@@ -1,0 +1,75 @@
+# ================================================================
+# GCLOUD BUILD IGNORE - Exclude files from CloudRun build
+# ================================================================
+
+# Git and version control
+.git/
+.gitignore
+*.md
+
+# Documentation
+docs/
+examples/
+CLOUDSHELL_*
+COMPILATION_*
+DEPLOYMENT_*
+EXAMPLES_*
+FINAL_*
+GITHUB_*
+PUSH_*
+REAL_MEA_*
+README_*
+
+# Build artifacts
+build/
+*.o
+*.so
+*.a
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+
+# Backup files
+*.backup
+*-backup
+Dockerfile.cpp-backup
+
+# Logs
+logs/
+*.log
+
+# Test files
+test_*
+*_test.*
+
+# Scripts (except deploy)
+*.sh
+!deploy_web_interface.sh
+!web/start_web_interface.sh
+
+# Large files
+*.tar.gz
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
