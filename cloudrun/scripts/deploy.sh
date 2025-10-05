@@ -15,13 +15,13 @@ SERVICE_NAME="biomining"
 REGION="${GOOGLE_CLOUD_REGION:-europe-west1}"
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-}"
 
-# Configuration Cloud Run
-MEMORY="2Gi"
-CPU="2"
-CONCURRENCY="100" 
-TIMEOUT="300s"
-MIN_INSTANCES="0"
-MAX_INSTANCES="10"
+# Configuration Cloud Run - Enhanced for Triple System
+MEMORY="4Gi"           # Augmenté pour le système triple
+CPU="4"               # Plus de CPU pour parallélisation 
+CONCURRENCY="50"      # Réduit pour performance MEA temps réel
+TIMEOUT="600s"        # Timeout étendu pour apprentissage
+MIN_INSTANCES="1"     # Gardé démarré pour MEA temps réel
+MAX_INSTANCES="5"     # Limité pour consistance biologique
 
 # Build configuration
 BUILD_TAG="latest"
@@ -158,12 +158,21 @@ echo "Dockerfile: ${DOCKERFILE}"
 echo "Image Tag: $image_tag"
 echo "=================================================="
     
-    # Variables d'environnement pour l'application
+    # Variables d'environnement pour l'application Triple System
     local env_vars=(
         "BIOMINING_ENVIRONMENT=production"
         "GOOGLE_CLOUD_PROJECT=${PROJECT_ID}"
         "DEPLOYMENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         "BIOMINING_LOG_LEVEL=info"
+        "ENABLE_TRIPLE_SYSTEM=true"
+        "ENABLE_BIOLOGICAL_NETWORK=true"
+        "ENABLE_REAL_MEA=true"
+        "ENABLE_CROSS_LEARNING=true"
+        "MEA_ELECTRODE_COUNT=60"
+        "DEFAULT_LEARNING_RATE=0.01"
+        "MAX_TRAINING_EPOCHS=1000"
+        "WEBSOCKET_ENABLED=true"
+        "REALTIME_MONITORING=true"
     )
     
     # Construire la commande gcloud run deploy
@@ -315,13 +324,28 @@ main() {
     echo "📈 Métriques: ${service_url}/api/metrics"
     echo "🏥 Health Check: ${service_url}/health"
     echo ""
-    echo "🔗 Endpoints disponibles:"
+    echo "🔗 Endpoints Triple System disponibles:"
+    echo "   🏠 Interface:      ${service_url}/"
+    echo "   📊 Dashboard:      ${service_url}/dashboard"
+    echo "   ⚙️  Configuration:  ${service_url}/config"
+    echo "   🧠 Networks:       ${service_url}/networks"
+    echo "   ⚡ MEA Control:    ${service_url}/mea"
+    echo "   🎓 Training:       ${service_url}/training"  
+    echo "   ⛏️  Mining:         ${service_url}/mining"
+    echo "   📈 Results:        ${service_url}/results"
+    echo ""
+    echo "🔗 API Endpoints:"
     echo "   GET  ${service_url}/api/status"
-    echo "   POST ${service_url}/api/configure"
-    echo "   GET  ${service_url}/api/metrics"
-    echo "   POST ${service_url}/api/train/start"
-    echo "   POST ${service_url}/api/mine/start"
-    echo "   GET  ${service_url}/api/export"
+    echo "   POST ${service_url}/api/triple/configure"
+    echo "   POST ${service_url}/api/networks/configure"
+    echo "   POST ${service_url}/api/mea/connect"
+    echo "   GET  ${service_url}/api/mea/electrodes"
+    echo "   POST ${service_url}/api/training/upload"
+    echo "   POST ${service_url}/api/training/start"
+    echo "   POST ${service_url}/api/mining/start"
+    echo "   GET  ${service_url}/api/mining/results"
+    echo "   GET  ${service_url}/api/metrics/realtime"
+    echo "   WS   ${service_url}/ws/realtime"
     echo ""
     echo "🧬 BioMining Platform déployée et opérationnelle!"
 }
