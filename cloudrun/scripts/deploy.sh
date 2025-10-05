@@ -26,7 +26,7 @@ MAX_INSTANCES="5"     # Limité pour consistance biologique
 # Build configuration
 BUILD_TAG="latest"
 REGISTRY="gcr.io"
-DOCKERFILE="Dockerfile.web"  # Use web interface dockerfile by default
+DOCKERFILE="Dockerfile"  # Use main dockerfile (will be updated for web interface)
 IMAGE_TAG=""  # Will be set during build
 
 echo "🧬 === BIOMINING PLATFORM CLOUD RUN DEPLOYMENT ==="

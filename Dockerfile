@@ -1,163 +1,62 @@
-# Dockerfile pour la Plateforme Bio-Mining Bitcoin
-# Construction multi-stage pour optimiser la taille de l'image finale
+# ================================================================
+# HYBRID BITCOIN MINING PLATFORM - WEB INTERFACE DOCKERFILE
+# Production-ready containerization for Triple System Web Interface
+# ================================================================
 
-# === STAGE 1: Build Environment ===
-FROM ubuntu:22.04 AS builder
+FROM python:3.11-slim
 
-# Éviter les prompts interactifs
-ENV DEBIAN_FRONTEND=noninteractive
+# Metadata
+LABEL org.opencontainers.image.title="Hybrid Bitcoin Mining Web Interface"
+LABEL org.opencontainers.image.description="Revolutionary web interface for biological neuron Bitcoin mining"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.vendor="BioMining Platform"
 
-# Installation des dépendances de build
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PORT=8080
+ENV HOST=0.0.0.0
+ENV NODE_ENV=production
+ENV PYTHONPATH="/app:$PYTHONPATH"
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    cmake \
-    qt6-base-dev \
-    qt6-charts-dev \
-    libssl-dev \
-    libboost-all-dev \
-    pkg-config \
+    curl \
     git \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Création de l'utilisateur de build
-RUN useradd -m -s /bin/bash builder
-WORKDIR /home/builder
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copie des sources
-COPY --chown=builder:builder . /home/builder/biomining
+# Copy requirements first for better Docker layer caching
+COPY web/requirements.txt ./requirements.txt
 
-# Switch vers l'utilisateur de build
-USER builder
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Configuration et compilation
-WORKDIR /home/builder/biomining
-RUN mkdir -p build && cd build && \
-    cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DBUILD_TESTS=ON \
-        -DBUILD_EXAMPLES=ON \
-        -DENABLE_QUANTUM_OPTIMIZATION=OFF \
-        -DCMAKE_INSTALL_PREFIX=/opt/biomining && \
-    make -j$(nproc)
+# Copy application code
+COPY . .
 
-# Tests (optionnel - peut être désactivé pour builds plus rapides)
-RUN cd build && ctest --output-on-failure || true
+# Create necessary directories and set permissions
+RUN mkdir -p uploads logs web/static && \
+    chown -R appuser:appuser /app && \
+    chmod +x web/start_web_interface.sh
 
-# Installation dans le préfixe
-USER root
-RUN cd /home/builder/biomining/build && make install
+# Switch to non-root user
+USER appuser
 
-# === STAGE 2: Runtime Environment ===
-FROM ubuntu:22.04 AS runtime
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/api/status || exit 1
 
-# Éviter les prompts interactifs
-ENV DEBIAN_FRONTEND=noninteractive
+# Expose port
+EXPOSE ${PORT}
 
-# Installation des dépendances runtime seulement
-RUN apt-get update && apt-get install -y \
-    qt6-base-dev \
-    qt6-charts-dev \
-    libssl3 \
-    libboost-system1.74.0 \
-    libboost-filesystem1.74.0 \
-    libboost-thread1.74.0 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Création de l'utilisateur runtime
-RUN useradd -m -s /bin/bash biomining && \
-    mkdir -p /opt/biomining && \
-    chown -R biomining:biomining /opt/biomining
-
-# Copie des binaires depuis le stage builder
-COPY --from=builder /opt/biomining /opt/biomining
-
-# Configuration de l'environnement
-ENV PATH="/opt/biomining/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/opt/biomining/lib:${LD_LIBRARY_PATH}"
-
-# Création des répertoires de données
-RUN mkdir -p /data/biomining/{config,logs,calibration,results} && \
-    chown -R biomining:biomining /data/biomining
-
-# Switch vers l'utilisateur runtime
-USER biomining
-WORKDIR /data/biomining
-
-# Configuration par défaut
-COPY --chown=biomining:biomining config/docker_default.json /data/biomining/config/default.json
-
-# Labels de métadonnées
-LABEL org.opencontainers.image.title="Bio-Mining Bitcoin Platform"
-LABEL org.opencontainers.image.description="Plateforme hybride bio-informatique pour mining Bitcoin"
-LABEL org.opencontainers.image.version="1.0.0"
-LABEL org.opencontainers.image.vendor="BioLab Research"
-LABEL maintainer="research@biolab.example.com"
-
-# Ports exposés (pour future interface web)
-EXPOSE 8080 8443
-
-# Volumes pour persistance
-VOLUME ["/data/biomining/config", "/data/biomining/logs", "/data/biomining/results"]
-
-# Point d'entrée par défaut
-ENTRYPOINT ["biomining_cli"]
-CMD ["--help"]
-
-# === STAGE 3: Development Environment (optionnel) ===
-FROM builder AS development
-
-USER root
-
-# Installation d'outils de développement additionnels
-RUN apt-get update && apt-get install -y \
-    gdb \
-    valgrind \
-    cppcheck \
-    doxygen \
-    graphviz \
-    vim \
-    nano \
-    htop \
-    strace \
-    && rm -rf /var/lib/apt/lists/*
-
-USER builder
-WORKDIR /home/builder/biomining
-
-# Compilation en mode debug pour développement
-RUN cd build && \
-    cmake .. \
-        -DCMAKE_BUILD_TYPE=Debug \
-        -DBUILD_TESTS=ON \
-        -DBUILD_EXAMPLES=ON \
-        -DENABLE_PROFILING=ON && \
-    make -j$(nproc)
-
-# Point d'entrée développement
-ENTRYPOINT ["/bin/bash"]
-
-# === STAGE 4: Testing Environment ===
-FROM runtime AS testing
-
-USER root
-
-# Installation d'outils de test
-RUN apt-get update && apt-get install -y \
-    valgrind \
-    gdb \
-    strace \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copie des binaires de test depuis builder
-COPY --from=builder /home/builder/biomining/build/test_* /opt/biomining/bin/
-COPY --from=builder /home/builder/biomining/build/bin/examples/ /opt/biomining/bin/examples/
-
-USER biomining
-
-# Script de test automatisé
-COPY --chown=biomining:biomining scripts/docker_test.sh /opt/biomining/bin/run_tests.sh
-RUN chmod +x /opt/biomining/bin/run_tests.sh
-
-ENTRYPOINT ["/opt/biomining/bin/run_tests.sh"]
+# Start the web interface
+CMD ["python", "web/api/server.py"]
