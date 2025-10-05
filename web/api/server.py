@@ -374,9 +374,8 @@ class HybridMiningPlatform:
     
     def get_performance_metrics(self) -> Dict:
         """Get current performance metrics"""
-        import psutil
-        
         try:
+            import psutil
             self.performance_metrics.update({
                 'cpu_usage': psutil.cpu_percent(),
                 'memory_usage': psutil.virtual_memory().percent,
@@ -384,7 +383,7 @@ class HybridMiningPlatform:
                 'network_io': sum(psutil.net_io_counters()[:2]),  # bytes sent + received
                 'timestamp': time.time()
             })
-        except ImportError:
+        except (ImportError, Exception):
             # Mock data if psutil not available
             self.performance_metrics.update({
                 'cpu_usage': 45.5 + (hash(time.time()) % 30),
