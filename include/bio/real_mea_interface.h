@@ -10,7 +10,15 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 #include <QProcess>
+#include <QCryptographicHash>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QSettings>
+#include <QFile>
+#include <QDateTime>
 #include <memory>
+#include <random>
 
 namespace BioMining {
 namespace Bio {
@@ -114,6 +122,78 @@ struct SpikeEvent {
 };
 
 /**
+ * @brief Pattern de stimulation pour apprentissage Bitcoin
+ */
+struct BitcoinLearningPattern {
+    QString blockHash;                    // Hash du bloc Bitcoin
+    quint32 targetNonce;                 // Nonce cible
+    QVector<double> stimulationPattern;  // Pattern de stimulation (60 électrodes)
+    double difficulty;                   // Difficulté du bloc
+    qint64 timestamp;                    // Timestamp d'apprentissage
+    double successRate;                  // Taux de succès (0.0-1.0)
+};
+
+/**
+ * @brief Réponse neuronale à un pattern Bitcoin
+ */
+struct NeuralBitcoinResponse {
+    BitcoinLearningPattern inputPattern;
+    QVector<SpikeEvent> neuralResponse;  // Réponse des neurones
+    quint32 predictedNonce;              // Nonce prédit par les neurones
+    double confidence;                   // Confiance de la prédiction (0.0-1.0)
+    double rewardSignal;                 // Signal de récompense/punition
+    qint64 responseTime;                 // Temps de réponse en μs
+};
+
+/**
+ * @brief Modèle d'apprentissage neuronal persistant
+ */
+struct BiologicalNeuralModel {
+    QString modelId;                           // ID unique du modèle
+    QVector<BitcoinLearningPattern> trainedPatterns;  // Patterns appris
+    QVector<double> synapticWeights;           // Poids synaptiques (matrice 60x60)
+    QVector<double> electrodeThresholds;       // Seuils par électrode
+    QVector<double> learningRates;             // Taux d'apprentissage par électrode
+    double globalLearningRate;                 // Taux d'apprentissage global
+    qint64 trainingStartTime;                  // Début d'entraînement
+    qint64 lastUpdateTime;                     // Dernière mise à jour
+    int trainingEpochs;                        // Nombre d'époques d'entraînement
+    double averageAccuracy;                    // Précision moyenne
+};
+
+/**
+ * @brief Configuration d'apprentissage Bitcoin
+ */
+struct BitcoinLearningConfig {
+    double learningRate = 0.01;               // Taux d'apprentissage Hebbien
+    double decayRate = 0.95;                  // Taux de décroissance
+    int maxTrainingEpochs = 1000;             // Epochs maximum
+    double targetAccuracy = 0.85;             // Précision cible
+    double stimulationAmplitude = 3.0;        // Amplitude de stimulation (V)
+    double stimulationDuration = 50.0;        // Durée de stimulation (ms)
+    double reinforcementDelay = 100.0;        // Délai de renforcement (ms)
+    double punishmentAmplitude = -1.5;        // Amplitude de punition (V)
+    QString modelPersistencePath = "./neural_models/"; // Chemin de sauvegarde
+    bool enableRealtimeLearning = true;       // Apprentissage en temps réel
+    bool enableBackpropagation = true;        // Rétropropagation biologique
+};
+
+/**
+ * @brief Statistiques d'apprentissage Bitcoin
+ */
+struct BitcoinLearningStats {
+    int totalPatternsLearned = 0;
+    int successfulPredictions = 0;
+    int totalPredictions = 0;
+    double currentAccuracy = 0.0;
+    double bestAccuracy = 0.0;
+    qint64 totalTrainingTime = 0;        // En microsecondes
+    QVector<double> accuracyHistory;     // Historique de précision
+    QVector<qint64> responseTimeHistory; // Historique des temps de réponse
+    QString lastModelFile;               // Dernier fichier de modèle sauvé
+};
+
+/**
  * @brief Interface réelle pour MEA hardware
  */
 class RealMEAInterface : public QObject
@@ -174,6 +254,87 @@ public:
     void setElectrodeActive(int electrodeId, bool active);
     void setAcquisitionFilter(double lowCut, double highCut);
     bool saveRecording(const QString &filepath, const QString &format = "HDF5");
+    
+    // === APPRENTISSAGE BITCOIN NEURONAL ===
+    
+    /**
+     * @brief Initialise le système d'apprentissage Bitcoin
+     */
+    bool initializeBitcoinLearning(const BitcoinLearningConfig &config);
+    
+    /**
+     * @brief Entraîne les neurones avec un pattern Bitcoin
+     */
+    bool trainBitcoinPattern(const BitcoinLearningPattern &pattern);
+    
+    /**
+     * @brief Prédit un nonce basé sur un hash de bloc
+     */
+    NeuralBitcoinResponse predictNonce(const QString &blockHash, double difficulty);
+    
+    /**
+     * @brief Applique le rétro-apprentissage basé sur le succès/échec
+     */
+    bool applyReinforcementLearning(const NeuralBitcoinResponse &response, bool wasSuccessful);
+    
+    /**
+     * @brief Sauvegarde le modèle neuronal
+     */
+    bool saveNeuralModel(const QString &modelPath = "");
+    
+    /**
+     * @brief Charge un modèle neuronal existant
+     */
+    bool loadNeuralModel(const QString &modelPath);
+    
+    /**
+     * @brief Obtient les statistiques d'apprentissage actuelles
+     */
+    BitcoinLearningStats getLearningStats() const;
+    
+    /**
+     * @brief Réinitialise le modèle neuronal
+     */
+    void resetNeuralModel();
+    
+    /**
+     * @brief Active/désactive l'apprentissage en temps réel
+     */
+    void enableRealtimeLearning(bool enable);
+    
+    /**
+     * @brief Optimise les paramètres d'apprentissage
+     */
+    bool optimizeLearningParameters();
+    
+    /**
+     * @brief Génère un pattern de stimulation à partir d'un hash
+     */
+    QVector<double> generateStimulationPattern(const QString &blockHash);
+    
+    /**
+     * @brief Analyse la réponse neuronale pour extraire un nonce
+     */
+    quint32 extractNonceFromNeuralResponse(const QVector<SpikeEvent> &spikes);
+    
+    /**
+     * @brief Met à jour les poids synaptiques (apprentissage Hebbien)
+     */
+    void updateSynapticWeights(const QVector<SpikeEvent> &preSpikes, 
+                               const QVector<SpikeEvent> &postSpikes, 
+                               double reward);
+    
+    /**
+     * @brief Applique la plasticité synaptique dépendante du temps
+     */
+    void applySTDP(int preElectrode, int postElectrode, 
+                   qint64 timeDifference, double learningRate);
+                   
+    /**
+     * @brief Stimule les neurones avec renforcement/punition
+     */
+    bool stimulateWithReinforcement(const QVector<double> &pattern, 
+                                    double reinforcementSignal);
 
 signals:
     // Signaux de données
@@ -190,6 +351,13 @@ signals:
     void statusChanged(ConnectionStatus status);
     void errorOccurred(const QString &error);
     void deviceDisconnected();
+    
+    // Signaux d'apprentissage Bitcoin
+    void bitcoinPatternLearned(const BitcoinLearningPattern &pattern);
+    void noncePredicationReady(const NeuralBitcoinResponse &response);
+    void learningStatsUpdated(const BitcoinLearningStats &stats);
+    void neuralModelSaved(const QString &modelPath);
+    void reinforcementLearningApplied(double reward, double newAccuracy);
 
 private slots:
     void onSerialDataReady();
@@ -222,6 +390,10 @@ private:
     void setStatus(ConnectionStatus status);
     void setError(const QString &error);
     QByteArray formatStimulationCommand(int electrodeId, double amplitude, double duration);
+    
+    // Méthodes utilitaires pour apprentissage Bitcoin
+    double calculateSpikeConsistency(const QVector<SpikeEvent> &spikes);
+    double calculateResponseStrength(const QVector<SpikeEvent> &spikes);
     
     // Méthodes de configuration et test
     bool configureDevice();
@@ -267,6 +439,14 @@ private:
     // Thread safety
     mutable QMutex m_dataMutex;
     mutable QMutex m_configMutex;
+    mutable QMutex m_bitcoinLearningMutex;
+    
+    // Apprentissage Bitcoin
+    BitcoinLearningConfig m_bitcoinConfig;
+    BiologicalNeuralModel m_neuralModel;
+    BitcoinLearningStats m_learningStats;
+    bool m_bitcoinLearningEnabled;
+    std::mt19937 m_randomGenerator;
     
     // Constantes
     static constexpr int DEFAULT_BUFFER_SIZE = 4096;
@@ -292,6 +472,11 @@ public:
 
 Q_DECLARE_METATYPE(BioMining::Bio::ElectrodeData)
 Q_DECLARE_METATYPE(BioMining::Bio::SpikeEvent)
+Q_DECLARE_METATYPE(BioMining::Bio::BitcoinLearningPattern)
+Q_DECLARE_METATYPE(BioMining::Bio::NeuralBitcoinResponse)
+Q_DECLARE_METATYPE(BioMining::Bio::BiologicalNeuralModel)
+Q_DECLARE_METATYPE(BioMining::Bio::BitcoinLearningConfig)
+Q_DECLARE_METATYPE(BioMining::Bio::BitcoinLearningStats)
 Q_DECLARE_METATYPE(BioMining::Bio::RealMEAInterface::ConnectionStatus)
 
 #endif // REAL_MEA_INTERFACE_H
