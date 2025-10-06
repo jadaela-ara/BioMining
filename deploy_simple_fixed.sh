@@ -181,9 +181,19 @@ EOF
 log_info "Construction et déploiement de l'application..."
 echo "⏳ Cette étape peut prendre 2-5 minutes..."
 
+# Sauvegarder le Dockerfile existant s'il y en a un
+if [ -f "Dockerfile" ]; then
+    mv Dockerfile Dockerfile.backup
+    BACKUP_NEEDED=true
+else
+    BACKUP_NEEDED=false
+fi
+
+# Utiliser notre Dockerfile personnalisé
+mv Dockerfile.deploy Dockerfile
+
 gcloud run deploy "$SERVICE_NAME" \
     --source . \
-    --dockerfile "Dockerfile.deploy" \
     --platform managed \
     --region "$DEFAULT_REGION" \
     --allow-unauthenticated \
@@ -197,10 +207,15 @@ gcloud run deploy "$SERVICE_NAME" \
     --labels "app=biomining-web,version=1-0-0" \
     --quiet
 
+# Restaurer le Dockerfile original
+rm -f Dockerfile
+if [ "$BACKUP_NEEDED" = true ]; then
+    mv Dockerfile.backup Dockerfile
+fi
+
 deployment_exit_code=$?
 
-# Nettoyer le Dockerfile temporaire
-rm -f Dockerfile.deploy
+# Le Dockerfile a déjà été nettoyé plus haut
 
 # Vérifier le succès du déploiement
 if [ $deployment_exit_code -eq 0 ]; then
