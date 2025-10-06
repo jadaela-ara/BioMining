@@ -1168,5 +1168,392 @@ html, body {
 }
 
 /* ================================================================
+   ADDITIONAL STYLES FOR NEW ELEMENTS
+   ================================================================ */
+
+/* Card Actions */
+.card-actions {
+  margin-top: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.card-actions button {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary {
+  background: var(--success-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--tertiary-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--accent-bg);
+  color: var(--text-primary);
+}
+
+.btn-success {
+  background: var(--success-color);
+  color: white;
+}
+
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+}
+
+.btn-accent {
+  background: var(--info-color);
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mining Controls Panel */
+.mining-controls {
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.control-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.control-buttons button {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1.1em;
+  font-weight: bold;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+}
+
+.mining-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.stat-item {
+  background: var(--tertiary-bg);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.stat-value {
+  color: var(--text-accent);
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+/* MEA Grid Visualization */
+.electrode-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  max-width: 400px;
+  margin: var(--spacing-lg) auto;
+}
+
+.electrode {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: var(--tertiary-bg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.electrode:hover {
+  transform: scale(1.1);
+  border-color: var(--mea-color);
+}
+
+.electrode.active {
+  background: var(--mea-color);
+  color: white;
+  border-color: var(--mea-color);
+}
+
+.electrode.inactive {
+  background: var(--secondary-bg);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.electrode.stimulating {
+  background: var(--warning-color);
+  color: white;
+  border-color: var(--warning-color);
+  animation: pulse 1s infinite;
+}
+
+.electrode-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.electrode-sample {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+}
+
+.electrode-sample.active {
+  background: var(--mea-color);
+  border-color: var(--mea-color);
+}
+
+.electrode-sample.inactive {
+  background: var(--secondary-bg);
+  border-color: var(--border-color);
+}
+
+.electrode-sample.stimulating {
+  background: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+/* Control Sections */
+.control-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.control-section {
+  background: var(--tertiary-bg);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+}
+
+.control-section h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-accent);
+}
+
+/* Mining Metrics */
+.mining-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.metric-card {
+  background: var(--tertiary-bg);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  transition: all var(--transition-fast);
+}
+
+.metric-card:hover {
+  background: var(--accent-bg);
+  transform: translateY(-2px);
+}
+
+.metric-icon {
+  font-size: 2em;
+  color: var(--mea-color);
+}
+
+.metric-content h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.metric-content .metric-value {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: var(--text-accent);
+}
+
+/* Progress Bars */
+.progress-display {
+  margin-bottom: var(--spacing-xl);
+}
+
+.progress-item {
+  margin-bottom: var(--spacing-md);
+}
+
+.progress-item label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-secondary);
+}
+
+.progress-bar {
+  background: var(--tertiary-bg);
+  border-radius: var(--radius-sm);
+  height: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width var(--transition-smooth);
+  border-radius: var(--radius-sm);
+}
+
+.progress-fill.biological {
+  background: var(--biological-color);
+}
+
+.progress-fill.mea {
+  background: var(--mea-color);
+}
+
+.progress-fill.fusion {
+  background: linear-gradient(90deg, var(--biological-color), var(--mea-color));
+}
+
+.progress-text {
+  float: right;
+  color: var(--text-accent);
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+/* Statistics Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.stat-section {
+  background: var(--tertiary-bg);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.stat-section h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-accent);
+  text-align: center;
+}
+
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+/* Export Controls */
+.export-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.export-buttons button {
+  flex: 1;
+  min-width: 150px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: bold;
+  transition: all var(--transition-fast);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .control-buttons {
+    flex-direction: column;
+  }
+  
+  .mining-metrics,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .electrode-grid {
+    max-width: 300px;
+    gap: 2px;
+  }
+  
+  .electrode {
+    width: 30px;
+    height: 30px;
+    font-size: 0.7em;
+  }
+  
+  .export-buttons {
+    flex-direction: column;
+  }
+}
+
+/* ================================================================
    END OF STYLESHEET
    ================================================================ */
