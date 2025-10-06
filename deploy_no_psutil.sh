@@ -79,11 +79,28 @@ echo ""
 
 # Construire et pousser l'image
 echo "🔧 Construction de l'image Docker..."
+
+# Sauvegarder le Dockerfile existant s'il y en a un
+if [ -f "Dockerfile" ]; then
+    mv Dockerfile Dockerfile.backup
+    BACKUP_NEEDED=true
+else
+    BACKUP_NEEDED=false
+fi
+
+# Copier le Dockerfile spécifique comme Dockerfile principal
+cp $DOCKERFILE Dockerfile
+
 gcloud builds submit \
     --tag gcr.io/$PROJECT_ID/$SERVICE_NAME \
-    --dockerfile=$DOCKERFILE \
     --timeout=600s \
     .
+
+# Restaurer le Dockerfile original
+rm -f Dockerfile
+if [ "$BACKUP_NEEDED" = true ]; then
+    mv Dockerfile.backup Dockerfile
+fi
 
 if [ $? -ne 0 ]; then
     echo "❌ Échec de la construction de l'image"
