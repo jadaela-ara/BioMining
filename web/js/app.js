@@ -39,6 +39,7 @@ class HybridBitcoinMiningApp {
         this.setupMEAVisualization();
         this.setupConfigurationForms();
         this.initializeCharts();
+        this.initializeElectrodeGrid();
         this.updateTotalWeight();
     }
 
@@ -104,6 +105,32 @@ class HybridBitcoinMiningApp {
 
             if (e.target.id === 'connectMEA') {
                 this.connectMEADevice();
+            }
+
+            // MEA Control buttons
+            if (e.target.id === 'stimulateSelected') {
+                this.stimulateSelectedElectrodes();
+            }
+
+            if (e.target.id === 'startRecording') {
+                this.startMEARecording();
+            }
+
+            if (e.target.id === 'stopRecording') {
+                this.stopMEARecording();
+            }
+
+            // Export buttons
+            if (e.target.id === 'exportCSV') {
+                this.exportData('csv');
+            }
+
+            if (e.target.id === 'exportJSON') {
+                this.exportData('json');
+            }
+
+            if (e.target.id === 'exportReport') {
+                this.exportData('pdf');
             }
         });
 
@@ -1809,6 +1836,26 @@ class HybridBitcoinMiningApp {
     }
 
     /**
+     * Initialize MEA electrode grid
+     */
+    initializeElectrodeGrid() {
+        const gridContainer = document.getElementById('electrodeGrid');
+        if (gridContainer) {
+            gridContainer.innerHTML = '';
+            
+            // Create 8x8 electrode grid (64 electrodes)
+            for (let i = 1; i <= 64; i++) {
+                const electrode = document.createElement('div');
+                electrode.className = 'electrode inactive';
+                electrode.dataset.electrode = i;
+                electrode.textContent = i;
+                electrode.addEventListener('click', () => this.toggleElectrode(i));
+                gridContainer.appendChild(electrode);
+            }
+        }
+    }
+
+    /**
      * Initialize all charts
      */
     initializeCharts() {
@@ -1891,6 +1938,149 @@ class HybridBitcoinMiningApp {
                 }
             });
         }
+    }
+}
+
+    /**
+     * Stimulate selected electrodes
+     */
+    stimulateSelectedElectrodes() {
+        const selectedElectrodes = document.querySelectorAll('.electrode.active');
+        if (selectedElectrodes.length === 0) {
+            this.showNotification('warning', 'Sélectionnez au moins une électrode');
+            return;
+        }
+
+        const voltage = document.getElementById('stimulationVoltage').value;
+        const duration = document.getElementById('stimulationDuration').value;
+        
+        selectedElectrodes.forEach(electrode => {
+            electrode.classList.add('stimulating');
+            setTimeout(() => {
+                electrode.classList.remove('stimulating');
+            }, parseInt(duration) * 10); // Visual feedback duration
+        });
+
+        this.showNotification('success', `Stimulation de ${selectedElectrodes.length} électrodes (${voltage}mV, ${duration}ms)`);
+    }
+
+    /**
+     * Start MEA recording
+     */
+    startMEARecording() {
+        const duration = document.getElementById('recordingDuration').value;
+        
+        document.getElementById('startRecording').disabled = true;
+        document.getElementById('stopRecording').disabled = false;
+        
+        this.showNotification('info', `Enregistrement MEA démarré (${duration}s)`);
+        
+        // Auto-stop after duration
+        setTimeout(() => {
+            if (!document.getElementById('stopRecording').disabled) {
+                this.stopMEARecording();
+            }
+        }, parseInt(duration) * 1000);
+    }
+
+    /**
+     * Stop MEA recording
+     */
+    stopMEARecording() {
+        document.getElementById('startRecording').disabled = false;
+        document.getElementById('stopRecording').disabled = true;
+        
+        this.showNotification('success', 'Enregistrement MEA terminé');
+    }
+
+    /**
+     * Export data in various formats
+     */
+    exportData(format) {
+        const data = this.gatherExportData();
+        
+        switch (format) {
+            case 'csv':
+                this.downloadCSV(data);
+                break;
+            case 'json':
+                this.downloadJSON(data);
+                break;
+            case 'pdf':
+                this.generatePDFReport(data);
+                break;
+        }
+        
+        this.showNotification('success', `Export ${format.toUpperCase()} généré`);
+    }
+
+    /**
+     * Gather data for export
+     */
+    gatherExportData() {
+        return {
+            timestamp: new Date().toISOString(),
+            systems: this.systems,
+            miningStats: this.miningStats,
+            electrodes: this.meaElectrodes,
+            performance: this.performance_metrics
+        };
+    }
+
+    /**
+     * Download data as CSV
+     */
+    downloadCSV(data) {
+        const csv = this.convertToCSV(data);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        this.downloadBlob(blob, 'biomining-data.csv');
+    }
+
+    /**
+     * Download data as JSON
+     */
+    downloadJSON(data) {
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        this.downloadBlob(blob, 'biomining-data.json');
+    }
+
+    /**
+     * Generate PDF report
+     */
+    generatePDFReport(data) {
+        // Simulate PDF generation
+        const content = `BioMining Platform Report\n\nGenerated: ${data.timestamp}\n\nSystems Status:\n${JSON.stringify(data.systems, null, 2)}`;
+        const blob = new Blob([content], { type: 'text/plain' });
+        this.downloadBlob(blob, 'biomining-report.txt');
+    }
+
+    /**
+     * Convert data to CSV format
+     */
+    convertToCSV(data) {
+        const headers = ['Timestamp', 'System', 'Status', 'Value'];
+        const rows = [headers.join(',')];
+        
+        Object.entries(data.systems).forEach(([system, status]) => {
+            rows.push([data.timestamp, system, status.status, JSON.stringify(status)].join(','));
+        });
+        
+        return rows.join('\n');
+    }
+
+    /**
+     * Download blob as file
+     */
+    downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 
