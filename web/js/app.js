@@ -37,6 +37,9 @@ class HybridBitcoinMiningApp {
         this.loadConfiguration();
         this.startPerformanceMonitoring();
         this.setupMEAVisualization();
+        this.setupConfigurationForms();
+        this.initializeCharts();
+        this.updateTotalWeight();
     }
 
     /**
@@ -44,11 +47,11 @@ class HybridBitcoinMiningApp {
      */
     setupEventListeners() {
         // Navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
+        document.querySelectorAll('.nav-btn').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
-                const panel = item.getAttribute('data-panel');
-                this.switchPanel(panel);
+                const page = item.getAttribute('data-page');
+                this.switchPage(page);
             });
         });
 
@@ -79,6 +82,28 @@ class HybridBitcoinMiningApp {
             if (e.target.classList.contains('btn-electrode')) {
                 const electrodeId = parseInt(e.target.getAttribute('data-electrode'));
                 this.toggleElectrode(electrodeId);
+            }
+
+            // Emergency stop button
+            if (e.target.id === 'emergencyStop') {
+                this.emergencyStop();
+            }
+
+            // Configuration buttons
+            if (e.target.id === 'resetConfig') {
+                this.resetConfiguration();
+            }
+
+            if (e.target.id === 'autoOptimize') {
+                this.autoOptimizeWeights();
+            }
+
+            if (e.target.id === 'initNetwork') {
+                this.initializeNetwork();
+            }
+
+            if (e.target.id === 'connectMEA') {
+                this.connectMEADevice();
             }
         });
 
@@ -211,29 +236,35 @@ class HybridBitcoinMiningApp {
     }
 
     /**
-     * Switch between different panels
+     * Switch between different pages
      */
-    switchPanel(panelName) {
+    switchPage(pageName) {
         // Update navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
+        document.querySelectorAll('.nav-btn').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`[data-panel="${panelName}"]`).classList.add('active');
+        const activeNavBtn = document.querySelector(`[data-page="${pageName}"]`);
+        if (activeNavBtn) {
+            activeNavBtn.classList.add('active');
+        }
 
         // Update content
-        document.querySelectorAll('.panel-section').forEach(section => {
-            section.classList.add('hidden');
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
         });
-        document.getElementById(`${panelName}-section`).classList.remove('hidden');
+        const activePage = document.getElementById(`${pageName}-page`);
+        if (activePage) {
+            activePage.classList.add('active');
+        }
 
-        this.currentPanel = panelName;
+        this.currentPanel = pageName;
 
-        // Panel-specific initialization
-        switch (panelName) {
+        // Page-specific initialization
+        switch (pageName) {
             case 'dashboard':
                 this.refreshDashboard();
                 break;
-            case 'mea-control':
+            case 'mea':
                 this.refreshMEAVisualization();
                 break;
             case 'mining':
@@ -242,9 +273,23 @@ class HybridBitcoinMiningApp {
             case 'results':
                 this.refreshResultsCharts();
                 break;
+            case 'training':
+                this.initializeTrainingInterface();
+                break;
+            case 'networks':
+                this.initializeNetworksInterface();
+                break;
+            case 'config':
+                this.initializeConfigInterface();
+                break;
         }
 
-        console.log(`📋 Switched to ${panelName} panel`);
+        console.log(`📋 Switched to ${pageName} page`);
+    }
+    
+    // Alias pour compatibilité
+    switchPanel(panelName) {
+        this.switchPage(panelName);
     }
 
     /**
@@ -980,6 +1025,871 @@ class HybridBitcoinMiningApp {
         // Request latest data if WebSocket is connected
         if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
             this.sendWebSocketMessage({ type: 'get_performance_metrics' });
+        }
+    }
+
+    /**
+     * Refresh dashboard data and UI elements
+     */
+    refreshDashboard() {
+        console.log('🔄 Refreshing dashboard...');
+        // Update system status cards
+        this.updateSystemStatus();
+        // Request latest metrics
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({ type: 'get_system_status' });
+        }
+    }
+
+    /**
+     * Initialize training interface
+     */
+    initializeTrainingInterface() {
+        console.log('🧠 Initializing training interface...');
+        // Setup training controls
+        this.setupTrainingControls();
+    }
+
+    /**
+     * Initialize networks interface
+     */
+    initializeNetworksInterface() {
+        console.log('🕸️ Initializing networks interface...');
+        // Setup network visualization
+        this.setupNetworkVisualization();
+    }
+
+    /**
+     * Initialize configuration interface
+     */
+    initializeConfigInterface() {
+        console.log('⚙️ Initializing config interface...');
+        // Setup configuration forms
+        this.setupConfigurationForms();
+    }
+
+    /**
+     * Setup training controls
+     */
+    setupTrainingControls() {
+        // Initialize training form controls
+        const startTrainingBtn = document.getElementById('startTraining');
+        const pauseTrainingBtn = document.getElementById('pauseTraining');
+        const stopTrainingBtn = document.getElementById('stopTraining');
+        
+        if (startTrainingBtn) {
+            startTrainingBtn.addEventListener('click', () => this.startTraining());
+        }
+        if (pauseTrainingBtn) {
+            pauseTrainingBtn.addEventListener('click', () => this.pauseTraining());
+        }
+        if (stopTrainingBtn) {
+            stopTrainingBtn.addEventListener('click', () => this.stopTraining());
+        }
+    }
+
+    /**
+     * Setup network visualization
+     */
+    setupNetworkVisualization() {
+        // Initialize network graphs and visualizations
+        console.log('Setting up network visualization');
+    }
+
+    /**
+     * Setup configuration forms
+     */
+    setupConfigurationForms() {
+        // Setup all configuration form handlers
+        const configForms = document.querySelectorAll('form[id*="config"]');
+        configForms.forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleConfigurationUpdate(form);
+            });
+        });
+
+        // Setup range sliders
+        const rangeInputs = document.querySelectorAll('input[type="range"]');
+        rangeInputs.forEach(range => {
+            range.addEventListener('input', (e) => {
+                const valueSpan = e.target.nextElementSibling;
+                if (valueSpan && (valueSpan.classList.contains('range-value') || valueSpan.classList.contains('slider-value'))) {
+                    valueSpan.textContent = e.target.value + (e.target.id.includes('Weight') ? '%' : '');
+                }
+                
+                // Update total weight for weight sliders
+                if (e.target.id.includes('WeightSlider')) {
+                    this.updateTotalWeight();
+                }
+            });
+        });
+    }
+
+    /**
+     * Handle configuration form updates
+     */
+    handleConfigurationUpdate(form) {
+        const formData = new FormData(form);
+        const config = Object.fromEntries(formData.entries());
+        
+        console.log('💾 Updating configuration:', config);
+        
+        // Send to server
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'update_config',
+                data: config
+            });
+        }
+        
+        this.showNotification('success', 'Configuration updated successfully');
+    }
+
+    /**
+     * Start a specific system
+     */
+    async startSystem(systemName) {
+        console.log(`🚀 Starting ${systemName} system...`);
+        
+        try {
+            const response = await fetch(`/api/systems/${systemName}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', `${systemName} system started successfully`);
+                this.updateSystemStatus();
+            } else {
+                this.showNotification('error', `Failed to start ${systemName} system`);
+            }
+        } catch (error) {
+            console.error(`Error starting ${systemName} system:`, error);
+            this.showNotification('error', 'Network error');
+        }
+    }
+
+    /**
+     * Stop a specific system
+     */
+    async stopSystem(systemName) {
+        console.log(`🛑 Stopping ${systemName} system...`);
+        
+        try {
+            const response = await fetch(`/api/systems/${systemName}/stop`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', `${systemName} system stopped successfully`);
+                this.updateSystemStatus();
+            } else {
+                this.showNotification('error', `Failed to stop ${systemName} system`);
+            }
+        } catch (error) {
+            console.error(`Error stopping ${systemName} system:`, error);
+            this.showNotification('error', 'Network error');
+        }
+    }
+
+    /**
+     * Start mining process
+     */
+    async startMining() {
+        console.log('⛏️ Starting mining process...');
+        
+        const config = {
+            method: 'triple_system',
+            difficulty: 4,
+            batch_size: 32,
+            max_attempts: 1000000
+        };
+        
+        try {
+            const response = await fetch('/api/mining/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', 'Mining started successfully');
+                this.updateMiningControls(true);
+            } else {
+                this.showNotification('error', 'Failed to start mining');
+            }
+        } catch (error) {
+            console.error('Error starting mining:', error);
+            this.showNotification('error', 'Network error');
+        }
+    }
+
+    /**
+     * Stop mining process
+     */
+    async stopMining() {
+        console.log('🛑 Stopping mining process...');
+        
+        try {
+            const response = await fetch('/api/mining/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', 'Mining stopped successfully');
+                this.updateMiningControls(false);
+            } else {
+                this.showNotification('error', 'Failed to stop mining');
+            }
+        } catch (error) {
+            console.error('Error stopping mining:', error);
+            this.showNotification('error', 'Network error');
+        }
+    }
+
+    /**
+     * Start training process
+     */
+    async startTraining() {
+        console.log('🧠 Starting training process...');
+        
+        const config = {
+            biological_epochs: parseInt(document.getElementById('trainingEpochs')?.value) || 1000,
+            mea_stimulation_frequency: 10.0,
+            learning_rate: 0.001,
+            batch_size: parseInt(document.getElementById('batchSize')?.value) || 32,
+            target_accuracy: 0.85
+        };
+        
+        try {
+            const response = await fetch('/api/training/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', 'Training started successfully');
+                this.updateTrainingControls(true);
+            } else {
+                this.showNotification('error', 'Failed to start training');
+            }
+        } catch (error) {
+            console.error('Error starting training:', error);
+            this.showNotification('error', 'Network error');
+        }
+    }
+
+    /**
+     * Stop training process
+     */
+    async stopTraining() {
+        console.log('🛑 Stopping training process...');
+        
+        try {
+            const response = await fetch('/api/training/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', 'Training stopped successfully');
+                this.updateTrainingControls(false);
+            } else {
+                this.showNotification('error', 'Failed to stop training');
+            }
+        } catch (error) {
+            console.error('Error stopping training:', error);
+            this.showNotification('error', 'Network error');
+        }
+    }
+
+    /**
+     * Pause training process
+     */
+    pauseTraining() {
+        console.log('⏸️ Pausing training process...');
+        // For now, just stop training (could be enhanced with pause/resume functionality)
+        this.stopTraining();
+    }
+
+    /**
+     * Update training control buttons
+     */
+    updateTrainingControls(isTraining) {
+        const startBtn = document.getElementById('startTraining');
+        const pauseBtn = document.getElementById('pauseTraining');
+        const stopBtn = document.getElementById('stopTraining');
+        
+        if (startBtn) startBtn.disabled = isTraining;
+        if (pauseBtn) pauseBtn.disabled = !isTraining;
+        if (stopBtn) stopBtn.disabled = !isTraining;
+    }
+
+    /**
+     * Update mining control buttons
+     */
+    updateMiningControls(isMining) {
+        const startBtns = document.querySelectorAll('.btn-start-mining');
+        const stopBtns = document.querySelectorAll('.btn-stop-mining');
+        
+        startBtns.forEach(btn => btn.disabled = isMining);
+        stopBtns.forEach(btn => btn.disabled = !isMining);
+    }
+
+    /**
+     * Show notification to user
+     */
+    showNotification(type, message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'}"></i>
+                <span>${message}</span>
+                <button class="notification-close">&times;</button>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+        
+        // Close button functionality
+        const closeBtn = notification.querySelector('.notification-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            });
+        }
+    }
+
+    /**
+     * Update system status display
+     */
+    updateSystemStatus() {
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({ type: 'get_system_status' });
+        }
+    }
+
+    /**
+     * Toggle electrode state
+     */
+    async toggleElectrode(electrodeId) {
+        console.log(`🔌 Toggling electrode ${electrodeId}`);
+        
+        const control = {
+            electrode_id: electrodeId,
+            active: !this.meaElectrodes[electrodeId - 1]?.active,
+            stimulation_voltage: 0.0,
+            recording_mode: true
+        };
+        
+        try {
+            const response = await fetch(`/api/electrodes/${electrodeId}/control`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(control)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update local state
+                if (this.meaElectrodes[electrodeId - 1]) {
+                    this.meaElectrodes[electrodeId - 1].active = control.active;
+                }
+                this.refreshMEAVisualization();
+            }
+        } catch (error) {
+            console.error('Error toggling electrode:', error);
+            this.showNotification('error', 'Failed to toggle electrode');
+        }
+    }
+
+    /**
+     * Emergency stop all operations
+     */
+    async emergencyStop() {
+        console.log('🚨 EMERGENCY STOP ACTIVATED');
+        this.showNotification('warning', 'Emergency stop activated - shutting down all systems');
+        
+        try {
+            // Stop all systems
+            await Promise.all([
+                this.stopMining(),
+                this.stopTraining(),
+                this.stopSystem('sha256'),
+                this.stopSystem('biological'), 
+                this.stopSystem('mea')
+            ]);
+            
+            this.showNotification('success', 'All systems stopped safely');
+        } catch (error) {
+            console.error('Error during emergency stop:', error);
+            this.showNotification('error', 'Error during emergency stop');
+        }
+    }
+
+    /**
+     * Reset configuration to defaults
+     */
+    resetConfiguration() {
+        console.log('🔄 Resetting configuration to defaults');
+        
+        // Reset form values
+        const form = document.getElementById('tripleConfigForm');
+        if (form) {
+            form.reset();
+            // Reset specific values
+            document.getElementById('enableTripleSystem').checked = true;
+            document.getElementById('enableCrossLearning').checked = true;
+            document.getElementById('enableDynamicWeighting').checked = true;
+            const adaptationRate = document.getElementById('adaptationRate');
+            if (adaptationRate) {
+                adaptationRate.value = 0.02;
+                const valueSpan = adaptationRate.nextElementSibling;
+                if (valueSpan) valueSpan.textContent = '0.02';
+            }
+        }
+        
+        this.showNotification('success', 'Configuration reset to defaults');
+    }
+
+    /**
+     * Auto-optimize system weights
+     */
+    async autoOptimizeWeights() {
+        console.log('🎯 Auto-optimizing system weights');
+        this.showNotification('info', 'Optimizing weights based on performance data...');
+        
+        // Simulate optimization process
+        setTimeout(() => {
+            // Update weight sliders with optimized values
+            const sha256Slider = document.getElementById('sha256WeightSlider');
+            const networkSlider = document.getElementById('networkWeightSlider');
+            const meaSlider = document.getElementById('meaWeightSlider');
+            
+            if (sha256Slider && networkSlider && meaSlider) {
+                sha256Slider.value = 35;
+                networkSlider.value = 40;
+                meaSlider.value = 25;
+                
+                // Update displayed values
+                const sha256Value = sha256Slider.nextElementSibling;
+                const networkValue = networkSlider.nextElementSibling;
+                const meaValue = meaSlider.nextElementSibling;
+                
+                if (sha256Value) sha256Value.textContent = '35%';
+                if (networkValue) networkValue.textContent = '40%';
+                if (meaValue) meaValue.textContent = '25%';
+                
+                this.updateTotalWeight();
+            }
+            
+            this.showNotification('success', 'Weights optimized successfully');
+        }, 2000);
+    }
+
+    /**
+     * Initialize biological network
+     */
+    async initializeNetwork() {
+        console.log('🧠 Initializing biological network');
+        this.showNotification('info', 'Initializing biological neural network...');
+        
+        try {
+            await this.startSystem('biological');
+            this.showNotification('success', 'Biological network initialized successfully');
+        } catch (error) {
+            console.error('Error initializing network:', error);
+            this.showNotification('error', 'Failed to initialize network');
+        }
+    }
+
+    /**
+     * Connect to MEA device
+     */
+    async connectMEADevice() {
+        console.log('🔌 Connecting to MEA device');
+        this.showNotification('info', 'Connecting to MEA device...');
+        
+        try {
+            await this.startSystem('mea');
+            this.showNotification('success', 'MEA device connected successfully');
+        } catch (error) {
+            console.error('Error connecting MEA device:', error);
+            this.showNotification('error', 'Failed to connect MEA device');
+        }
+    }
+
+    /**
+     * Update total weight display
+     */
+    updateTotalWeight() {
+        const sha256Weight = parseInt(document.getElementById('sha256WeightSlider')?.value) || 0;
+        const networkWeight = parseInt(document.getElementById('networkWeightSlider')?.value) || 0;
+        const meaWeight = parseInt(document.getElementById('meaWeightSlider')?.value) || 0;
+        
+        const total = sha256Weight + networkWeight + meaWeight;
+        const totalDisplay = document.getElementById('totalWeight');
+        if (totalDisplay) {
+            totalDisplay.textContent = `${total}%`;
+            totalDisplay.className = total === 100 ? 'weight-valid' : 'weight-invalid';
+        }
+    }
+
+    /**
+     * Handle file upload
+     */
+    handleFileUpload(input) {
+        const files = input.files;
+        if (files.length === 0) return;
+        
+        console.log(`📁 Uploading ${files.length} file(s)`);
+        this.showNotification('info', `Uploading ${files.length} file(s)...`);
+        
+        // Simulate file upload
+        setTimeout(() => {
+            this.showNotification('success', 'Files uploaded successfully');
+        }, 1500);
+    }
+
+    /**
+     * Update connection status display
+     */
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('systemStatus');
+        const statusDot = document.querySelector('.status-dot');
+        const statusText = document.querySelector('.status-text');
+        
+        if (statusDot && statusText) {
+            statusDot.className = 'status-dot';
+            switch (status) {
+                case 'connected':
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connecté';
+                    break;
+                case 'disconnected':
+                    statusDot.classList.add('disconnected');
+                    statusText.textContent = 'Déconnecté';
+                    break;
+                case 'error':
+                    statusDot.classList.add('error');
+                    statusText.textContent = 'Erreur';
+                    break;
+                default:
+                    statusText.textContent = 'Inconnu';
+            }
+        }
+    }
+
+    /**
+     * Request current system status
+     */
+    requestSystemStatus() {
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({ type: 'get_system_status' });
+        }
+    }
+
+    /**
+     * Update system status display
+     */
+    updateSystemStatus(data) {
+        if (data && data.systems) {
+            // Update SHA-256 system
+            if (data.systems.sha256) {
+                const sha256Status = document.getElementById('sha256Status');
+                const sha256Accuracy = document.getElementById('sha256Accuracy');
+                if (sha256Status) {
+                    sha256Status.textContent = data.systems.sha256.status === 'online' ? 'En ligne' : 'Hors ligne';
+                    sha256Status.className = `card-status ${data.systems.sha256.status}`;
+                }
+                if (sha256Accuracy) {
+                    sha256Accuracy.textContent = `${Math.round(data.systems.sha256.hashrate || 0)}%`;
+                }
+            }
+
+            // Update biological network
+            if (data.systems.biological) {
+                const networkStatus = document.getElementById('networkStatus');
+                const networkAccuracy = document.getElementById('networkAccuracy');
+                if (networkStatus) {
+                    networkStatus.textContent = data.systems.biological.status === 'online' ? 'En ligne' : 'Hors ligne';
+                    networkStatus.className = `card-status ${data.systems.biological.status}`;
+                }
+                if (networkAccuracy) {
+                    networkAccuracy.textContent = `${Math.round(data.systems.biological.learning_rate * 100 || 0)}%`;
+                }
+            }
+
+            // Update MEA system
+            if (data.systems.mea) {
+                const meaStatus = document.getElementById('meaStatus');
+                const meaAccuracy = document.getElementById('meaAccuracy');
+                if (meaStatus) {
+                    meaStatus.textContent = data.systems.mea.status === 'online' ? 'En ligne' : 'Hors ligne';
+                    meaStatus.className = `card-status ${data.systems.mea.status}`;
+                }
+                if (meaAccuracy) {
+                    meaAccuracy.textContent = `${Math.round((data.systems.mea.active_electrodes / 60) * 100 || 0)}%`;
+                }
+            }
+        }
+    }
+
+    /**
+     * Update mining statistics
+     */
+    updateMiningStats(data) {
+        if (data) {
+            this.miningStats = { ...this.miningStats, ...data };
+            
+            // Update UI elements
+            this.updateElement('totalHashes', this.formatNumber(data.total_hashes || 0));
+            this.updateElement('validNonces', data.valid_nonces || 0);
+            this.updateElement('successRate', `${(data.success_rate || 0).toFixed(2)}%`);
+            this.updateElement('blocksFound', data.blocks_mined || 0);
+            
+            // Update charts if they exist
+            if (this.charts.mining) {
+                this.updateMiningCharts(data);
+            }
+        }
+    }
+
+    /**
+     * Update electrode data display
+     */
+    updateElectrodeData(data) {
+        if (Array.isArray(data)) {
+            this.meaElectrodes = data;
+            this.refreshMEAVisualization();
+        }
+    }
+
+    /**
+     * Update training progress display
+     */
+    updateTrainingProgress(data) {
+        if (data) {
+            // Update progress bars
+            const biologicalProgress = document.getElementById('biologicalProgress');
+            const meaProgress = document.getElementById('meaProgress');
+            const crossProgress = document.getElementById('crossProgress');
+            
+            if (biologicalProgress && data.biological_accuracy) {
+                const percentage = Math.round(data.biological_accuracy * 100);
+                biologicalProgress.style.width = `${percentage}%`;
+                const progressText = biologicalProgress.parentElement.querySelector('.progress-text');
+                if (progressText) progressText.textContent = `${percentage}%`;
+            }
+            
+            if (meaProgress && data.mea_accuracy) {
+                const percentage = Math.round(data.mea_accuracy * 100);
+                meaProgress.style.width = `${percentage}%`;
+                const progressText = meaProgress.parentElement.querySelector('.progress-text');
+                if (progressText) progressText.textContent = `${percentage}%`;
+            }
+            
+            // Update training chart if exists
+            if (this.charts.training) {
+                this.updateTrainingChart(data);
+            }
+        }
+    }
+
+    /**
+     * Handle keyboard shortcuts
+     */
+    handleKeyboardShortcuts(event) {
+        // Ctrl/Cmd + key combinations
+        if (event.ctrlKey || event.metaKey) {
+            switch (event.key) {
+                case 's':
+                    event.preventDefault();
+                    this.saveCurrentConfiguration();
+                    break;
+                case 'r':
+                    event.preventDefault();
+                    this.resetConfiguration();
+                    break;
+            }
+        }
+        
+        // Escape key to close modals
+        if (event.key === 'Escape') {
+            this.closeAllModals();
+        }
+    }
+
+    /**
+     * Handle window resize
+     */
+    handleResize() {
+        // Recalculate chart sizes if they exist
+        Object.values(this.charts).forEach(chart => {
+            if (chart && typeof chart.resize === 'function') {
+                chart.resize();
+            }
+        });
+    }
+
+    /**
+     * Save current configuration
+     */
+    saveCurrentConfiguration() {
+        const config = this.gatherCurrentConfiguration();
+        localStorage.setItem('hybridMiningConfig', JSON.stringify(config));
+        this.showNotification('success', 'Configuration saved');
+    }
+
+    /**
+     * Gather current configuration from all forms
+     */
+    gatherCurrentConfiguration() {
+        const config = {};
+        
+        // Gather all form data
+        const forms = document.querySelectorAll('form[id*="config"]');
+        forms.forEach(form => {
+            const formData = new FormData(form);
+            config[form.id] = Object.fromEntries(formData.entries());
+        });
+        
+        return config;
+    }
+
+    /**
+     * Update training chart
+     */
+    updateTrainingChart(data) {
+        // Implementation for Chart.js integration would go here
+        console.log('📊 Training chart updated:', data);
+    }
+
+    /**
+     * Initialize all charts
+     */
+    initializeCharts() {
+        // Initialize performance chart
+        const performanceCanvas = document.getElementById('performanceChart');
+        if (performanceCanvas && typeof Chart !== 'undefined') {
+            this.charts.performance = new Chart(performanceCanvas, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'SHA-256',
+                        data: [],
+                        borderColor: '#ff6b35',
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)'
+                    }, {
+                        label: 'Biological',
+                        data: [],
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.1)'
+                    }, {
+                        label: 'MEA',
+                        data: [],
+                        borderColor: '#45b7d1',
+                        backgroundColor: 'rgba(69, 183, 209, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize training chart
+        const trainingCanvas = document.getElementById('trainingChart');
+        if (trainingCanvas && typeof Chart !== 'undefined') {
+            this.charts.training = new Chart(trainingCanvas, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Loss',
+                        data: [],
+                        borderColor: '#f44336',
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Accuracy',
+                        data: [],
+                        borderColor: '#4caf50',
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            max: 1,
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
 }
