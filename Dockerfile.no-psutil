@@ -10,13 +10,15 @@ COPY requirements-no-psutil.txt requirements.txt
 # Installer les dépendances Python (sans psutil)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier le code de l'application web
+# Copier tout le code nécessaire
 COPY web/ ./web/
 COPY biological_bitcoin_learning.py ./
 COPY real_mea_interface.py ./
+COPY src/ ./src/
+COPY config/ ./config/
 
 # Créer les répertoires nécessaires
-RUN mkdir -p /app/src/cpp /app/config /app/data
+RUN mkdir -p /app/data /app/uploads /app/logs
 
 # Exposer le port
 EXPOSE 8080
@@ -24,6 +26,8 @@ EXPOSE 8080
 # Variables d'environnement
 ENV PORT=8080
 ENV PYTHONPATH=/app
+ENV NODE_ENV=production
+ENV BIOMINING_ENVIRONMENT=production
 
 # Commande de démarrage
 CMD ["python", "-m", "uvicorn", "web.api.server:app", "--host", "0.0.0.0", "--port", "8080"]
