@@ -1939,7 +1939,7 @@ class HybridBitcoinMiningApp {
             });
         }
     }
-}
+
 
     /**
      * Stimulate selected electrodes
