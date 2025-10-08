@@ -225,7 +225,7 @@ class HybridBitcoinMiningApp {
     handleWebSocketMessage(message) {
         switch (message.type) {
             case 'system_status':
-                this.updateSystemStatus(message.data);
+                this.updateSystemStatus(message.data.systems || message.data);
                 break;
             case 'mining_update':
                 this.updateMiningStats(message.data);
@@ -238,6 +238,9 @@ class HybridBitcoinMiningApp {
                 break;
             case 'biological_activity':
                 this.updateBiologicalActivity(message.data);
+                break;
+            case 'performance_metrics':
+                this.updatePerformanceMetrics(message.data);
                 break;
             case 'error':
                 this.showNotification('error', message.message);
@@ -1048,13 +1051,30 @@ class HybridBitcoinMiningApp {
     /**
      * Update performance metrics
      */
-    updatePerformanceMetrics() {
+    updatePerformanceMetrics(performanceData = null) {
         // Update timestamp
         this.updateElement('last-update', new Date().toLocaleTimeString());
         
-        // Request latest data if WebSocket is connected
-        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-            this.sendWebSocketMessage({ type: 'get_performance_metrics' });
+        // If performance data is provided (from WebSocket), update the metrics
+        if (performanceData) {
+            if (performanceData.cpu_usage !== undefined) {
+                this.updateElement('cpu-usage', `${performanceData.cpu_usage.toFixed(1)}%`);
+            }
+            if (performanceData.memory_usage !== undefined) {
+                this.updateElement('memory-usage', `${performanceData.memory_usage.toFixed(1)}%`);
+            }
+            if (performanceData.gpu_usage !== undefined) {
+                this.updateElement('gpu-usage', `${performanceData.gpu_usage.toFixed(1)}%`);
+            }
+            if (performanceData.network_io !== undefined) {
+                const networkMB = (performanceData.network_io / (1024 * 1024)).toFixed(2);
+                this.updateElement('network-io', `${networkMB} MB`);
+            }
+        } else {
+            // Request latest data if WebSocket is connected
+            if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                this.sendWebSocketMessage({ type: 'get_performance_metrics' });
+            }
         }
     }
 
