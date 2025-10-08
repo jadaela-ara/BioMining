@@ -1275,48 +1275,78 @@ async def initialize_platform():
         "systems": platform.systems_status
     })
 
+# System name mapping for frontend compatibility
+SYSTEM_NAME_MAPPING = {
+    'sha256': 'hybrid_miner',
+    'biological': 'biological_network', 
+    'mea': 'mea_interface',
+    # Also support direct names
+    'hybrid_miner': 'hybrid_miner',
+    'biological_network': 'biological_network',
+    'mea_interface': 'mea_interface'
+}
+
+# Reverse mapping for sending data to frontend
+FRONTEND_NAME_MAPPING = {
+    'hybrid_miner': 'sha256',
+    'biological_network': 'biological',
+    'mea_interface': 'mea'
+}
+
+def map_systems_for_frontend(backend_systems):
+    """Map backend system names to frontend names"""
+    frontend_systems = {}
+    for backend_name, system_data in backend_systems.items():
+        frontend_name = FRONTEND_NAME_MAPPING.get(backend_name, backend_name)
+        frontend_systems[frontend_name] = system_data
+    return frontend_systems
+
 @app.post("/api/systems/{system_name}/start")
 async def start_system(system_name: str):
     """Start a specific system"""
-    if system_name not in ['hybrid_miner', 'biological_network', 'mea_interface']:
-        raise HTTPException(status_code=400, detail="Invalid system name")
+    # Map frontend system names to backend names
+    mapped_name = SYSTEM_NAME_MAPPING.get(system_name)
+    if not mapped_name:
+        raise HTTPException(status_code=400, detail=f"Invalid system name: {system_name}")
     
-    success = await platform.start_system(system_name)
+    success = await platform.start_system(mapped_name)
     
     await websocket_manager.broadcast({
         'type': 'system_status_update',
         'data': {
-            'system': system_name,
-            'status': platform.systems_status[system_name]
+            'system': system_name,  # Return original name for frontend
+            'status': platform.systems_status[mapped_name]
         }
     })
     
     return JSONResponse({
         "success": success,
         "message": f"System {system_name} {'started' if success else 'failed to start'}",
-        "system_status": platform.systems_status[system_name]
+        "system_status": platform.systems_status[mapped_name]
     })
 
 @app.post("/api/systems/{system_name}/stop")
 async def stop_system(system_name: str):
     """Stop a specific system"""
-    if system_name not in ['hybrid_miner', 'biological_network', 'mea_interface']:
-        raise HTTPException(status_code=400, detail="Invalid system name")
+    # Map frontend system names to backend names
+    mapped_name = SYSTEM_NAME_MAPPING.get(system_name)
+    if not mapped_name:
+        raise HTTPException(status_code=400, detail=f"Invalid system name: {system_name}")
     
-    success = await platform.stop_system(system_name)
+    success = await platform.stop_system(mapped_name)
     
     await websocket_manager.broadcast({
         'type': 'system_status_update',
         'data': {
-            'system': system_name,
-            'status': platform.systems_status[system_name]
+            'system': system_name,  # Return original name for frontend
+            'status': platform.systems_status[mapped_name]
         }
     })
     
     return JSONResponse({
         "success": success,
         "message": f"System {system_name} {'stopped' if success else 'failed to stop'}",
-        "system_status": platform.systems_status[system_name]
+        "system_status": platform.systems_status[mapped_name]
     })
 
 @app.post("/api/mining/start")
@@ -1499,11 +1529,11 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket_manager.connect(websocket)
     
     try:
-        # Send initial system status
+        # Send initial system status (with mapped names for frontend)
         platform_status = platform.get_platform_status()
         await websocket_manager.send_personal_message({
             'type': 'system_status',
-            'data': platform_status['systems']
+            'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
         }, websocket)
         
         while True:
@@ -1523,7 +1553,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 platform_status = platform.get_platform_status()
                 await websocket_manager.send_personal_message({
                     'type': 'system_status',
-                    'data': platform_status['systems']
+                    'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
                 }, websocket)
                 
             elif message_type == 'authenticate':
@@ -1553,10 +1583,10 @@ async def periodic_status_updates():
                 # Get platform status
                 platform_status = platform.get_platform_status()
                 
-                # Broadcast system status
+                # Broadcast system status (with mapped names for frontend)
                 await websocket_manager.broadcast({
                     'type': 'system_status',
-                    'data': platform_status['systems']
+                    'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
                 })
                 
                 # Broadcast performance metrics
