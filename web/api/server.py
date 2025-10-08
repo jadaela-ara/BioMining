@@ -1062,14 +1062,16 @@ class BioMiningPlatform:
                 })
                 
                 # Broadcast updates to WebSocket clients
+                # Broadcast mining update
                 await websocket_manager.broadcast({
-                    'type': 'hybrid_mining_update',
-                    'data': {
-                        'mining_metrics': mining_metrics,
-                        'network_state': network_state,
-                        'mea_status': mea_status,
-                        'platform_stats': self.platform_stats
-                    }
+                    'type': 'mining_update',
+                    'data': mining_metrics
+                })
+                
+                # Broadcast biological activity
+                await websocket_manager.broadcast({
+                    'type': 'biological_activity',
+                    'data': network_state
                 })
                 
                 await asyncio.sleep(1)  # Update every second
@@ -1491,16 +1493,17 @@ async def get_performance_metrics():
 # WEBSOCKET ENDPOINTS
 # ================================================================
 
-@app.websocket("/ws")
+@app.websocket("/ws/hybrid-mining")
 async def websocket_endpoint(websocket: WebSocket):
     """Main WebSocket endpoint for real-time communication"""
     await websocket_manager.connect(websocket)
     
     try:
-        # Send initial platform status
+        # Send initial system status
+        platform_status = platform.get_platform_status()
         await websocket_manager.send_personal_message({
-            'type': 'platform_status',
-            'data': platform.get_platform_status()
+            'type': 'system_status',
+            'data': platform_status['systems']
         }, websocket)
         
         while True:
@@ -1517,9 +1520,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 }, websocket)
                 
             elif message_type == 'get_status':
+                platform_status = platform.get_platform_status()
                 await websocket_manager.send_personal_message({
-                    'type': 'platform_status',
-                    'data': platform.get_platform_status()
+                    'type': 'system_status',
+                    'data': platform_status['systems']
                 }, websocket)
                 
             elif message_type == 'authenticate':
@@ -1546,14 +1550,19 @@ async def periodic_status_updates():
         try:
             if websocket_manager.get_connection_count() > 0:
                 # Broadcast platform status
+                # Get platform status
+                platform_status = platform.get_platform_status()
+                
+                # Broadcast system status
                 await websocket_manager.broadcast({
-                    'type': 'platform_status_update',
-                    'data': platform.get_platform_status()
+                    'type': 'system_status',
+                    'data': platform_status['systems']
                 })
                 
                 # Broadcast performance metrics
+                # Broadcast performance metrics
                 await websocket_manager.broadcast({
-                    'type': 'performance_update',
+                    'type': 'performance_metrics',
                     'data': platform.get_performance_metrics()
                 })
                 
@@ -1574,7 +1583,7 @@ async def periodic_status_updates():
                 if platform.systems_status['mea_interface']['status'] == 'online':
                     electrode_data = platform.mea_interface.get_electrode_data()
                     await websocket_manager.broadcast({
-                        'type': 'electrode_update', 
+                        'type': 'electrode_data', 
                         'data': electrode_data
                     })
             
