@@ -245,6 +245,9 @@ class HybridBitcoinMiningApp {
             case 'success':
                 this.showNotification('success', message.message);
                 break;
+            case 'performance_metrics':
+                this.updatePerformanceMetrics();
+                break;
             default:
                 console.log('📨 Unknown message type:', message.type);
         }
