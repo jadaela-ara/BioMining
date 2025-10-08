@@ -8,6 +8,7 @@
 
 class HybridBitcoinMiningApp {
     constructor() {
+        this.charts = {};
         this.init();
         this.websocket = null;
         this.currentPanel = 'dashboard';
@@ -23,7 +24,6 @@ class HybridBitcoinMiningApp {
             avgResponseTime: 0
         };
         this.meaElectrodes = this.initializeElectrodes();
-        this.charts = {};
         
         console.log('🚀 Hybrid Bitcoin Mining Platform initialized');
     }
