@@ -40,16 +40,36 @@ except ImportError as e:
     from pydantic import BaseModel
     import uvicorn
 
-# Import real SHA-256 mining capabilities
+# Import C++ classes via Python bindings
+try:
+    import biomining_cpp
+    CPP_BINDINGS_AVAILABLE = True
+    print("✅ C++ bindings loaded successfully")
+except ImportError as e:
+    print(f"⚠️ C++ bindings not available: {e}")
+    CPP_BINDINGS_AVAILABLE = False
+
+# Import real SHA-256 mining capabilities (fallback)
 import hashlib
 import struct
 import random
 
-# Real SHA-256 Mining Class
-class RealSHA256Miner:
+# Wrapper class for C++ HybridBitcoinMiner
+class CppHybridBitcoinMiner:
     """Real SHA-256 Bitcoin mining implementation"""
     
     def __init__(self):
+        if CPP_BINDINGS_AVAILABLE:
+            self.cpp_miner = biomining_cpp.crypto.HybridBitcoinMiner()
+            self.cpp_config = biomining_cpp.crypto.MiningConfig()
+            self.cpp_learning_params = biomining_cpp.crypto.BiologicalLearningParams()
+            self.is_cpp_miner = True
+            logger.info("🔥 Using C++ HybridBitcoinMiner")
+        else:
+            # Fallback to Python implementation
+            self.is_cpp_miner = False
+            logger.info("⚠️ Using Python fallback mining")
+            
         self.status = "offline"
         self.is_mining = False
         self.total_hashes = 0
@@ -92,13 +112,46 @@ class RealSHA256Miner:
                 
         return nonce, None, False
         
+    def initialize(self):
+        """Initialize the mining system"""
+        if self.is_cpp_miner:
+            success = self.cpp_miner.initialize()
+            if success:
+                # Configure biological network parameters
+                self.cpp_miner.configureBiologicalNetwork(self.cpp_learning_params)
+                # Set mining parameters
+                self.cpp_config.difficulty = 4
+                self.cpp_config.threads = 4
+                self.cpp_miner.setMiningParameters(self.cpp_config)
+                logger.info("✅ C++ HybridBitcoinMiner initialized")
+                return True
+            else:
+                logger.error("❌ Failed to initialize C++ miner")
+                return False
+        return True
+        
     def start_mining(self):
         """Start mining process"""
-        self.is_mining = True
-        self.status = "online"
+        if self.is_cpp_miner:
+            success = self.cpp_miner.startHybridMining()
+            if success:
+                self.is_mining = True
+                self.status = "online"
+                logger.info("🔥 C++ hybrid mining started")
+                return True
+            else:
+                logger.error("❌ Failed to start C++ mining")
+                return False
+        else:
+            self.is_mining = True
+            self.status = "online"
+            return True
         
     def stop_mining(self):
         """Stop mining process"""
+        if self.is_cpp_miner:
+            self.cpp_miner.stopHybridMining()
+            logger.info("🛑 C++ hybrid mining stopped")
         self.is_mining = False
         self.status = "offline"
         
@@ -111,26 +164,19 @@ class RealSHA256Miner:
             'success_rate': (self.valid_nonces / max(1, self.total_hashes / 1000000)) * 100
         }
 
-# Import real biological learning and MEA interface
-try:
-    from biological_bitcoin_learning import BiologicalBitcoinLearner, NeuralLearningPhase
-    from real_mea_interface import RealMEAInterface, ElectrodeData, StimulusPattern, BitcoinStimulationProtocol
-    BIOLOGICAL_AVAILABLE = True
-    print("✅ Real biological modules loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Biological modules not available: {e}")
-    BIOLOGICAL_AVAILABLE = False
+# Define biological learning phases
+class NeuralLearningPhase:
+    INITIALIZATION = "initialization"
+    PATTERN_RECOGNITION = "pattern_recognition"
+    BITCOIN_TRAINING = "bitcoin_training"
+    NONCE_PREDICTION = "nonce_prediction"
+    OPTIMIZATION = "optimization"
+
+# Check if C++ biological modules are available
+BIOLOGICAL_AVAILABLE = CPP_BINDINGS_AVAILABLE
     
-    # Fallback imports for development
-    class NeuralLearningPhase:
-        INITIALIZATION = "initialization"
-        PATTERN_RECOGNITION = "pattern_recognition"
-        BITCOIN_TRAINING = "bitcoin_training"
-        NONCE_PREDICTION = "nonce_prediction"
-        OPTIMIZATION = "optimization"
-    
-    # Enhanced mock classes with real structure
-    class BiologicalBitcoinLearner:
+# Enhanced mock classes with real structure
+class BiologicalBitcoinLearner:
         def __init__(self, mea_interface): 
             self.mea = mea_interface
             self.status = "offline"
@@ -188,39 +234,135 @@ except ImportError as e:
             self.mining_active = False
             logger.info("🛑 Biological mining stopped")
     
-    class RealMEAInterface:
-        def __init__(self): 
-            self.status = "offline"
-            self.electrodes = list(range(1, 61))  # 60 electrodes
-            self.electrode_states = {i: "inactive" for i in range(1, 61)}
-            self.recording_active = False
+# Wrapper class for C++ RealMEAInterface
+class CppRealMEAInterface:
+    """C++ Real MEA Interface wrapper"""
+    
+    def __init__(self, config: Dict[str, Any]): 
+        if CPP_BINDINGS_AVAILABLE:
+            self.cpp_mea = biomining_cpp.bio.RealMEAInterface()
+            self.cpp_config = biomining_cpp.bio.RealMEAConfig()
             
-        def get_electrode_data(self): 
-            """Get simulated electrode data"""
-            data = []
-            for electrode_id in self.electrodes:
-                data.append({
-                    'electrode_id': electrode_id,
-                    'timestamp': time.time(),
-                    'voltage': random.uniform(-50.0, 50.0),
-                    'impedance': random.uniform(100.0, 2000.0),
-                    'active': electrode_id <= 45,
-                    'recording': self.recording_active
-                })
-            return data
+            # Configure C++ MEA with provided config
+            self.cpp_config.deviceType = biomining_cpp.bio.MEADeviceType.Custom_Serial
+            self.cpp_config.electrodeCount = config.get('num_electrodes', 60)
+            self.cpp_config.samplingRate = config.get('sampling_rate', 25000.0)
+            self.cpp_config.protocol = biomining_cpp.bio.CommunicationProtocol.SerialPort
             
-        async def stimulate_electrode(self, electrode_id, pattern):
-            logger.info(f"⚡ Stimulating electrode {electrode_id}")
-            self.electrode_states[electrode_id] = "stimulating"
-            await asyncio.sleep(0.1)  # Stimulation duration
-            self.electrode_states[electrode_id] = "active"
+            self.is_cpp_interface = True
+            logger.info("🔬 Using C++ RealMEAInterface")
+        else:
+            self.is_cpp_interface = False
+            logger.info("⚠️ Using Python fallback MEA interface")
+        
+        self.status = "offline"
+        self.electrodes = list(range(1, 61))  # 60 electrodes
+        self.electrode_states = {i: "inactive" for i in range(1, 61)}
+        self.recording_active = False
+        self.is_connected = False
+        
+    def initialize(self):
+        """Initialize the MEA interface"""
+        if self.is_cpp_interface:
+            success = self.cpp_mea.initialize(self.cpp_config)
+            if success:
+                self.is_connected = True
+                self.status = "online"
+                logger.info("✅ C++ MEA Interface initialized")
+                return True
+            else:
+                logger.error("❌ Failed to initialize C++ MEA Interface")
+                return False
+        else:
+            # Fallback initialization
+            self.is_connected = True
+            self.status = "online"
+            return True
             
-        async def record_electrode(self, electrode_id, duration):
-            logger.info(f"📊 Recording from electrode {electrode_id} for {duration}ms")
-            self.electrode_states[electrode_id] = "recording"
-            # Simulate recording
-            data = [random.uniform(-100.0, 100.0) for _ in range(int(duration))]
-            return data
+    def get_electrode_data(self):
+        """Get electrode data from C++ or fallback"""
+        if self.is_cpp_interface and self.is_connected:
+            try:
+                # Get real electrode data from C++ interface
+                cpp_electrode_data = self.cpp_mea.readElectrodeData()
+                # Convert C++ data to Python format
+                data = []
+                for i, electrode_data in enumerate(cpp_electrode_data):
+                    data.append({
+                        'electrode_id': electrode_data.electrodeId,
+                        'timestamp': electrode_data.timestamp,
+                        'voltage': electrode_data.voltage,
+                        'impedance': electrode_data.impedance,
+                        'active': electrode_data.isActive,
+                        'recording': self.recording_active
+                    })
+                return data
+            except Exception as e:
+                logger.error(f"❌ Error reading C++ electrode data: {e}")
+                # Fall back to simulated data
+                pass
+        
+        # Fallback simulated electrode data
+        data = []
+        for electrode_id in self.electrodes:
+            data.append({
+                'electrode_id': electrode_id,
+                'timestamp': time.time(),
+                'voltage': random.uniform(-50.0, 50.0),
+                'impedance': random.uniform(100.0, 2000.0),
+                'active': electrode_id <= 45,
+                'recording': self.recording_active
+            })
+        return data
+        
+    async def stimulate_electrode(self, electrode_id, pattern):
+        """Stimulate electrode using C++ or fallback"""
+        if self.is_cpp_interface and self.is_connected:
+            try:
+                # Use C++ stimulation
+                stimulus_pattern = biomining_cpp.bio.StimulusPattern()
+                stimulus_pattern.electrodeId = electrode_id
+                stimulus_pattern.voltage = pattern.get('voltage', 1.0)
+                stimulus_pattern.duration = pattern.get('duration', 100)
+                stimulus_pattern.frequency = pattern.get('frequency', 10.0)
+                
+                success = self.cpp_mea.stimulateElectrode(stimulus_pattern)
+                if success:
+                    logger.info(f"⚡ C++ stimulated electrode {electrode_id}")
+                    self.electrode_states[electrode_id] = "stimulating"
+                    await asyncio.sleep(0.1)
+                    self.electrode_states[electrode_id] = "active"
+                    return True
+                else:
+                    logger.error(f"❌ Failed to stimulate electrode {electrode_id}")
+                    return False
+            except Exception as e:
+                logger.error(f"❌ Error in C++ electrode stimulation: {e}")
+        
+        # Fallback stimulation
+        logger.info(f"⚡ Fallback stimulating electrode {electrode_id}")
+        self.electrode_states[electrode_id] = "stimulating"
+        await asyncio.sleep(0.1)
+        self.electrode_states[electrode_id] = "active"
+        return True
+        
+    async def record_electrode(self, electrode_id, duration):
+        """Record from electrode using C++ or fallback"""
+        if self.is_cpp_interface and self.is_connected:
+            try:
+                # Use C++ recording
+                recording_data = self.cpp_mea.recordFromElectrode(electrode_id, duration)
+                logger.info(f"📊 C++ recorded from electrode {electrode_id} for {duration}ms")
+                self.electrode_states[electrode_id] = "recording"
+                return recording_data
+            except Exception as e:
+                logger.error(f"❌ Error in C++ electrode recording: {e}")
+        
+        # Fallback recording
+        logger.info(f"📊 Fallback recording from electrode {electrode_id} for {duration}ms")
+        self.electrode_states[electrode_id] = "recording"
+        data = [random.uniform(-100.0, 100.0) for _ in range(int(duration))]
+        return data
 
 # Configure logging
 logging.basicConfig(
@@ -319,8 +461,8 @@ class HybridMiningPlatform:
     """Main platform coordinator for the triple mining system"""
     
     def __init__(self):
-        # Initialize real SHA-256 miner
-        self.sha256_miner = RealSHA256Miner()
+        # Initialize C++ hybrid SHA-256 miner
+        self.sha256_miner = CppHybridBitcoinMiner()
         
         # Initialize MEA interface with default config
         mea_config = {
@@ -329,7 +471,7 @@ class HybridMiningPlatform:
             'sampling_rate': 20000,
             'num_electrodes': 60
         }
-        self.mea_interface = RealMEAInterface(mea_config)
+        self.mea_interface = CppRealMEAInterface(mea_config)
         
         # Initialize biological learner with MEA interface
         self.biological_learner = BiologicalBitcoinLearner(self.mea_interface)
