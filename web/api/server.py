@@ -345,6 +345,7 @@ class CppBiologicalNetwork:
         self.neurons = {}
         self.synaptic_matrix = np.zeros((60, 60))
         self.learning_history = []
+        self.network_config = {}  # Store network configuration
         
         logger.info("🚀 BiologicalNetwork wrapper initialized")
     
@@ -546,6 +547,7 @@ class CppRealMEAInterface:
         self.is_initialized = False
         self.is_connected = False
         self.is_recording = False
+        self.device_config = {}  # Store device configuration
         
         # Electrode configuration
         self.electrode_count = config.get('num_electrodes', 60)
@@ -844,6 +846,10 @@ class BioMiningPlatform:
         self.is_mining = False
         self.is_training = False
         self.mining_start_time = None
+        
+        # Configuration storage
+        self.training_config = {}
+        self.mining_config = {}
         
         logger.info("✅ BioMining Platform coordinator initialized")
     
@@ -1769,6 +1775,196 @@ async def websocket_endpoint(websocket: WebSocket):
                     'type': 'system_status',
                     'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
                 }, websocket)
+                
+            elif message_type == 'update_config':
+                # Handle configuration updates from forms
+                config_data = message.get('data', {})
+                form_id = message.get('form_id', '')
+                
+                success = False
+                response_message = "Configuration failed"
+                
+                try:
+                    if form_id == 'weightsForm':
+                        # Handle weights configuration - use for mining
+                        sha256_weight = float(config_data.get('sha256WeightSlider', 33)) / 100
+                        network_weight = float(config_data.get('networkWeightSlider', 33)) / 100 
+                        mea_weight = float(config_data.get('meaWeightSlider', 34)) / 100
+                        
+                        # Normalize weights to sum to 1
+                        total = sha256_weight + network_weight + mea_weight
+                        if total > 0:
+                            sha256_weight /= total
+                            network_weight /= total
+                            mea_weight /= total
+                        
+                        mining_config = {
+                            'sha256_weight': sha256_weight,
+                            'biological_weight': network_weight,
+                            'mea_weight': mea_weight
+                        }
+                        
+                        success = platform.hybrid_miner.configure_triple_system(mining_config)
+                        response_message = f"Mining weights updated: SHA256={sha256_weight:.2f}, Bio={network_weight:.2f}, MEA={mea_weight:.2f}"
+                        
+                    elif form_id == 'biologicalNetworkForm':
+                        # Handle biological network configuration
+                        network_config = {
+                            'network_inputs': int(config_data.get('networkInputs', 60)),
+                            'hidden_layers': int(config_data.get('hiddenLayers', 3)),
+                            'neurons_per_layer': int(config_data.get('neuronsPerLayer', 128)),
+                            'activation_function': config_data.get('activationFunction', 'relu')
+                        }
+                        
+                        # Store config in biological network
+                        platform.biological_network.network_config = network_config
+                        success = True
+                        response_message = f"Biological network configured: {network_config['network_inputs']} inputs, {network_config['hidden_layers']} layers"
+                        
+                    else:
+                        success = True  # Basic validation for other forms
+                        response_message = f"Configuration updated for {form_id}"
+                        
+                except Exception as e:
+                    logger.error(f"❌ Configuration error: {e}")
+                    response_message = f"Configuration failed: {str(e)}"
+                    success = False
+                
+                # Send response
+                await websocket_manager.send_personal_message({
+                    'type': 'config_update_response',
+                    'data': {
+                        'form_id': form_id,
+                        'success': success,
+                        'message': response_message,
+                        'config': config_data
+                    }
+                }, websocket)
+                
+            elif message_type == 'update_config':
+                # Handle configuration updates from forms
+                config_data = message.get('data', {})
+                form_id = message.get('form_id', '')
+                
+                success = False
+                response_message = "Configuration failed"
+                
+                try:
+                    if form_id == 'tripleConfigForm':
+                        # Handle triple system configuration
+                        success = True  # Basic validation
+                        response_message = "Triple system configuration updated"
+                        
+                    elif form_id == 'weightsForm':
+                        # Handle weights configuration - use for mining
+                        sha256_weight = float(config_data.get('sha256WeightSlider', 33)) / 100
+                        network_weight = float(config_data.get('networkWeightSlider', 33)) / 100 
+                        mea_weight = float(config_data.get('meaWeightSlider', 34)) / 100
+                        
+                        # Normalize weights to sum to 1
+                        total = sha256_weight + network_weight + mea_weight
+                        if total > 0:
+                            sha256_weight /= total
+                            network_weight /= total
+                            mea_weight /= total
+                        
+                        mining_config = {
+                            'sha256_weight': sha256_weight,
+                            'biological_weight': network_weight,
+                            'mea_weight': mea_weight
+                        }
+                        
+                        success = platform.hybrid_miner.configure_triple_system(mining_config)
+                        response_message = f"Mining weights updated: SHA256={sha256_weight:.2f}, Bio={network_weight:.2f}, MEA={mea_weight:.2f}"
+                        
+                    elif form_id == 'biologicalNetworkForm':
+                        # Handle biological network configuration
+                        network_config = {
+                            'network_inputs': int(config_data.get('networkInputs', 60)),
+                            'hidden_layers': int(config_data.get('hiddenLayers', 3)),
+                            'neurons_per_layer': int(config_data.get('neuronsPerLayer', 128)),
+                            'activation_function': config_data.get('activationFunction', 'relu')
+                        }
+                        
+                        # Store config in biological network
+                        platform.biological_network.network_config = network_config
+                        success = True
+                        response_message = f"Biological network configured: {network_config['network_inputs']} inputs, {network_config['hidden_layers']} layers"
+                        
+                    elif form_id == 'meaConfigForm':
+                        # Handle MEA configuration  
+                        mea_config = {
+                            'device_type': config_data.get('meaDeviceType', 'Custom_Serial'),
+                            'serial_port': config_data.get('serialPort', '/dev/ttyUSB0'),
+                            'sampling_rate': float(config_data.get('samplingRate', 20000)),
+                            'electrode_count': int(config_data.get('electrodeCount', 60))
+                        }
+                        
+                        # Store config in MEA interface
+                        platform.mea_interface.device_config = mea_config
+                        success = True
+                        response_message = f"MEA configured: {mea_config['device_type']} on {mea_config['serial_port']}, {mea_config['electrode_count']} electrodes"
+                        
+                    elif form_id == 'trainingConfigForm':
+                        # Handle training configuration
+                        training_config = {
+                            'epochs': int(config_data.get('trainingEpochs', 1000)),
+                            'batch_size': int(config_data.get('batchSize', 32)),
+                            'learning_rate': 0.001,  # Default
+                            'target_accuracy': 0.85,  # Default
+                            'bitcoin_patterns': True,
+                            'validation_split': float(config_data.get('validationSplit', 20)) / 100,
+                            'early_stop_patience': int(config_data.get('earlyStopPatience', 50)),
+                            'train_biological': config_data.get('trainBiological') == 'on',
+                            'train_mea': config_data.get('trainMEA') == 'on',
+                            'cross_training': config_data.get('enableCrossTraining') == 'on'
+                        }
+                        
+                        platform.training_config = training_config
+                        success = True
+                        response_message = f"Training configured: {training_config['epochs']} epochs, batch {training_config['batch_size']}, validation {training_config['validation_split']:.1%}"
+                        
+                    elif form_id == 'miningConfigForm':
+                        # Handle mining configuration
+                        mining_config = {
+                            'mode': config_data.get('miningMode', 'triple'),
+                            'difficulty': int(config_data.get('difficulty', 4)),
+                            'max_attempts': int(config_data.get('maxAttempts', 1000000)),
+                            'batch_size': int(config_data.get('miningBatchSize', 32))
+                        }
+                        
+                        platform.mining_config = mining_config
+                        success = True
+                        response_message = f"Mining configured: {mining_config['mode']} mode, difficulty {mining_config['difficulty']}, {mining_config['max_attempts']} max attempts"
+                        
+                    else:
+                        response_message = f"Unknown form configuration: {form_id}"
+                        
+                except Exception as e:
+                    logger.error(f"❌ Configuration error: {e}")
+                    response_message = f"Configuration failed: {str(e)}"
+                    success = False
+                
+                # Send response
+                await websocket_manager.send_personal_message({
+                    'type': 'config_update_response',
+                    'data': {
+                        'form_id': form_id,
+                        'success': success,
+                        'message': response_message,
+                        'config': config_data
+                    }
+                }, websocket)
+                
+                # Broadcast configuration update if successful
+                if success:
+                    await websocket_manager.broadcast({
+                        'type': 'configuration_updated',
+                        'data': {
+                            'form_id': form_id,
+                            'config': config_data
+                        }
+                    })
                 
             else:
                 # Handle unknown message type

@@ -251,6 +251,12 @@ class HybridBitcoinMiningApp {
             case 'performance_metrics':
                 this.updatePerformanceMetrics();
                 break;
+            case 'config_update_response':
+                this.handleConfigUpdateResponse(message.data);
+                break;
+            case 'configuration_updated':
+                this.handleConfigurationUpdated(message.data);
+                break;
             default:
                 console.log('📨 Unknown message type:', message.type);
         }
@@ -1181,19 +1187,37 @@ class HybridBitcoinMiningApp {
      */
     handleConfigurationUpdate(form) {
         const formData = new FormData(form);
-        const config = Object.fromEntries(formData.entries());
+        const config = {};
         
-        console.log('💾 Updating configuration:', config);
+        // Handle all form elements including unchecked checkboxes and sliders
+        const allInputs = form.querySelectorAll('input, select, textarea');
+        allInputs.forEach(input => {
+            if (input.type === 'checkbox') {
+                config[input.id] = input.checked ? 'on' : 'off';
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    config[input.name] = input.value;
+                }
+            } else {
+                config[input.id] = input.value;
+            }
+        });
         
-        // Send to server
+        console.log(`💾 Updating configuration for ${form.id}:`, config);
+        
+        // Send to server with form ID
         if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
             this.sendWebSocketMessage({
                 type: 'update_config',
+                form_id: form.id,
                 data: config
             });
+        } else {
+            this.showNotification('error', 'WebSocket not connected');
+            return;
         }
         
-        this.showNotification('success', 'Configuration updated successfully');
+        this.showNotification('info', 'Configuration being updated...');
     }
 
     /**
@@ -1322,12 +1346,13 @@ class HybridBitcoinMiningApp {
     async startTraining() {
         console.log('🧠 Starting training process...');
         
+        // Get configuration from training form
         const config = {
-            biological_epochs: parseInt(document.getElementById('trainingEpochs')?.value) || 1000,
-            mea_stimulation_frequency: 10.0,
-            learning_rate: 0.001,
+            epochs: parseInt(document.getElementById('trainingEpochs')?.value) || 1000,
             batch_size: parseInt(document.getElementById('batchSize')?.value) || 32,
-            target_accuracy: 0.85
+            learning_rate: 0.001,  // Default value
+            target_accuracy: 0.85, // Default value
+            bitcoin_patterns: true
         };
         
         try {
@@ -2104,6 +2129,75 @@ class HybridBitcoinMiningApp {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+    /**
+     * Handle configuration update response
+     */
+    handleConfigUpdateResponse(data) {
+        const { form_id, success, message } = data;
+        
+        if (success) {
+            this.showNotification('success', message);
+            console.log(`✅ Configuration updated for ${form_id}`);
+            
+            // Update UI based on form type
+            this.updateFormUI(form_id, data.config);
+        } else {
+            this.showNotification('error', message);
+            console.error(`❌ Configuration failed for ${form_id}: ${message}`);
+        }
+    }
+
+    /**
+     * Handle configuration updated broadcast
+     */
+    handleConfigurationUpdated(data) {
+        const { form_id, config } = data;
+        console.log(`🔄 Configuration broadcast received for ${form_id}`);
+        
+        // Update UI to reflect changes from other clients
+        this.updateFormUI(form_id, config);
+    }
+
+    /**
+     * Update form UI after configuration changes
+     */
+    updateFormUI(formId, config) {
+        switch (formId) {
+            case 'weightsForm':
+                // Update weight displays
+                this.updateTotalWeight();
+                break;
+                
+            case 'biologicalNetworkForm':
+                // Update network status display
+                const statusElement = document.getElementById('networkCurrentStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'Configuré';
+                }
+                break;
+                
+            case 'meaConfigForm':
+                // Update MEA status display
+                const meaStatusElement = document.getElementById('meaConnectionStatus');
+                if (meaStatusElement) {
+                    meaStatusElement.textContent = 'Configuré';
+                }
+                break;
+                
+            case 'trainingConfigForm':
+                // Update training progress displays
+                console.log('🧠 Training configuration updated');
+                break;
+                
+            case 'miningConfigForm':
+                // Update mining status displays
+                console.log('⛏️ Mining configuration updated');
+                break;
+                
+            default:
+                console.log(`ℹ️ Configuration updated for ${formId}`);
+        }
     }
 }
 
