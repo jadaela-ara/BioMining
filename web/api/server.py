@@ -1563,6 +1563,221 @@ async def websocket_endpoint(websocket: WebSocket):
                     'data': {'success': True}
                 }, websocket)
                 
+            elif message_type == 'start_system':
+                # Handle system start request
+                system_name = message.get('system')
+                if system_name:
+                    # Map frontend system names to backend names
+                    mapped_name = SYSTEM_NAME_MAPPING.get(system_name)
+                    if mapped_name:
+                        success = await platform.start_system(mapped_name)
+                        
+                        # Broadcast system status update
+                        await websocket_manager.broadcast({
+                            'type': 'system_status_update',
+                            'data': {
+                                'system': system_name,  # Return original name for frontend
+                                'status': platform.systems_status[mapped_name],
+                                'success': success
+                            }
+                        })
+                        
+                        # Send response to requesting client
+                        await websocket_manager.send_personal_message({
+                            'type': 'system_command_response',
+                            'data': {
+                                'command': 'start_system',
+                                'system': system_name,
+                                'success': success,
+                                'message': f"System {system_name} {'started' if success else 'failed to start'}"
+                            }
+                        }, websocket)
+                    else:
+                        await websocket_manager.send_personal_message({
+                            'type': 'error',
+                            'message': f"Invalid system name: {system_name}"
+                        }, websocket)
+                        
+            elif message_type == 'stop_system':
+                # Handle system stop request
+                system_name = message.get('system')
+                if system_name:
+                    # Map frontend system names to backend names
+                    mapped_name = SYSTEM_NAME_MAPPING.get(system_name)
+                    if mapped_name:
+                        success = await platform.stop_system(mapped_name)
+                        
+                        # Broadcast system status update
+                        await websocket_manager.broadcast({
+                            'type': 'system_status_update',
+                            'data': {
+                                'system': system_name,  # Return original name for frontend
+                                'status': platform.systems_status[mapped_name],
+                                'success': success
+                            }
+                        })
+                        
+                        # Send response to requesting client
+                        await websocket_manager.send_personal_message({
+                            'type': 'system_command_response',
+                            'data': {
+                                'command': 'stop_system',
+                                'system': system_name,
+                                'success': success,
+                                'message': f"System {system_name} {'stopped' if success else 'failed to stop'}"
+                            }
+                        }, websocket)
+                    else:
+                        await websocket_manager.send_personal_message({
+                            'type': 'error',
+                            'message': f"Invalid system name: {system_name}"
+                        }, websocket)
+                        
+            elif message_type == 'start_mining':
+                # Handle mining start request
+                config_data = message.get('config', {})
+                
+                # Use default configuration if not provided
+                if not config_data:
+                    config_data = {
+                        'sha256_weight': 0.4,
+                        'biological_weight': 0.35, 
+                        'mea_weight': 0.25
+                    }
+                
+                success = await platform.start_hybrid_mining(config_data)
+                
+                # Broadcast mining status update
+                await websocket_manager.broadcast({
+                    'type': 'mining_started',
+                    'data': {
+                        'success': success,
+                        'config': config_data,
+                        'platform_status': platform.get_platform_status()
+                    }
+                })
+                
+                # Send response to requesting client
+                await websocket_manager.send_personal_message({
+                    'type': 'mining_command_response',
+                    'data': {
+                        'command': 'start_mining',
+                        'success': success,
+                        'message': "Hybrid mining started" if success else "Failed to start hybrid mining",
+                        'mining_status': platform.systems_status['hybrid_miner']
+                    }
+                }, websocket)
+                
+            elif message_type == 'stop_mining':
+                # Handle mining stop request
+                success = await platform.stop_hybrid_mining()
+                
+                # Broadcast mining status update
+                await websocket_manager.broadcast({
+                    'type': 'mining_stopped',
+                    'data': {
+                        'success': success,
+                        'platform_status': platform.get_platform_status()
+                    }
+                })
+                
+                # Send response to requesting client
+                await websocket_manager.send_personal_message({
+                    'type': 'mining_command_response',
+                    'data': {
+                        'command': 'stop_mining',
+                        'success': success,
+                        'message': "Hybrid mining stopped" if success else "Failed to stop mining"
+                    }
+                }, websocket)
+                
+            elif message_type == 'start_training':
+                # Handle training start request
+                config_data = message.get('config', {})
+                
+                # Use default configuration if not provided
+                if not config_data:
+                    config_data = {
+                        'learning_rate': 0.001,
+                        'batch_size': 32,
+                        'target_accuracy': 0.85
+                    }
+                
+                success = platform.biological_network.start_learning(config_data)
+                
+                if success:
+                    platform.is_training = True
+                    platform.systems_status['biological_network']['learning'] = True
+                
+                # Broadcast training status update
+                await websocket_manager.broadcast({
+                    'type': 'training_started',
+                    'data': {
+                        'success': success,
+                        'config': config_data,
+                        'training_status': platform.systems_status['biological_network']
+                    }
+                })
+                
+                # Send response to requesting client
+                await websocket_manager.send_personal_message({
+                    'type': 'training_command_response',
+                    'data': {
+                        'command': 'start_training',
+                        'success': success,
+                        'message': "Biological training started" if success else "Failed to start training",
+                        'training_config': config_data
+                    }
+                }, websocket)
+                
+            elif message_type == 'stop_training':
+                # Handle training stop request
+                platform.is_training = False
+                platform.systems_status['biological_network']['learning'] = False
+                
+                # Broadcast training status update
+                await websocket_manager.broadcast({
+                    'type': 'training_stopped',
+                    'data': {
+                        'success': True,
+                        'training_status': platform.systems_status['biological_network']
+                    }
+                })
+                
+                # Send response to requesting client
+                await websocket_manager.send_personal_message({
+                    'type': 'training_command_response',
+                    'data': {
+                        'command': 'stop_training',
+                        'success': True,
+                        'message': "Biological training stopped"
+                    }
+                }, websocket)
+                
+            elif message_type == 'get_performance_metrics':
+                # Handle performance metrics request
+                performance_data = platform.get_performance_metrics()
+                await websocket_manager.send_personal_message({
+                    'type': 'performance_metrics',
+                    'data': performance_data
+                }, websocket)
+                
+            elif message_type == 'get_system_status':
+                # Handle system status request
+                platform_status = platform.get_platform_status()
+                await websocket_manager.send_personal_message({
+                    'type': 'system_status',
+                    'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
+                }, websocket)
+                
+            else:
+                # Handle unknown message type
+                logger.warning(f"⚠️ Unknown WebSocket message type: {message_type}")
+                await websocket_manager.send_personal_message({
+                    'type': 'error',
+                    'message': f"Unknown message type: {message_type}"
+                }, websocket)
+                
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
     except Exception as e:
