@@ -847,6 +847,10 @@ class BioMiningPlatform:
         self.is_training = False
         self.mining_start_time = None
         
+        # Configuration storage
+        self.training_config = {}
+        self.mining_config = {}
+        
         logger.info("✅ BioMining Platform coordinator initialized")
     
     async def initialize_platform(self) -> bool:
@@ -1899,10 +1903,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         # Store config in MEA interface
                         platform.mea_interface.device_config = mea_config
                         success = True
-                        response_message = f"MEA configured: {mea_config['device_type']} on {mea_config['serial_port']}"
+                        response_message = f"MEA configured: {mea_config['device_type']} on {mea_config['serial_port']}, {mea_config['electrode_count']} electrodes"
                         
                     elif form_id == 'trainingConfigForm':
-                        # Handle training configuration - redirect to start_training
+                        # Handle training configuration
                         training_config = {
                             'epochs': int(config_data.get('trainingEpochs', 1000)),
                             'batch_size': int(config_data.get('batchSize', 32)),
@@ -1918,7 +1922,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         
                         platform.training_config = training_config
                         success = True
-                        response_message = f"Training configured: {training_config['epochs']} epochs, batch size {training_config['batch_size']}"
+                        response_message = f"Training configured: {training_config['epochs']} epochs, batch {training_config['batch_size']}, validation {training_config['validation_split']:.1%}"
                         
                     elif form_id == 'miningConfigForm':
                         # Handle mining configuration
@@ -1931,7 +1935,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         
                         platform.mining_config = mining_config
                         success = True
-                        response_message = f"Mining configured: {mining_config['mode']} mode, difficulty {mining_config['difficulty']}"
+                        response_message = f"Mining configured: {mining_config['mode']} mode, difficulty {mining_config['difficulty']}, {mining_config['max_attempts']} max attempts"
                         
                     else:
                         response_message = f"Unknown form configuration: {form_id}"
