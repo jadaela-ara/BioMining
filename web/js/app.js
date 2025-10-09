@@ -41,6 +41,9 @@ class HybridBitcoinMiningApp {
         this.initializeCharts();
         this.initializeElectrodeGrid();
         this.updateTotalWeight();
+        
+        // Verify form handlers after setup
+        setTimeout(() => this.verifyFormHandlers(), 100);
     }
 
     /**
@@ -1156,12 +1159,13 @@ class HybridBitcoinMiningApp {
      * Setup configuration forms
      */
     setupConfigurationForms() {
-        // Setup all configuration form handlers
-        const configForms = document.querySelectorAll('form[id*="config"]');
+        // Setup all configuration form handlers for all forms ending with 'Form'
+        const configForms = document.querySelectorAll('form[id$="Form"]');
         configForms.forEach(form => {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.handleConfigurationUpdate(form);
+                console.log(`📝 Form ${form.id} submitted (prevented default refresh)`);
             });
         });
 
@@ -2163,6 +2167,9 @@ class HybridBitcoinMiningApp {
      * Update form UI after configuration changes
      */
     updateFormUI(formId, config) {
+        // Keep form values after successful configuration
+        this.preserveFormValues(formId, config);
+        
         switch (formId) {
             case 'weightsForm':
                 // Update weight displays
@@ -2173,7 +2180,7 @@ class HybridBitcoinMiningApp {
                 // Update network status display
                 const statusElement = document.getElementById('networkCurrentStatus');
                 if (statusElement) {
-                    statusElement.textContent = 'Configuré';
+                    statusElement.textContent = 'Configuré ✅';
                 }
                 break;
                 
@@ -2181,7 +2188,7 @@ class HybridBitcoinMiningApp {
                 // Update MEA status display
                 const meaStatusElement = document.getElementById('meaConnectionStatus');
                 if (meaStatusElement) {
-                    meaStatusElement.textContent = 'Configuré';
+                    meaStatusElement.textContent = 'Configuré ✅';
                 }
                 break;
                 
@@ -2195,9 +2202,68 @@ class HybridBitcoinMiningApp {
                 console.log('⛏️ Mining configuration updated');
                 break;
                 
+            case 'tripleConfigForm':
+                // Update triple system status
+                console.log('🔧 Triple system configuration updated');
+                break;
+                
             default:
                 console.log(`ℹ️ Configuration updated for ${formId}`);
         }
+        
+        console.log(`✅ Form ${formId} UI updated and values preserved`);
+    }
+    
+    /**
+     * Preserve form values to prevent loss on submission
+     */
+    preserveFormValues(formId, config) {
+        const form = document.getElementById(formId);
+        if (!form || !config) return;
+        
+        // Restore all form values from the configuration
+        Object.keys(config).forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                const value = config[fieldId];
+                
+                if (element.type === 'checkbox') {
+                    element.checked = (value === 'on' || value === true);
+                } else if (element.type === 'range') {
+                    element.value = value;
+                    // Update range display
+                    const valueSpan = element.nextElementSibling;
+                    if (valueSpan && (valueSpan.classList.contains('range-value') || valueSpan.classList.contains('slider-value'))) {
+                        valueSpan.textContent = value + (element.id.includes('Weight') ? '%' : '');
+                    }
+                } else if (element.tagName === 'SELECT' || element.type === 'text' || element.type === 'number') {
+                    element.value = value;
+                }
+            }
+        });
+        
+        console.log(`🔄 Form values preserved for ${formId}`);
+    }
+    
+    /**
+     * Verify all forms have submit prevention handlers
+     */
+    verifyFormHandlers() {
+        const allForms = document.querySelectorAll('form[id$="Form"]');
+        console.log(`🔍 Verifying ${allForms.length} forms have submit prevention:`);
+        
+        allForms.forEach(form => {
+            const hasPreventionHandler = form.onsubmit !== null || 
+                                       form.getAttribute('onsubmit') !== null ||
+                                       form.classList.contains('submit-handled');
+            
+            // Mark forms as handled to track them
+            form.classList.add('submit-handled');
+            
+            console.log(`  📋 ${form.id}: ${hasPreventionHandler ? '✅' : '⚠️'} preventDefault handler`);
+        });
+        
+        return allForms.length;
     }
 }
 
