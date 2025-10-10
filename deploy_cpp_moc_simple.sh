@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Deploy BioMining with REAL C++ bindings using Qt MOC-fixed Dockerfile
-# This script uses the Qt MOC-enabled build process to generate real C++ bindings
+# Deploy BioMining with REAL C++ bindings - SIMPLIFIED VERSION
+# This version uses direct docker commands for maximum compatibility
 
 set -e
 
@@ -10,14 +10,15 @@ PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project)}"
 SERVICE_NAME="biomining-cpp-moc-real"
 REGION="us-central1"
 DOCKERFILE="Dockerfile.cpp-moc-fixed"
+IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
 
-echo "🚀 Deploying BioMining with REAL C++ bindings (Qt MOC-fixed version)"
+echo "🚀 Deploying BioMining with REAL C++ bindings (Simplified Version)"
 echo "📋 Configuration:"
 echo "   Project ID: $PROJECT_ID"
 echo "   Service: $SERVICE_NAME" 
 echo "   Region: $REGION"
 echo "   Dockerfile: $DOCKERFILE"
-echo "   Build: Real C++ with Qt MOC generation"
+echo "   Image: $IMAGE_NAME"
 echo ""
 
 # Verify required files exist
@@ -43,81 +44,55 @@ for file in "${required_files[@]}"; do
 done
 
 echo ""
-echo "🔧 Pre-build verification..."
+echo "🔧 Building Docker image..."
 
-# Check if Qt headers have Q_OBJECT
-echo "🔍 Checking Qt requirements in headers..."
-if grep -q "Q_OBJECT" include/bio/biological_network.h; then
-    echo "✅ BiologicalNetwork requires MOC (Q_OBJECT found)"
-else
-    echo "⚠️ BiologicalNetwork may not need MOC"
-fi
+# Build the Docker image
+docker build -f "$DOCKERFILE" -t "$IMAGE_NAME" .
 
-if grep -q "Q_OBJECT" include/crypto/bitcoin_miner.h; then
-    echo "✅ BitcoinMiner requires MOC (Q_OBJECT found)"  
+if [[ $? -eq 0 ]]; then
+    echo "✅ Docker build successful"
 else
-    echo "⚠️ BitcoinMiner may not need MOC"
+    echo "❌ Docker build failed"
+    exit 1
 fi
 
 echo ""
-echo "🚀 Starting Google Cloud Build with enhanced timeout and resources..."
+echo "📤 Pushing image to Google Container Registry..."
 
-# Create temporary cloudbuild.yaml
-TEMP_CLOUDBUILD="cloudbuild-cpp-moc.yaml"
-cat > "$TEMP_CLOUDBUILD" << EOF
-steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'build', 
-    '-f', '$DOCKERFILE',
-    '-t', 'gcr.io/$PROJECT_ID/$SERVICE_NAME:latest',
-    '.'
-  ]
-  timeout: '3600s'
-  
-- name: 'gcr.io/cloud-builders/docker'  
-  args: ['push', 'gcr.io/$PROJECT_ID/$SERVICE_NAME:latest']
-  
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: [
-    'run', 'deploy', '$SERVICE_NAME',
-    '--image', 'gcr.io/$PROJECT_ID/$SERVICE_NAME:latest',
-    '--platform', 'managed',
-    '--region', '$REGION',
-    '--allow-unauthenticated',
-    '--memory', '4Gi',
-    '--cpu', '4', 
-    '--timeout', '3600s',
-    '--concurrency', '10',
-    '--max-instances', '3',
-    '--set-env-vars', 'BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0'
-  ]
+# Push the image
+docker push "$IMAGE_NAME"
 
-options:
-  machineType: 'E2_HIGHCPU_8'
-  timeout: '3600s'
-  
-substitutions:
-  _SERVICE_NAME: '$SERVICE_NAME'
-  _REGION: '$REGION'
-EOF
-
-# Deploy using Cloud Build with the temporary config file
-gcloud builds submit \
-    --project="$PROJECT_ID" \
-    --config="$TEMP_CLOUDBUILD" \
-    --timeout=3600s \
-    --machine-type=e2-highcpu-8 \
-    .
-
-# Clean up temporary file
-rm -f "$TEMP_CLOUDBUILD"
+if [[ $? -eq 0 ]]; then
+    echo "✅ Image push successful"
+else
+    echo "❌ Image push failed"
+    exit 1
+fi
 
 echo ""
-echo "✅ Deployment initiated successfully!"
-echo ""
+echo "🚀 Deploying to Cloud Run..."
 
-# Get service URL
+# Deploy to Cloud Run
+gcloud run deploy "$SERVICE_NAME" \
+    --image "$IMAGE_NAME" \
+    --platform managed \
+    --region "$REGION" \
+    --allow-unauthenticated \
+    --memory 4Gi \
+    --cpu 4 \
+    --timeout 3600s \
+    --concurrency 10 \
+    --max-instances 3 \
+    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0"
+
+if [[ $? -eq 0 ]]; then
+    echo "✅ Cloud Run deployment successful"
+else
+    echo "❌ Cloud Run deployment failed"
+    exit 1
+fi
+
+echo ""
 echo "🔍 Getting service URL..."
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
     --platform=managed \
@@ -159,7 +134,7 @@ if [[ -n "$SERVICE_URL" ]]; then
     fi
     
     echo ""
-    echo "🧪 Testing BiologicalNetwork startLearning..."
+    echo "🧪 Testing BiologicalNetwork startInitialLearning..."
     TEST_RESPONSE=$(curl -s -X POST "$SERVICE_URL/api/configure-biological-network" \
         -H "Content-Type: application/json" \
         -d '{"learning_rate": 0.01, "epochs": 10}' || echo "error")
@@ -181,7 +156,7 @@ echo "📋 Deployment Summary:"
 echo "   Service: $SERVICE_NAME"
 echo "   URL: ${SERVICE_URL:-'Not available'}"
 echo "   Build: Real C++ with Qt MOC compilation"
-echo "   Status: Deployed (check logs for compilation status)"
+echo "   Status: Deployed"
 echo ""
 
 if [[ -n "$SERVICE_URL" ]]; then
@@ -201,4 +176,4 @@ echo ""
 echo "✅ Deployment completed! Real C++ methods should now be available."
 echo ""
 echo "🎯 User requested: \"non je veux rester avec les vraies méthodes C++\""
-echo "✅ This deployment provides REAL C++ BiologicalNetwork.startLearning() method!"
+echo "✅ This deployment provides REAL C++ BiologicalNetwork.startInitialLearning() method!"
