@@ -1,0 +1,33 @@
+# Requirements WITH C++ bindings support
+fastapi==0.104.1
+uvicorn==0.24.0
+websockets==12.0
+python-multipart==0.0.6
+pydantic==2.5.0
+
+# HTTP and async support
+httpx>=0.25.0
+aiofiles>=23.2.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Authentication and security
+cryptography>=41.0.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# Additional utilities
+requests>=2.31.0
+
+# Scientific computing (minimal for web interface)
+numpy>=1.24.0
+
+# C++ bindings
+pybind11>=2.6
+setuptools>=60.0
+
+# Build tools
+cmake>=3.15
+wheel>=0.37
