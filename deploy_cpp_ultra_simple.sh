@@ -1,30 +1,31 @@
 #!/bin/bash
 
-# Deploy BioMining with REAL C++ bindings - ROBUST SIMPLE VERSION
-# Uses simplified Dockerfile without heredoc parsing issues
+# Deploy BioMining with REAL C++ bindings - ULTRA SIMPLE VERSION
+# Uses the simplest possible approach: rename Dockerfile and use default gcloud
 
 set -e
 
 # Configuration
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project)}"
-SERVICE_NAME="biomining-cpp-simple-robust"
+SERVICE_NAME="biomining-cpp-ultra-simple"
 REGION="us-central1"
-DOCKERFILE="Dockerfile.cpp-simple"
+SOURCE_DOCKERFILE="Dockerfile.cpp-simple"
+TARGET_DOCKERFILE="Dockerfile"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
 
-echo "🚀 Deploying BioMining with REAL C++ bindings (Robust Simple Version)"
+echo "🚀 Deploying BioMining with REAL C++ bindings (Ultra Simple Version)"
 echo "📋 Configuration:"
 echo "   Project ID: $PROJECT_ID"
 echo "   Service: $SERVICE_NAME" 
 echo "   Region: $REGION"
-echo "   Dockerfile: $DOCKERFILE"
+echo "   Source Dockerfile: $SOURCE_DOCKERFILE"
 echo "   Image: $IMAGE_NAME"
 echo ""
 
 # Verify required files exist
 echo "🔍 Verifying required files..."
 required_files=(
-    "$DOCKERFILE"
+    "$SOURCE_DOCKERFILE"
     "requirements-cpp.txt"
     "python_bindings/biomining_python.cpp"
     "include/bio/biological_network.h"
@@ -44,56 +45,42 @@ for file in "${required_files[@]}"; do
 done
 
 echo ""
-echo "🔧 Pre-build verification..."
+echo "🔧 Pre-deployment setup..."
 
-# Check if Qt headers have Q_OBJECT
-echo "🔍 Checking Qt requirements in headers..."
-if grep -q "Q_OBJECT" include/bio/biological_network.h; then
-    echo "✅ BiologicalNetwork requires MOC (Q_OBJECT found)"
-else
-    echo "⚠️ BiologicalNetwork may not need MOC"
+# Backup existing Dockerfile if it exists
+if [[ -f "Dockerfile" ]]; then
+    echo "📋 Backing up existing Dockerfile..."
+    cp Dockerfile Dockerfile.backup.$(date +%s)
 fi
 
-if grep -q "Q_OBJECT" include/crypto/bitcoin_miner.h; then
-    echo "✅ BitcoinMiner requires MOC (Q_OBJECT found)"  
-else
-    echo "⚠️ BitcoinMiner may not need MOC"
-fi
+# Copy our robust Dockerfile as the default Dockerfile
+echo "📋 Using $SOURCE_DOCKERFILE as Dockerfile..."
+cp "$SOURCE_DOCKERFILE" "$TARGET_DOCKERFILE"
 
 echo ""
-echo "🔧 Building with Cloud Build (simplified approach)..."
+echo "🔧 Building with Cloud Build (ultra simple approach)..."
 
-# Create a minimal cloudbuild.yaml for the custom Dockerfile
-TEMP_CLOUDBUILD="cloudbuild-simple-robust.yaml"
-cat > "$TEMP_CLOUDBUILD" << EOF
-steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'build',
-    '-f', '$DOCKERFILE',
-    '-t', '$IMAGE_NAME',
-    '.'
-  ]
-  timeout: '3600s'
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', '$IMAGE_NAME']
-  timeout: '600s'
-
-options:
-  machineType: 'E2_HIGHCPU_8'
-EOF
-
-# Use Cloud Build with the temporary config file
+# Use the absolute simplest Cloud Build approach
 gcloud builds submit \
     --project="$PROJECT_ID" \
-    --config="$TEMP_CLOUDBUILD" \
+    --tag="$IMAGE_NAME" \
     --timeout=3600s \
+    --machine-type=e2-highcpu-8 \
     .
 
-# Clean up temporary file
-rm -f "$TEMP_CLOUDBUILD"
+BUILD_SUCCESS=$?
 
-if [[ $? -eq 0 ]]; then
+# Restore original Dockerfile if it existed
+if [[ -f "Dockerfile.backup."* ]]; then
+    echo "📋 Restoring original Dockerfile..."
+    BACKUP_FILE=$(ls Dockerfile.backup.* | head -n 1)
+    mv "$BACKUP_FILE" "Dockerfile"
+else
+    # Remove the temporary Dockerfile we created
+    rm -f "Dockerfile"
+fi
+
+if [[ $BUILD_SUCCESS -eq 0 ]]; then
     echo "✅ Cloud Build successful"
 else
     echo "❌ Cloud Build failed"
@@ -188,7 +175,7 @@ echo ""
 echo "📋 Deployment Summary:"
 echo "   Service: $SERVICE_NAME"
 echo "   URL: ${SERVICE_URL:-'Not available'}"
-echo "   Build: Real C++ with Qt MOC compilation (simplified)"
+echo "   Build: Real C++ with Qt MOC compilation (ultra simple)"
 echo "   Status: Deployed"
 echo ""
 
@@ -211,4 +198,4 @@ echo ""
 echo "🎯 User requested: \"non je veux rester avec les vraies méthodes C++\""
 echo "✅ This deployment provides REAL C++ BiologicalNetwork.startInitialLearning() method!"
 echo ""
-echo "🔧 This version uses simplified Dockerfile without heredoc parsing issues!"
+echo "🔧 This version uses the ultra-simple approach: temporary Dockerfile rename!"
