@@ -7,6 +7,7 @@
 // Include the C++ headers
 #include "../include/crypto/hybrid_bitcoin_miner.h"
 #include "../include/bio/real_mea_interface.h"
+#include "../include/bio/biological_network.h"
 
 namespace py = pybind11;
 
@@ -355,4 +356,128 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Extract nonce from neural response")
         .def("stimulateWithReinforcement", &BioMining::Bio::RealMEAInterface::stimulateWithReinforcement,
              "Stimulate with reinforcement signal");
+
+    // BiologicalNetwork enums and structures - NETWORK MODULE
+    py::enum_<BioMining::Network::BiologicalNetwork::LearningState>(bio_module, "LearningState")
+        .value("Untrained", BioMining::Network::BiologicalNetwork::LearningState::Untrained)
+        .value("InitialLearning", BioMining::Network::BiologicalNetwork::LearningState::InitialLearning)
+        .value("Trained", BioMining::Network::BiologicalNetwork::LearningState::Trained)
+        .value("Retraining", BioMining::Network::BiologicalNetwork::LearningState::Retraining)
+        .value("Optimizing", BioMining::Network::BiologicalNetwork::LearningState::Optimizing);
+
+    py::class_<BioMining::Network::BiologicalNetwork::NetworkConfig>(bio_module, "NetworkConfig")
+        .def(py::init<>())
+        .def_readwrite("neuronCount", &BioMining::Network::BiologicalNetwork::NetworkConfig::neuronCount)
+        .def_readwrite("learningRate", &BioMining::Network::BiologicalNetwork::NetworkConfig::learningRate)
+        .def_readwrite("stimulationThreshold", &BioMining::Network::BiologicalNetwork::NetworkConfig::stimulationThreshold)
+        .def_readwrite("adaptationRate", &BioMining::Network::BiologicalNetwork::NetworkConfig::adaptationRate)
+        .def_readwrite("memoryDepth", &BioMining::Network::BiologicalNetwork::NetworkConfig::memoryDepth)
+        .def_readwrite("useReinforcementLearning", &BioMining::Network::BiologicalNetwork::NetworkConfig::useReinforcementLearning)
+        .def_readwrite("inputSize", &BioMining::Network::BiologicalNetwork::NetworkConfig::inputSize)
+        .def_readwrite("outputSize", &BioMining::Network::BiologicalNetwork::NetworkConfig::outputSize)
+        .def_readwrite("enablePlasticity", &BioMining::Network::BiologicalNetwork::NetworkConfig::enablePlasticity)
+        .def_readwrite("enableAdaptation", &BioMining::Network::BiologicalNetwork::NetworkConfig::enableAdaptation)
+        .def_readwrite("momentum", &BioMining::Network::BiologicalNetwork::NetworkConfig::momentum)
+        .def_readwrite("decayRate", &BioMining::Network::BiologicalNetwork::NetworkConfig::decayRate)
+        .def_readwrite("adaptiveThreshold", &BioMining::Network::BiologicalNetwork::NetworkConfig::adaptiveThreshold)
+        .def_readwrite("maxEpochs", &BioMining::Network::BiologicalNetwork::NetworkConfig::maxEpochs);
+
+    py::class_<BioMining::Network::BiologicalNetwork::NoncePredicition>(bio_module, "NoncePredicition")
+        .def(py::init<>())
+        .def_readwrite("suggestedNonce", &BioMining::Network::BiologicalNetwork::NoncePredicition::suggestedNonce)
+        .def_readwrite("confidence", &BioMining::Network::BiologicalNetwork::NoncePredicition::confidence)
+        .def_readwrite("expectedEfficiency", &BioMining::Network::BiologicalNetwork::NoncePredicition::expectedEfficiency)
+        .def_readwrite("reasoning", &BioMining::Network::BiologicalNetwork::NoncePredicition::reasoning);
+
+    py::class_<BioMining::Network::BiologicalNetwork::LearningData>(bio_module, "LearningData")
+        .def(py::init<>())
+        .def_readwrite("targetNonce", &BioMining::Network::BiologicalNetwork::LearningData::targetNonce)
+        .def_readwrite("blockHeader", &BioMining::Network::BiologicalNetwork::LearningData::blockHeader)
+        .def_readwrite("difficulty", &BioMining::Network::BiologicalNetwork::LearningData::difficulty)
+        .def_readwrite("wasSuccessful", &BioMining::Network::BiologicalNetwork::LearningData::wasSuccessful)
+        .def_readwrite("attempts", &BioMining::Network::BiologicalNetwork::LearningData::attempts)
+        .def_readwrite("computeTime", &BioMining::Network::BiologicalNetwork::LearningData::computeTime);
+
+    // BiologicalNetwork class bindings - NETWORK MODULE
+    py::class_<BioMining::Network::BiologicalNetwork>(bio_module, "BiologicalNetwork")
+        .def(py::init<>(), "Default constructor")
+        .def(py::init<int, int>(), "Constructor with neuron and synapse counts")
+        .def("initialize", &BioMining::Network::BiologicalNetwork::initialize,
+             "Initialize the biological network")
+        .def("reset", &BioMining::Network::BiologicalNetwork::reset,
+             "Reset the network to initial state")
+        .def("shutdown", &BioMining::Network::BiologicalNetwork::shutdown,
+             "Shutdown the network")
+        
+        // Configuration methods
+        .def("setNetworkConfig", &BioMining::Network::BiologicalNetwork::setNetworkConfig,
+             "Set network configuration")
+        .def("getNetworkConfig", &BioMining::Network::BiologicalNetwork::getNetworkConfig,
+             "Get network configuration")
+        .def("configureNetwork", &BioMining::Network::BiologicalNetwork::configureNetwork,
+             "Configure network with given configuration")
+             
+        // Learning state methods
+        .def("getLearningState", &BioMining::Network::BiologicalNetwork::getLearningState,
+             "Get current learning state")
+        .def("getTrainingProgress", &BioMining::Network::BiologicalNetwork::getTrainingProgress,
+             "Get training progress percentage")
+        .def("getTrainingEpochs", &BioMining::Network::BiologicalNetwork::getTrainingEpochs,
+             "Get number of training epochs")
+             
+        // Learning methods
+        .def("startInitialLearning", &BioMining::Network::BiologicalNetwork::startInitialLearning,
+             "Start initial learning phase", py::arg("trainingCycles") = 100)
+        .def("stopLearning", &BioMining::Network::BiologicalNetwork::stopLearning,
+             "Stop the learning process")
+        .def("isLearningComplete", &BioMining::Network::BiologicalNetwork::isLearningComplete,
+             "Check if learning is complete")
+        .def("initializeLearning", &BioMining::Network::BiologicalNetwork::initializeLearning,
+             "Initialize learning with configuration")
+        
+        // Prediction and mining methods
+        .def("predictOptimalNonce", &BioMining::Network::BiologicalNetwork::predictOptimalNonce,
+             "Predict optimal nonce for given block header")
+             
+        // Retro-learning methods
+        .def("addLearningExample", &BioMining::Network::BiologicalNetwork::addLearningExample,
+             "Add learning example to training data")
+        .def("performRetroLearning", &BioMining::Network::BiologicalNetwork::performRetroLearning,
+             "Perform retro-learning from accumulated examples")
+        .def("optimizeFromFeedback", &BioMining::Network::BiologicalNetwork::optimizeFromFeedback,
+             "Optimize network from success/failure feedback")
+        
+        // Persistence methods
+        .def("saveNetwork", &BioMining::Network::BiologicalNetwork::saveNetwork,
+             "Save network to file", py::arg("filepath") = "")
+        .def("loadNetwork", &BioMining::Network::BiologicalNetwork::loadNetwork,
+             "Load network from file", py::arg("filepath") = "")
+        .def("exportNetworkState", &BioMining::Network::BiologicalNetwork::exportNetworkState,
+             "Export current network state as JSON")
+        .def("importNetworkState", &BioMining::Network::BiologicalNetwork::importNetworkState,
+             "Import network state from JSON")
+             
+        // Diagnostic methods  
+        .def("getNetworkDiagnostic", &BioMining::Network::BiologicalNetwork::getNetworkDiagnostic,
+             "Get network diagnostic information")
+        .def("getLayerActivations", &BioMining::Network::BiologicalNetwork::getLayerActivations,
+             "Get activation values for specific layer")
+        .def("getNetworkEfficiency", &BioMining::Network::BiologicalNetwork::getNetworkEfficiency,
+             "Get network efficiency rating")
+        .def("getNetworkComplexity", &BioMining::Network::BiologicalNetwork::getNetworkComplexity,
+             "Get network complexity metric")
+             
+        // Advanced network methods
+        .def("setAdaptiveLearning", &BioMining::Network::BiologicalNetwork::setAdaptiveLearning,
+             "Enable or disable adaptive learning")
+        .def("updateInputSignals", &BioMining::Network::BiologicalNetwork::updateInputSignals,
+             "Update network input signals")
+        .def("updateWeights", &BioMining::Network::BiologicalNetwork::updateWeights,
+             "Update network weights")
+        .def("getOutputValues", &BioMining::Network::BiologicalNetwork::getOutputValues,
+             "Get current output values")
+        .def("forwardPropagation", &BioMining::Network::BiologicalNetwork::forwardPropagation,
+             "Perform forward propagation with inputs")
+        .def("backPropagation", &BioMining::Network::BiologicalNetwork::backPropagation,
+             "Perform back propagation with target values");
 }
