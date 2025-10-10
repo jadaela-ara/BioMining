@@ -1,14 +1,18 @@
 # 🚀 Options de Déploiement C++ Corrigées
 
-## ❌ Problème Résolu
-**Erreur**: `Unable to read file [-]: [Errno 2] No such file or directory: '-'`
+## ❌ Problèmes Résolus
+1. **Erreur 1**: `Unable to read file [-]: [Errno 2] No such file or directory: '-'`
+2. **Erreur 2**: `.options.timeout: unused` dans cloudbuild.yaml
 
-**Cause**: Syntaxe incorrecte avec `gcloud builds submit --config=-` et heredoc
+**Causes**: 
+- Syntaxe incorrecte avec `gcloud builds submit --config=-` et heredoc
+- Configuration `timeout` invalide dans la section `options` de cloudbuild.yaml
 
-## ✅ Solutions Disponibles
+## ✅ Solutions Disponibles (3 Options)
 
-### Option 1: Script Corrigé (Recommandé)
+### Option 1: Script Corrigé 
 **Fichier**: `deploy_cpp_moc_fixed.sh` ✅
+- **Correction**: Supprime `timeout` de la section `options`
 - Utilise un fichier temporaire `cloudbuild-cpp-moc.yaml` 
 - Nettoie automatiquement le fichier temporaire
 - Compatible avec `gcloud builds submit`
@@ -18,11 +22,22 @@
 ./deploy_cpp_moc_fixed.sh
 ```
 
-### Option 2: Script Simplifié (Alternative)
+### Option 2: Script Direct (Recommandé) 
+**Fichier**: `deploy_cpp_moc_direct.sh` ✅ **NOUVEAU**
+- Utilise `gcloud builds submit --tag` (plus simple)
+- Évite complètement les problèmes de cloudbuild.yaml
+- Même fonctionnalité, syntaxe simplifiée
+
+**Commande**:
+```bash
+./deploy_cpp_moc_direct.sh
+```
+
+### Option 3: Script Docker Local
 **Fichier**: `deploy_cpp_moc_simple.sh` ✅ 
 - Utilise directement `docker build` et `docker push`
 - Puis déploie avec `gcloud run deploy`
-- Évite complètement les problèmes de Cloud Build
+- Évite complètement Cloud Build
 
 **Commande**:
 ```bash
@@ -56,14 +71,21 @@ gcloud builds submit --config="cloudbuild-cpp-moc.yaml" .
 rm -f "cloudbuild-cpp-moc.yaml"
 ```
 
-## 🎯 Recommendation
+## 🎯 Recommendations
 
-**Utilisez `deploy_cpp_moc_fixed.sh`** - il offre :
-- ✅ Correction de l'erreur heredoc
-- ✅ Build multi-étape avec Cloud Build
+### **RECOMMANDÉ**: `deploy_cpp_moc_direct.sh` 
+**Pourquoi**: Syntaxe la plus simple et robuste
+- ✅ Évite tous les problèmes de cloudbuild.yaml
+- ✅ Utilise `gcloud builds submit --tag` (syntaxe simple)
 - ✅ Ressources optimisées (E2_HIGHCPU_8)
 - ✅ Timeout étendu (3600s)
 - ✅ Tests automatiques après déploiement
+
+### **Alternative**: `deploy_cpp_moc_simple.sh`
+**Pourquoi**: Si Docker local est préféré
+- ✅ Build Docker local plus contrôlable
+- ✅ Évite complètement Cloud Build
+- ✅ Même résultat final
 
 ## 🧪 Test de Déploiement
 
