@@ -81,9 +81,7 @@ WORKDIR /app/python_bindings
 
 RUN cat > setup_moc_fixed.py << 'EOF'
 #!/usr/bin/env python3
-"""
-Enhanced setup.py with proper Qt MOC support for BioMining C++ bindings
-"""
+# Enhanced setup.py with proper Qt MOC support for BioMining C++ bindings
 
 import os
 import sys
@@ -93,7 +91,7 @@ from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 
 def verify_qt_installation():
-    """Verify Qt5 is properly installed"""
+    # Verify Qt5 is properly installed
     try:
         result = subprocess.run(['/usr/lib/qt5/bin/moc', '-v'], 
                               capture_output=True, text=True)
@@ -104,7 +102,7 @@ def verify_qt_installation():
         return False
 
 def verify_moc_files():
-    """Verify all required MOC files exist"""
+    # Verify all required MOC files exist
     required_moc_files = [
         '../src/cpp/biological_network.moc',
         '../src/cpp/bitcoin_miner.moc'
@@ -194,7 +192,7 @@ ext_modules = [
 ]
 
 class EnhancedBuildExt(build_ext):
-    """Enhanced build with proper Qt flags and error handling"""
+    # Enhanced build with proper Qt flags and error handling
     
     def build_extensions(self):
         print("🔨 Starting C++ compilation with Qt support...")
