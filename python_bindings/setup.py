@@ -37,14 +37,10 @@ def find_qt6():
     
     return None
 
-# Get Qt6 path
+# Get Qt path (try Qt6 first, then Qt5)
 qt_path = find_qt6()
-if not qt_path:
-    print("Warning: Qt6 not found. Using system default paths.")
-    qt_include = []
-    qt_lib_dirs = []
-    qt_libs = []
-else:
+if qt_path:
+    print(f"Found Qt6 at: {qt_path}")
     qt_include = [
         os.path.join(qt_path, "include"),
         os.path.join(qt_path, "include", "QtCore"),
@@ -53,6 +49,42 @@ else:
     ]
     qt_lib_dirs = [os.path.join(qt_path, "lib")]
     qt_libs = ["Qt6Core", "Qt6Network", "Qt6SerialPort"]
+else:
+    # Try Qt5 system packages
+    print("Qt6 not found, trying Qt5 system packages...")
+    try:
+        # Check for Qt5 headers
+        qt5_paths = [
+            "/usr/include/qt5",
+            "/usr/include/x86_64-linux-gnu/qt5", 
+            "/usr/local/include/qt5"
+        ]
+        qt5_found = False
+        for path in qt5_paths:
+            if os.path.exists(os.path.join(path, "QtCore")):
+                qt5_found = True
+                qt_include = [
+                    path,
+                    os.path.join(path, "QtCore"),
+                    os.path.join(path, "QtNetwork"),
+                    os.path.join(path, "QtSerialPort"),
+                ]
+                break
+        
+        if qt5_found:
+            print(f"Found Qt5 headers at: {path}")
+            qt_lib_dirs = ["/usr/lib/x86_64-linux-gnu", "/usr/lib"]
+            qt_libs = ["Qt5Core", "Qt5Network", "Qt5SerialPort"]
+        else:
+            print("Warning: No Qt found. Using minimal configuration.")
+            qt_include = []
+            qt_lib_dirs = []
+            qt_libs = []
+    except Exception as e:
+        print(f"Error detecting Qt5: {e}")
+        qt_include = []
+        qt_lib_dirs = []
+        qt_libs = []
 
 # Define the extension module
 ext_modules = [
