@@ -38,6 +38,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("momentumFactor", &BioMining::HCrypto::BiologicalLearningParams::momentumFactor)
         .def_readwrite("adaptationThreshold", &BioMining::HCrypto::BiologicalLearningParams::adaptationThreshold)
         .def_readwrite("maxIterations", &BioMining::HCrypto::BiologicalLearningParams::maxIterations)
+        .def_readwrite("retroIterations", &BioMining::HCrypto::BiologicalLearningParams::retroIterations)
         .def_readwrite("enablePlasticity", &BioMining::HCrypto::BiologicalLearningParams::enablePlasticity)
         .def_readwrite("enableAdaptation", &BioMining::HCrypto::BiologicalLearningParams::enableAdaptation);
     
@@ -54,11 +55,20 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_property_readonly("successfulPredictions", [](const BioMining::HCrypto::HybridMiningMetrics& m) { 
             return m.successfulPredictions.load(); 
         })
+        .def_property_readonly("traditionalHashes", [](const BioMining::HCrypto::HybridMiningMetrics& m) { 
+            return m.traditionalHashes.load(); 
+        })
         .def_property_readonly("biologicalAccuracy", [](const BioMining::HCrypto::HybridMiningMetrics& m) { 
             return m.biologicalAccuracy.load(); 
         })
         .def_property_readonly("hybridHashRate", [](const BioMining::HCrypto::HybridMiningMetrics& m) { 
             return m.hybridHashRate.load(); 
+        })
+        .def_property_readonly("energyEfficiency", [](const BioMining::HCrypto::HybridMiningMetrics& m) { 
+            return m.energyEfficiency.load(); 
+        })
+        .def_property_readonly("adaptationScore", [](const BioMining::HCrypto::HybridMiningMetrics& m) { 
+            return m.adaptationScore.load(); 
         });
     
     // Learning States
@@ -203,6 +213,10 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def(py::init<>())
         .def_readwrite("deviceType", &BioMining::Bio::RealMEAConfig::deviceType)
         .def_readwrite("protocol", &BioMining::Bio::RealMEAConfig::protocol)
+        .def_readwrite("devicePath", &BioMining::Bio::RealMEAConfig::devicePath)
+        .def_readwrite("networkHost", &BioMining::Bio::RealMEAConfig::networkHost)
+        .def_readwrite("networkPort", &BioMining::Bio::RealMEAConfig::networkPort)
+        .def_readwrite("baudRate", &BioMining::Bio::RealMEAConfig::baudRate)
         .def_readwrite("electrodeCount", &BioMining::Bio::RealMEAConfig::electrodeCount)
         .def_readwrite("samplingRate", &BioMining::Bio::RealMEAConfig::samplingRate)
         .def_readwrite("amplification", &BioMining::Bio::RealMEAConfig::amplification)
@@ -214,9 +228,11 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("bidirectionalStim", &BioMining::Bio::RealMEAConfig::bidirectionalStim)
         .def_readwrite("spikeDetection", &BioMining::Bio::RealMEAConfig::spikeDetection)
         .def_readwrite("spikeThreshold", &BioMining::Bio::RealMEAConfig::spikeThreshold)
+        .def_readwrite("spikeWindowMs", &BioMining::Bio::RealMEAConfig::spikeWindowMs)
         .def_readwrite("connectionTimeoutMs", &BioMining::Bio::RealMEAConfig::connectionTimeoutMs)
         .def_readwrite("readTimeoutMs", &BioMining::Bio::RealMEAConfig::readTimeoutMs)
         .def_readwrite("maxRetries", &BioMining::Bio::RealMEAConfig::maxRetries)
+        .def_readwrite("calibrationFile", &BioMining::Bio::RealMEAConfig::calibrationFile)
         .def_readwrite("autoCalibration", &BioMining::Bio::RealMEAConfig::autoCalibration);
     
     // Electrode Data

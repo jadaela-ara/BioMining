@@ -44,6 +44,9 @@ class HybridBitcoinMiningApp {
         
         // Verify form handlers after setup
         setTimeout(() => this.verifyFormHandlers(), 100);
+        
+        // Setup form value preservation
+        this.setupFormPreservation();
     }
 
     /**
@@ -1992,6 +1995,85 @@ class HybridBitcoinMiningApp {
         }
     }
 
+    /**
+     * Setup form value preservation across page refreshes
+     */
+    setupFormPreservation() {
+        // Save form data on input changes
+        document.addEventListener('input', (e) => {
+            if (e.target.form && e.target.form.id.endsWith('Form')) {
+                this.saveFormData(e.target.form);
+            }
+        });
+
+        // Save form data on form submission prevention
+        document.addEventListener('submit', (e) => {
+            if (e.target.id.endsWith('Form')) {
+                this.saveFormData(e.target);
+            }
+        });
+
+        // Restore saved form data on page load
+        this.restoreFormData();
+    }
+
+    /**
+     * Save form data to localStorage
+     */
+    saveFormData(form) {
+        try {
+            const formData = new FormData(form);
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            localStorage.setItem(`form_${form.id}`, JSON.stringify(data));
+        } catch (error) {
+            console.warn('Failed to save form data:', error);
+        }
+    }
+
+    /**
+     * Restore form data from localStorage
+     */
+    restoreFormData() {
+        try {
+            const forms = document.querySelectorAll('form[id$="Form"]');
+            
+            forms.forEach(form => {
+                const savedData = localStorage.getItem(`form_${form.id}`);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    Object.entries(data).forEach(([name, value]) => {
+                        const input = form.querySelector(`[name="${name}"]`);
+                        if (input) {
+                            if (input.type === 'checkbox' || input.type === 'radio') {
+                                input.checked = value === 'on' || value === input.value;
+                            } else {
+                                input.value = value;
+                            }
+                        }
+                    });
+                }
+            });
+        } catch (error) {
+            console.warn('Failed to restore form data:', error);
+        }
+    }
+
+    /**
+     * Clear saved form data for a specific form
+     */
+    clearFormData(formId) {
+        try {
+            localStorage.removeItem(`form_${formId}`);
+        } catch (error) {
+            console.warn('Failed to clear form data:', error);
+        }
+    }
 
     /**
      * Stimulate selected electrodes
