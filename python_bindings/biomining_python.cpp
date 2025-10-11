@@ -416,7 +416,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
 
     // BiologicalNetwork class bindings - NETWORK MODULE
     py::class_<BioMining::Network::BiologicalNetwork>(m_bio, "BiologicalNetwork")
-        //.def(py::init<>(), "Default constructor")
+        .def(py::init<>(), "Default constructor")
         //.def(py::init<int, int>(), "Constructor with neuron and synapse counts")
         .def(py::init<QObject*>(), py::arg("parent") = nullptr, "Default constructor with optional QObject parent")
         .def("initialize", &BioMining::Network::BiologicalNetwork::initialize,
