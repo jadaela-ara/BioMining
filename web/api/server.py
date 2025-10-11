@@ -667,7 +667,7 @@ class CppRealMEAInterface:
                 self.cpp_config.deviceType = biomining_cpp.bio.MEADeviceType.Custom_Serial
                 self.cpp_config.electrodeCount = config.get('num_electrodes', 60)
                 self.cpp_config.samplingRate = config.get('sampling_rate', 25000.0)
-                self.cpp_config.amplificationGain = config.get('gain', 1000.0)
+                self.cpp_config.amplification = config.get('gain', 1000.0)
                 self.cpp_config.filterLowCutoff = config.get('low_cutoff', 300.0)
                 self.cpp_config.filterHighCutoff = config.get('high_cutoff', 3000.0)
                 self.cpp_config.protocol = biomining_cpp.bio.CommunicationProtocol.SerialPort
