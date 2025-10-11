@@ -17,7 +17,8 @@ RUN apt-get update && apt-get install -y \
     libqt5serialport5 \
     libqt5serialport5-dev \
     libqt5widgets5 \
-    qtbase5-concurrent \
+    libqt5concurrent5 \
+    libqt5concurrent5-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
