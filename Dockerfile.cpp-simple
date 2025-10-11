@@ -62,11 +62,18 @@ RUN echo "🔧 Generating Qt MOC files..." && \
     echo "✅ MOC generation completed" && \
     ls -la src/cpp/*.moc
 
+# Renommer les fichiers .moc en .moc.cpp pour setuptools
+RUN mv src/cpp/biological_network.moc src/cpp/biological_network.moc.cpp && \
+    mv src/cpp/bitcoin_miner.moc src/cpp/bitcoin_miner.moc.cpp && \
+    mv src/cpp/real_mea_interface.moc src/cpp/real_mea_interface.moc.cpp && \
+    mv src/cpp/mea_interface.moc src/cpp/mea_interface.moc.cpp && \
+    mv src/cpp/hybrid_bitcoin_miner.moc src/cpp/hybrid_bitcoin_miner.moc.cpp
+
 # Verify MOC files were created
 RUN echo "🔍 Verifying MOC files exist:" && \
-    ls -la src/cpp/*.moc || echo "⚠️ Some MOC files missing"
+    ls -la src/cpp/*.moc.cpp || echo "⚠️ Some MOC files missing"
 
-# Crée un setup_simple.py (adapté pour build avec tous les .moc)
+# Crée un setup_simple.py (adapté pour build avec tous les .moc.cpp)
 WORKDIR /app/python_bindings
 
 RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
@@ -83,15 +90,15 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "cpp_sources = [" >> setup_simple.py && \
     echo "    'biomining_python.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/biological_network.cpp'," >> setup_simple.py && \
-    echo "    '../src/cpp/biological_network.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/biological_network.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/bitcoin_miner.cpp'," >> setup_simple.py && \
-    echo "    '../src/cpp/bitcoin_miner.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/bitcoin_miner.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/real_mea_interface.cpp'," >> setup_simple.py && \
-    echo "    '../src/cpp/real_mea_interface.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/real_mea_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/mea_interface.cpp'," >> setup_simple.py && \
-    echo "    '../src/cpp/mea_interface.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/mea_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.cpp'," >> setup_simple.py && \
-    echo "    '../src/cpp/hybrid_bitcoin_miner.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/hybrid_bitcoin_miner.moc.cpp'," >> setup_simple.py && \
     echo "]" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "ext_modules = [Pybind11Extension(" >> setup_simple.py && \
