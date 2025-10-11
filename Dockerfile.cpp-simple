@@ -77,6 +77,19 @@ RUN echo "🔧 Generating Qt MOC files..." && \
 RUN echo "🔍 Verifying MOC files exist:" && \
     ls -la src/cpp/*.moc || echo "⚠️ Some MOC files missing"
 
+# Compile and install the biomining_cpp Python bindings
+WORKDIR /app/python_bindings
+RUN python3 setup.py build_ext --inplace
+RUN python3 setup.py install
+
+# Test biomining_cpp import
+RUN python3 -c "import biomining_cpp; print('biomining_cpp import successful ✅')"
+
+# Repasse au dossier app pour le CMD éventuel
+WORKDIR /app
+
+
+
 # Copy the existing setup.py and modify it for Qt support
 WORKDIR /app/python_bindings
 
