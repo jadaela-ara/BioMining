@@ -311,7 +311,7 @@ class CppBiologicalNetwork:
         if CPP_BINDINGS_AVAILABLE:
             try:
                 # Initialize C++ BiologicalNetwork
-                self.cpp_network = biomining_cpp.bio.BiologicalNetwork()
+                self.cpp_network = biomining_cpp.bio.BiologicalNetwork(None)
                 self.cpp_config = biomining_cpp.bio.NetworkConfig()
                 self.cpp_learning_data = biomining_cpp.bio.LearningData()
                 
