@@ -1,7 +1,7 @@
 # Simplified Dockerfile for real C++ bindings without complex heredocs
 FROM python:3.11-slim
 
-# Install comprehensive Qt development environment
+# Install Qt5 development headers (including QtConcurrent)
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
     libqt5concurrent5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Vérification de la présence des headers QtConcurrent
+RUN ls -l /usr/include/x86_64-linux-gnu/qt5/QtConcurrent/QtConcurrent*
 
 # Set working directory
 WORKDIR /app
@@ -88,8 +91,6 @@ RUN python3 -c "import biomining_cpp; print('biomining_cpp import successful ✅
 
 # Repasse au dossier app pour le CMD éventuel
 WORKDIR /app
-
-
 
 # Copy the existing setup.py and modify it for Qt support
 WORKDIR /app/python_bindings
