@@ -1229,9 +1229,12 @@ double HybridBitcoinMiner::evaluatePredictionConfidence(const std::vector<double
     double maxOutput = *std::max_element(networkOutput.begin(), networkOutput.end());
     double minOutput = *std::min_element(networkOutput.begin(), networkOutput.end());
     
-    // Confiance proportionnelle à la variance de sortie
+    // Confiance proportionnelle à la variance de sortie et à l'étendue
     double sum = std::accumulate(networkOutput.begin(), networkOutput.end(), 0.0);
     double mean = sum / networkOutput.size();
+    
+    // Utiliser l'étendue pour calculer la confiance
+    double range = maxOutput - minOutput;
     
     double variance = 0.0;
     for (double output : networkOutput) {
@@ -1239,8 +1242,9 @@ double HybridBitcoinMiner::evaluatePredictionConfidence(const std::vector<double
     }
     variance /= networkOutput.size();
     
-    // Confiance élevée si variance importante (décision claire)
-    return std::min(1.0, variance * 10.0);
+    // Confiance élevée si variance importante et étendue significative (décision claire)
+    double confidence = std::min(1.0, (variance + range * 0.1) * 10.0);
+    return confidence;
 }
 
 void HybridBitcoinMiner::setupMiningThreads()
@@ -1599,10 +1603,10 @@ TripleSystemPrediction HybridBitcoinMiner::predictNonceTriple(const QString& blo
     const int TIMEOUT_MS = 5000;
     
     try {
-        // Récupération des prédictions
-        prediction.sha256Nonce = sha256Future.result();
-        prediction.networkNonce = networkFuture.result(); 
-        prediction.meaNonce = meaFuture.result();
+        // Récupération des prédictions avec timeout
+        prediction.sha256Nonce = sha256Future.result(TIMEOUT_MS);
+        prediction.networkNonce = networkFuture.result(TIMEOUT_MS); 
+        prediction.meaNonce = meaFuture.result(TIMEOUT_MS);
         
         // Fusion intelligente des prédictions
         prediction.fusedNonce = fuseTriplePredictions(prediction);
