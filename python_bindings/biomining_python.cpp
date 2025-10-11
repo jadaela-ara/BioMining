@@ -3,6 +3,14 @@
 #include <pybind11/chrono.h>
 #include <pybind11/operators.h>
 #include <pybind11/functional.h>
+#include <QDebug>
+#include <QMessageLogContext>
+
+void cloudrunQtLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
+    // Envoie tout vers stderr, Cloud Run capte stderr
+    fprintf(stderr, "[QTLOG] %s\n", msg.toLocal8Bit().constData());
+    fflush(stderr); // Assure l’apparition immédiate dans les logs
+}
 
 // Include the C++ headers
 #include "../include/crypto/hybrid_bitcoin_miner.h"
@@ -13,6 +21,10 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(biomining_cpp, m) {
     m.doc() = "BioMining C++ Python bindings";
+
+    m.def("install_qt_logger", []() {
+    qInstallMessageHandler(cloudrunQtLogger);
+    }, "Installe un handler Qt qui redirige tous les logs Qt vers stderr");
     
     // ==========================================================================
     // HYBRID BITCOIN MINER MODULE

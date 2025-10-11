@@ -46,6 +46,7 @@ except ImportError as e:
 # Import C++ modules via pybind11 bindings
 try:
     import biomining_cpp
+    biomining_cpp.install_qt_logger()
     CPP_BINDINGS_AVAILABLE = True
     print("✅ C++ bindings loaded successfully")
     print(f"   📦 Module location: {biomining_cpp.__file__}")
