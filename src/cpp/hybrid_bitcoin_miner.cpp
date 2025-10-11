@@ -1603,10 +1603,21 @@ TripleSystemPrediction HybridBitcoinMiner::predictNonceTriple(const QString& blo
     const int TIMEOUT_MS = 5000;
     
     try {
-        // Récupération des prédictions avec timeout
-        prediction.sha256Nonce = sha256Future.result(TIMEOUT_MS);
-        prediction.networkNonce = networkFuture.result(TIMEOUT_MS); 
-        prediction.meaNonce = meaFuture.result(TIMEOUT_MS);
+        // Attente des résultats avec timeout
+        if (!sha256Future.waitForFinished(TIMEOUT_MS) || 
+            !networkFuture.waitForFinished(TIMEOUT_MS) || 
+            !meaFuture.waitForFinished(TIMEOUT_MS)) {
+            qWarning() << "[HybridMiner] Timeout lors de l'attente des prédictions";
+            // Utiliser des valeurs par défaut en cas de timeout
+            prediction.sha256Nonce = 0;
+            prediction.networkNonce = 0;
+            prediction.meaNonce = 0;
+        } else {
+            // Récupération des prédictions
+            prediction.sha256Nonce = sha256Future.result();
+            prediction.networkNonce = networkFuture.result(); 
+            prediction.meaNonce = meaFuture.result();
+        }
         
         // Fusion intelligente des prédictions
         prediction.fusedNonce = fuseTriplePredictions(prediction);
