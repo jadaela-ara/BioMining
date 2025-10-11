@@ -1,4 +1,4 @@
-# Simplified Dockerfile for real C++ bindings with explicit Qt MOC and proper Python extension build
+# Dockerfile.cpp-simple - version corrigée pour build C++/Qt/Pybind11 avec support MOC (renommage .moc en .moc.cpp)
 
 FROM python:3.11-slim
 
@@ -83,7 +83,7 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "from setuptools import setup" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "# Qt5 configuration" >> setup_simple.py && \
-    echo "qt_include_dirs = ['../include', '../src/cpp', '/usr/include/qt5', '/usr/include/qt5/QtCore', '/usr/include/qt5/QtNetwork', '/usr/include/qt5/QtSerialPort', '/usr/include/qt5/QtWidgets']" >> setup_simple.py && \
+    echo "qt_include_dirs = ['../include', '../src/cpp', '/usr/include/x86_64-linux-gnu/qt5', '/usr/include/x86_64-linux-gnu/qt5/QtCore', '/usr/include/x86_64-linux-gnu/qt5/QtNetwork', '/usr/include/x86_64-linux-gnu/qt5/QtSerialPort', '/usr/include/x86_64-linux-gnu/qt5/QtWidgets']" >> setup_simple.py && \
     echo "qt_lib_dirs = ['/usr/lib/x86_64-linux-gnu']" >> setup_simple.py && \
     echo "qt_libs = ['Qt5Core', 'Qt5Network', 'Qt5SerialPort', 'Qt5Widgets']" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
