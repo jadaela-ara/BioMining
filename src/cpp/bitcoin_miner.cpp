@@ -477,4 +477,4 @@ void BitcoinMiner::MiningWorker::stopMining()
 } // namespace Crypto
 } // namespace BioMining
 
-#include "bitcoin_miner.moc"
+//#include "bitcoin_miner.moc"

@@ -1246,4 +1246,4 @@ QVector<double> BiologicalNetwork::getOutputValues()
     return getNetworkOutput();
 }
 
-#include "biological_network.moc"
+//#include "biological_network.moc"
