@@ -4,6 +4,8 @@
 #include <QRandomGenerator>
 #include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
+#include <QElapsedTimer>
+#include <QThread>
 #include <cmath>
 #include <algorithm>
 #include <random>
@@ -1603,10 +1605,29 @@ TripleSystemPrediction HybridBitcoinMiner::predictNonceTriple(const QString& blo
     const int TIMEOUT_MS = 5000;
     
     try {
-        // Récupération des prédictions avec timeout
-        prediction.sha256Nonce = sha256Future.result(TIMEOUT_MS);
-        prediction.networkNonce = networkFuture.result(TIMEOUT_MS); 
-        prediction.meaNonce = meaFuture.result(TIMEOUT_MS);
+        // Attente des résultats avec gestion de timeout manuelle
+        QElapsedTimer timer;
+        timer.start();
+        
+        // Attendre que toutes les futures se terminent ou timeout
+        while (!sha256Future.isFinished() || !networkFuture.isFinished() || !meaFuture.isFinished()) {
+            if (timer.elapsed() > TIMEOUT_MS) {
+                qWarning() << "[HybridMiner] Timeout lors de l'attente des prédictions";
+                // Utiliser des valeurs par défaut en cas de timeout
+                prediction.sha256Nonce = 0;
+                prediction.networkNonce = 0;
+                prediction.meaNonce = 0;
+                break;
+            }
+            QThread::msleep(10); // Attendre 10ms avant de vérifier à nouveau
+        }
+        
+        // Si pas de timeout, récupérer les résultats
+        if (timer.elapsed() <= TIMEOUT_MS) {
+            prediction.sha256Nonce = sha256Future.result();
+            prediction.networkNonce = networkFuture.result(); 
+            prediction.meaNonce = meaFuture.result();
+        }
         
         // Fusion intelligente des prédictions
         prediction.fusedNonce = fuseTriplePredictions(prediction);

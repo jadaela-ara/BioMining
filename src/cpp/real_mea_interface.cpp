@@ -229,14 +229,14 @@ QVector<ElectrodeData> RealMEAInterface::readElectrodeData()
 QVector<double> RealMEAInterface::readRawSignals()
 {
     QVector<ElectrodeData> data = readElectrodeData();
-    QVector<double> signals;
+    QVector<double> signalData;
     
     for (const auto &electrode : data) {
-        signals.append(electrode.voltage);
+        signalData.append(electrode.voltage);
     }
     
-    emit rawSignalsReady(signals);
-    return signals;
+    emit rawSignalsReady(signalData);
+    return signalData;
 }
 
 bool RealMEAInterface::startContinuousAcquisition()
