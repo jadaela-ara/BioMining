@@ -16,7 +16,7 @@
 #include <QThreadPool>
 #include <QRunnable>
 #include <QFuture>
-#include <QtConcurrent>
+#include <QtConcurrent/QtConcurrent>
 #include <QCryptographicHash>
 #include <QRandomGenerator>
 #include <cstdint>

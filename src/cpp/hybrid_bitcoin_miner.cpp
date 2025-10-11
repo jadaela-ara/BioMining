@@ -2,7 +2,7 @@
 #include <QDebug>
 #include <QCoreApplication>
 #include <QRandomGenerator>
-#include <QtConcurrent>
+#include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
 #include <cmath>
 #include <algorithm>

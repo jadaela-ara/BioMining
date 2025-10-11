@@ -3,7 +3,7 @@
 #include <QDebug>
 #include <QMutexLocker>
 #include <QElapsedTimer>
-#include <QtConcurrent>
+#include <QtConcurrent/QtConcurrent>
 #include <cmath>
 #include <algorithm>
 #include <numeric>
