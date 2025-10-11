@@ -374,14 +374,14 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Stimulate with reinforcement signal");
 
     // BiologicalNetwork enums and structures - NETWORK MODULE
-    py::enum_<BioMining::Network::BiologicalNetwork::LearningState>(bio_module, "LearningState")
+    py::enum_<BioMining::Network::BiologicalNetwork::LearningState>(m_bio, "LearningState")
         .value("Untrained", BioMining::Network::BiologicalNetwork::LearningState::Untrained)
         .value("InitialLearning", BioMining::Network::BiologicalNetwork::LearningState::InitialLearning)
         .value("Trained", BioMining::Network::BiologicalNetwork::LearningState::Trained)
         .value("Retraining", BioMining::Network::BiologicalNetwork::LearningState::Retraining)
         .value("Optimizing", BioMining::Network::BiologicalNetwork::LearningState::Optimizing);
 
-    py::class_<BioMining::Network::BiologicalNetwork::NetworkConfig>(bio_module, "NetworkConfig")
+    py::class_<BioMining::Network::BiologicalNetwork::NetworkConfig>(m_bio, "NetworkConfig")
         .def(py::init<>())
         .def_readwrite("neuronCount", &BioMining::Network::BiologicalNetwork::NetworkConfig::neuronCount)
         .def_readwrite("learningRate", &BioMining::Network::BiologicalNetwork::NetworkConfig::learningRate)
@@ -398,14 +398,14 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("adaptiveThreshold", &BioMining::Network::BiologicalNetwork::NetworkConfig::adaptiveThreshold)
         .def_readwrite("maxEpochs", &BioMining::Network::BiologicalNetwork::NetworkConfig::maxEpochs);
 
-    py::class_<BioMining::Network::BiologicalNetwork::NoncePredicition>(bio_module, "NoncePredicition")
+    py::class_<BioMining::Network::BiologicalNetwork::NoncePredicition>(m_bio, "NoncePredicition")
         .def(py::init<>())
         .def_readwrite("suggestedNonce", &BioMining::Network::BiologicalNetwork::NoncePredicition::suggestedNonce)
         .def_readwrite("confidence", &BioMining::Network::BiologicalNetwork::NoncePredicition::confidence)
         .def_readwrite("expectedEfficiency", &BioMining::Network::BiologicalNetwork::NoncePredicition::expectedEfficiency)
         .def_readwrite("reasoning", &BioMining::Network::BiologicalNetwork::NoncePredicition::reasoning);
 
-    py::class_<BioMining::Network::BiologicalNetwork::LearningData>(bio_module, "LearningData")
+    py::class_<BioMining::Network::BiologicalNetwork::LearningData>(m_bio, "LearningData")
         .def(py::init<>())
         .def_readwrite("targetNonce", &BioMining::Network::BiologicalNetwork::LearningData::targetNonce)
         .def_readwrite("blockHeader", &BioMining::Network::BiologicalNetwork::LearningData::blockHeader)
@@ -415,15 +415,11 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("computeTime", &BioMining::Network::BiologicalNetwork::LearningData::computeTime);
 
     // BiologicalNetwork class bindings - NETWORK MODULE
-    py::class_<BioMining::Network::BiologicalNetwork>(bio_module, "BiologicalNetwork")
+    py::class_<BioMining::Network::BiologicalNetwork>(m_bio, "BiologicalNetwork")
         .def(py::init<>(), "Default constructor")
         .def(py::init<int, int>(), "Constructor with neuron and synapse counts")
         .def("initialize", &BioMining::Network::BiologicalNetwork::initialize,
              "Initialize the biological network")
-        .def("reset", &BioMining::Network::BiologicalNetwork::reset,
-             "Reset the network to initial state")
-        .def("shutdown", &BioMining::Network::BiologicalNetwork::shutdown,
-             "Shutdown the network")
         
         // Configuration methods
         .def("setNetworkConfig", &BioMining::Network::BiologicalNetwork::setNetworkConfig,
