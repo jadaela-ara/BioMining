@@ -408,7 +408,16 @@ PYBIND11_MODULE(biomining_cpp, m) {
     py::class_<BioMining::Network::BiologicalNetwork::LearningData>(m_bio, "LearningData")
         .def(py::init<>())
         .def_readwrite("targetNonce", &BioMining::Network::BiologicalNetwork::LearningData::targetNonce)
-        .def_readwrite("blockHeader", &BioMining::Network::BiologicalNetwork::LearningData::blockHeader)
+        //.def_readwrite("blockHeader", &BioMining::Network::BiologicalNetwork::LearningData::blockHeader)
+        // Custom setter/getter for blockHeader as str <-> QString
+        .def_property("blockHeader",
+            [](const BioMining::Network::BiologicalNetwork::LearningData& self) {
+                return self.blockHeader.toStdString();
+            },
+            [](BioMining::Network::BiologicalNetwork::LearningData& self, const std::string& s) {
+                self.blockHeader = QString::fromStdString(s);
+            }
+        )
         .def_readwrite("difficulty", &BioMining::Network::BiologicalNetwork::LearningData::difficulty)
         .def_readwrite("wasSuccessful", &BioMining::Network::BiologicalNetwork::LearningData::wasSuccessful)
         .def_readwrite("attempts", &BioMining::Network::BiologicalNetwork::LearningData::attempts)
