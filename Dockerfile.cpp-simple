@@ -1,4 +1,5 @@
-# Simplified Dockerfile for real C++ bindings without complex heredocs
+# Simplified Dockerfile for real C++ bindings with explicit Qt MOC and proper Python extension build
+
 FROM python:3.11-slim
 
 # Install Qt5 development headers (including QtConcurrent)
@@ -24,7 +25,6 @@ RUN apt-get update && apt-get install -y \
 # Vérification de la présence des headers QtConcurrent
 RUN ls -l /usr/include/x86_64-linux-gnu/qt5/QtConcurrent/QtConcurrent*
 
-# Set working directory
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
@@ -48,32 +48,17 @@ ENV DISPLAY=:0
 
 # Generate ALL required MOC files before compilation
 RUN echo "🔧 Generating Qt MOC files..." && \
-    mkdir -p /app/generated_moc && \
-    \
-    echo "Generating biological_network.moc..." && \
     /usr/lib/qt5/bin/moc include/bio/biological_network.h -o src/cpp/biological_network.moc && \
-    \
-    echo "Generating bitcoin_miner.moc..." && \
     /usr/lib/qt5/bin/moc include/crypto/bitcoin_miner.h -o src/cpp/bitcoin_miner.moc && \
-    \
-    echo "Checking if mea_interface needs MOC..." && \
     if grep -q "Q_OBJECT" include/bio/mea_interface.h; then \
-        echo "Generating mea_interface.moc..." && \
         /usr/lib/qt5/bin/moc include/bio/mea_interface.h -o src/cpp/mea_interface.moc; \
     fi && \
-    \
-    echo "Checking if real_mea_interface needs MOC..." && \
     if grep -q "Q_OBJECT" include/bio/real_mea_interface.h; then \
-        echo "Generating real_mea_interface.moc..." && \
         /usr/lib/qt5/bin/moc include/bio/real_mea_interface.h -o src/cpp/real_mea_interface.moc; \
     fi && \
-    \
-    echo "Checking if hybrid_bitcoin_miner needs MOC..." && \
     if grep -q "Q_OBJECT" include/crypto/hybrid_bitcoin_miner.h; then \
-        echo "Generating hybrid_bitcoin_miner.moc..." && \
         /usr/lib/qt5/bin/moc include/crypto/hybrid_bitcoin_miner.h -o src/cpp/hybrid_bitcoin_miner.moc; \
     fi && \
-    \
     echo "✅ MOC generation completed" && \
     ls -la src/cpp/*.moc
 
@@ -81,43 +66,53 @@ RUN echo "🔧 Generating Qt MOC files..." && \
 RUN echo "🔍 Verifying MOC files exist:" && \
     ls -la src/cpp/*.moc || echo "⚠️ Some MOC files missing"
 
-# Compile and install the biomining_cpp Python bindings
-WORKDIR /app/python_bindings
-RUN python3 setup.py build_ext --inplace
-RUN python3 setup.py install
-
-# Test biomining_cpp import
-RUN python3 -c "import biomining_cpp; print('biomining_cpp import successful ✅')"
-
-# Repasse au dossier app pour le CMD éventuel
-WORKDIR /app
-
-# Copy the existing setup.py and modify it for Qt support
+# Crée un setup_simple.py (adapté pour build avec tous les .moc)
 WORKDIR /app/python_bindings
 
-# Create a simple setup.py that uses the existing one but with Qt support
 RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "# Simple setup.py for Qt MOC-enabled C++ bindings" >> setup_simple.py && \
-    echo "import os, sys" >> setup_simple.py && \
+    echo "import os" >> setup_simple.py && \
     echo "from pybind11.setup_helpers import Pybind11Extension, build_ext" >> setup_simple.py && \
     echo "from setuptools import setup" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "# Qt5 configuration" >> setup_simple.py && \
-    echo "qt_include_dirs = ['/usr/include/qt5', '/usr/include/qt5/QtCore', '/usr/include/qt5/QtNetwork', '/usr/include/qt5/QtSerialPort', '/usr/include/qt5/QtWidgets']" >> setup_simple.py && \
+    echo "qt_include_dirs = ['../include', '../src/cpp', '/usr/include/qt5', '/usr/include/qt5/QtCore', '/usr/include/qt5/QtNetwork', '/usr/include/qt5/QtSerialPort', '/usr/include/qt5/QtWidgets']" >> setup_simple.py && \
     echo "qt_lib_dirs = ['/usr/lib/x86_64-linux-gnu']" >> setup_simple.py && \
     echo "qt_libs = ['Qt5Core', 'Qt5Network', 'Qt5SerialPort', 'Qt5Widgets']" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
-    echo "cpp_sources = ['biomining_python.cpp', '../src/cpp/biological_network.cpp', '../src/cpp/bitcoin_miner.cpp', '../src/cpp/real_mea_interface.cpp', '../src/cpp/mea_interface.cpp', '../src/cpp/hybrid_bitcoin_miner.cpp']" >> setup_simple.py && \
+    echo "cpp_sources = [" >> setup_simple.py && \
+    echo "    'biomining_python.cpp'," >> setup_simple.py && \
+    echo "    '../src/cpp/biological_network.cpp'," >> setup_simple.py && \
+    echo "    '../src/cpp/biological_network.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/bitcoin_miner.cpp'," >> setup_simple.py && \
+    echo "    '../src/cpp/bitcoin_miner.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/real_mea_interface.cpp'," >> setup_simple.py && \
+    echo "    '../src/cpp/real_mea_interface.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/mea_interface.cpp'," >> setup_simple.py && \
+    echo "    '../src/cpp/mea_interface.moc'," >> setup_simple.py && \
+    echo "    '../src/cpp/hybrid_bitcoin_miner.cpp'," >> setup_simple.py && \
+    echo "    '../src/cpp/hybrid_bitcoin_miner.moc'," >> setup_simple.py && \
+    echo "]" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
-    echo "ext_modules = [Pybind11Extension('biomining_cpp', cpp_sources, include_dirs=['../include', '../src/cpp'] + qt_include_dirs, library_dirs=qt_lib_dirs, libraries=qt_libs, language='c++', cxx_std=17)]" >> setup_simple.py && \
+    echo "ext_modules = [Pybind11Extension(" >> setup_simple.py && \
+    echo "    'biomining_cpp'," >> setup_simple.py && \
+    echo "    cpp_sources," >> setup_simple.py && \
+    echo "    include_dirs=qt_include_dirs," >> setup_simple.py && \
+    echo "    library_dirs=qt_lib_dirs," >> setup_simple.py && \
+    echo "    libraries=qt_libs," >> setup_simple.py && \
+    echo "    language='c++'," >> setup_simple.py && \
+    echo "    cxx_std=17," >> setup_simple.py && \
+    echo "    extra_compile_args=['-DQT_CORE_LIB','-DQT_NETWORK_LIB','-DQT_SERIALPORT_LIB','-DQT_WIDGETS_LIB','-std=c++17','-frtti']," >> setup_simple.py && \
+    echo "    extra_link_args=['-Wl,-rpath,$ORIGIN']," >> setup_simple.py && \
+    echo ")]" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "setup(name='biomining-cpp-simple', version='1.0.0', ext_modules=ext_modules, cmdclass={'build_ext': build_ext}, zip_safe=False)" >> setup_simple.py
 
-# Compile the C++ bindings
+# Compile the C++ bindings with MOC support
 RUN echo "🚀 Compiling C++ bindings with Qt MOC support..." && \
     python3 setup_simple.py build_ext --inplace
 
-# Verify compilation success
+# Vérification de la compilation et déplacement du .so
 RUN echo "🔍 Verifying compilation results..." && \
     find . -name "biomining_cpp*.so" -exec ls -la {} \; && \
     find . -name "biomining_cpp*.so" -exec mv {} /app/ \;
@@ -128,13 +123,11 @@ RUN echo "🧪 Final verification of C++ module..." && \
     python3 -c "import sys; sys.path.insert(0, '/app'); import biomining_cpp; print('✅ C++ module imports successfully')" || \
     echo "⚠️ C++ module verification failed, will use fallbacks"
 
-# Return to main working directory
 WORKDIR /app
 
 # Create necessary directories
 RUN mkdir -p /app/data /app/uploads /app/logs
 
-# Set environment variables
 ENV PORT=8080
 ENV PYTHONPATH=/app
 ENV NODE_ENV=production
@@ -142,12 +135,9 @@ ENV BIOMINING_ENVIRONMENT=production
 ENV QT_QPA_PLATFORM=offscreen
 ENV DISPLAY=:0
 
-# Expose port
 EXPOSE 8080
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/api/status || exit 1
 
-# Start command
 CMD ["python", "-m", "uvicorn", "web.api.server:app", "--host", "0.0.0.0", "--port", "8080"]
