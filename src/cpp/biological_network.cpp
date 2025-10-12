@@ -344,13 +344,27 @@ void BiologicalNetwork::onLearningCycle()
         for (int bit = 0; bit < 32; ++bit) {
             targets[bit] = ((targetNonce >> bit) & 1) ? 1.0 : 0.0;
         }
-        
+
         // Cycle d'apprentissage biologique
         performLearningCycle(example.inputSignals, targets);
     }
     
     m_currentEpoch++;
     m_trainingProgress = static_cast<double>(m_currentEpoch) / m_totalEpochs;
+
+    // predictions suite apprentissage
+    m_totalPredictions++;
+    QVector<double> networkOutput = getNetworkOutput();
+    uint64_t predictedNonce = 0;
+    for (int bit = 0; bit < qMin(32, networkOutput.size()); ++bit) {
+        if (networkOutput[bit] > 0.5) {
+            predictedNonce |= (1ULL << bit);
+        }
+    }
+    if (predictedNonce == example.targetNonce) {
+        m_successfulPredictions++;
+    }
+
     
     // Émission périodique du progrès
     if (m_currentEpoch % 10 == 0) {
@@ -360,6 +374,8 @@ void BiologicalNetwork::onLearningCycle()
         calculateNetworkEfficiency();
         
         qDebug() << "[BIO-NET] Cycle" << m_currentEpoch << "/" << m_totalEpochs 
+                 << "- Progression :" << QString::number(m_trainingProgress, 'f', 3)
+                 << "- Success :" << QString::number(m_sucessfulPredictions, 'f', 3)
                  << "- Efficacité:" << QString::number(m_networkEfficiency, 'f', 3);
     }
 }
@@ -427,6 +443,14 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
         
         currentLayer.layerActivation /= currentLayer.neurons.size();
     }
+
+    // Émission périodique du progrès
+    if (m_currentEpoch % 10 == 0) {
+        qDebug() << "[BIO-NET] Cycle forwardPropagation"
+                 << "- Input size :" << QString::number(inputs.size(), 'f', 1)
+                 << "- Reseau size:" << QString::number(m_layers[0].neurons.size(), 'f', 1);
+    }
+
 }
 
 void BiologicalNetwork::backPropagation(const QVector<double> &targets)
@@ -468,6 +492,13 @@ void BiologicalNetwork::backPropagation(const QVector<double> &targets)
         
         outputErrors = layerErrors; // Pour la prochaine itération
     }
+
+    // Émission périodique du progrès
+    if (m_currentEpoch % 10 == 0) {
+        qDebug() << "[BIO-NET] Cycle backPropagation"
+                 << "- neurone threshold :" << QString::number(neuron.threshold, 'f', 5);
+    }
+
 }
 
 void BiologicalNetwork::adjustSynapticWeights(double learningSignal)
