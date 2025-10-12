@@ -427,6 +427,10 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
         const NetworkLayer &prevLayer = m_layers[layerIdx - 1];
         
         currentLayer.layerActivation = 0.0;
+
+        if (m_currentEpoch % 10 == 0) {
+            qDebug() << "[BIO-NET][DEBUG] --- Layer" << layerIdx << "(" << currentLayer.layerType << ") ---";
+        }
         
         for (int neuronIdx = 0; neuronIdx < currentLayer.neurons.size(); ++neuronIdx) {
             BiologicalNeuron &neuron = currentLayer.neurons[neuronIdx];
@@ -452,11 +456,33 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
             neuron.activation *= NEURON_FATIGUE_FACTOR;
             
             currentLayer.layerActivation += neuron.activation;
+
+           // --- LOG PAR NEURONE ---
+            if (m_currentEpoch % 10 == 0) {
+                qDebug() << "  neuron" << neuronIdx
+                         << "weightedSum:" << weightedSum
+                         << "threshold:" << threshold
+                         << "activationBeforeFatigue:" << activationBeforeFatigue
+                         << "activation:" << activation;
+            }        
         }
         
         currentLayer.layerActivation /= currentLayer.neurons.size();
+
+        if (m_currentEpoch % 10 == 0) {        
+            qDebug() << "[BIO-NET][DEBUG] Layer" << layerIdx << "mean activation:" << currentLayer.layerActivation;
+        }
+     
     }
 
+    // --- LOG OUTPUT ---
+    if (m_currentEpoch % 10 == 0) {
+        qDebug() << "[BIO-NET][DEBUG] Output layer activations:";
+        for (int i = 0; i < m_layers.last().neurons.size(); ++i) {
+            qDebug() << "  neuron" << i << "activation:" << m_layers.last().neurons[i].activation;
+        }
+    }
+    
     QStringList inputsTmp;
     QStringList outputsTmp;
     for (const auto& neuron : m_layers[0].neurons) {
