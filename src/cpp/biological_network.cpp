@@ -470,7 +470,7 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
     if (m_currentEpoch % 10 == 0) {
         qDebug() << "[BIO-NET] Cycle forwardPropagation"
                  << "- Input :" << inputsTmp
-                 << "- Sortie:" << outputTmp;
+                 << "- Sortie:" << outputsTmp;
     }
 
 }
