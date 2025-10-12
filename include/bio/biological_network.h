@@ -9,7 +9,8 @@
 #include <QJsonArray>
 #include <memory>
 #include <functional>
-
+#include <thread>
+#include <atomic>
 
 // Namespace pour éviter les conflits
 namespace BioMining {
@@ -109,7 +110,7 @@ public:
     bool startInitialLearning(int trainingCycles = 100);
     void stopLearning();
     bool isLearningComplete() const;
-    
+
     // Prédiction de nonce
     NoncePredicition predictOptimalNonce(const QString &blockHeader, 
                                         uint64_t difficulty,
@@ -232,7 +233,14 @@ private:
     double m_trainingProgress;
     std::unique_ptr<QTimer> m_learningTimer;
     std::unique_ptr<QTimer> m_optimizationTimer;
-    
+
+    //thread apprentissage
+    std::thread m_learningThread;
+    std::atomic<bool> m_learningActive;
+    //void learningStep();
+
+
+
     // Mémoire et historique
     QVector<LearningData> m_learningHistory;
     QVector<LearningData> m_patternMemory;
