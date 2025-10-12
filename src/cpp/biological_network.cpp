@@ -11,6 +11,8 @@
 #include <QtMath>
 #include <algorithm>
 #include <numeric>
+#include <thread>
+#include <atomic>
 
 using namespace BioMining::Network; 
 
@@ -26,6 +28,7 @@ BiologicalNetwork::BiologicalNetwork(QObject *parent)
     , m_successfulPredictions(0)
     , m_totalPredictions(0)
     , m_averageConfidence(0.0)
+    , m_learningActive(false)
 {
     // Configuration par défaut
     m_config = NetworkConfig();
@@ -224,7 +227,23 @@ bool BiologicalNetwork::startInitialLearning(int trainingCycles)
     generateTrainingData();
     
     // Démarrage des cycles d'apprentissage
-    m_learningTimer->start(50); // 50ms entre cycles = 20 Hz
+    //m_learningTimer->start(50); // 50ms entre cycles = 20 Hz
+
+    // Démarrage du thread d'apprentissage
+    m_learningActive = true;
+    if (m_learningThread.joinable()) {
+        m_learningThread.join();
+    }
+    m_learningThread = std::thread([this]() {
+        while (m_learningActive && m_currentEpoch < m_totalEpochs) {
+            this->onLearningCycle();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        // Fin de l'apprentissage
+        if (m_learningActive) {
+            this->stopLearning();
+        }
+    });
     
     qDebug() << "[BIO-NET] Apprentissage initial démarré -" << trainingCycles << "cycles";
     emit learningStateChanged(m_learningState);
@@ -274,7 +293,11 @@ void BiologicalNetwork::stopLearning()
 {
     QMutexLocker locker(&m_networkMutex);
     
-    m_learningTimer->stop();
+    //m_learningTimer->stop();
+    m_learningActive = false;
+    if (m_learningThread.joinable()) {
+        m_learningThread.join();
+    }
     
     if (m_learningState == LearningState::InitialLearning || m_learningState == LearningState::Retraining) {
         if (m_currentEpoch >= m_totalEpochs * 0.8) { // Au moins 80% terminé
@@ -303,7 +326,7 @@ void BiologicalNetwork::onLearningCycle()
     
     if (m_currentEpoch >= m_totalEpochs) {
         // Apprentissage terminé
-        stopLearning();
+        //stopLearning();
         return;
     }
     
