@@ -462,8 +462,8 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
                 qDebug() << "  neuron" << neuronIdx
                          << "weightedSum:" << weightedSum
                          << "threshold:" << threshold
-                         << "activationBeforeFatigue:" << activationBeforeFatigue
-                         << "activation:" << activation;
+                         << "activationBeforeFatigue:" << biologicalActivation(weightedSum, threshold)
+                         << "activation:" << neuron.activation;
             }        
         }
         
