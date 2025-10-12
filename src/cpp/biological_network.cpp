@@ -457,11 +457,20 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
         currentLayer.layerActivation /= currentLayer.neurons.size();
     }
 
+    QStringList inputsTmp;
+    QStringList outputsTmp;
+    for (const auto& neuron : m_layers[0].neurons) {
+        inputsTmp << QString::number(neuron.activation, 'f', 3);
+    }
+    for (const auto& neuron : m_layers.last().neurons) {
+        outputsTmp << QString::number(neuron.activation, 'f', 3);
+    }
+    
     // Émission périodique du progrès
     if (m_currentEpoch % 10 == 0) {
         qDebug() << "[BIO-NET] Cycle forwardPropagation"
-                 << "- Input :" << m_layers[0]
-                 << "- Sortie:" << m_layers.last();
+                 << "- Input :" << inputsTmp
+                 << "- Sortie:" << outputTmp;
     }
 
 }
