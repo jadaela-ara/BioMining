@@ -596,7 +596,10 @@ double BiologicalNetwork::biologicalActivation(double input, double threshold) c
 {
     // Fonction d'activation biologique avec seuil et saturation
     if (input < threshold) {
-        return 0.0;
+        double alpha = 0.01; // pente faible pour input < threshold
+        if (input < threshold)
+            return alpha * (input - threshold);        
+        //return 0.0;
     }
     
     // Activation sigmoïdale avec décalage par le seuil
