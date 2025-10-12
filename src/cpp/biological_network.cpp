@@ -429,9 +429,9 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
         
         currentLayer.layerActivation = 0.0;
 
-        if (m_currentEpoch % 10 == 0) {
-            qDebug() << "[BIO-NET][DEBUG] --- Layer" << layerIdx << "(" << currentLayer.layerType << ") ---";
-        }
+        //if (m_currentEpoch % 10 == 0) {
+        //    qDebug() << "[BIO-NET][DEBUG] --- Layer" << layerIdx << "(" << currentLayer.layerType << ") ---";
+        //}
         
         for (int neuronIdx = 0; neuronIdx < currentLayer.neurons.size(); ++neuronIdx) {
             BiologicalNeuron &neuron = currentLayer.neurons[neuronIdx];
@@ -459,21 +459,21 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
             currentLayer.layerActivation += neuron.activation;
 
            // --- LOG PAR NEURONE ---
-            if (m_currentEpoch % 10 == 0 && layerIdx == 1) {
-                qDebug() << "  neuron" << neuronIdx
-                         //<< "weights:" << neuron.weights
-                         << "weightedSum:" << weightedSum
-                         << "threshold:" << threshold
-                         << "activationBeforeFatigue:" << biologicalActivation(weightedSum, threshold)
-                         << "activation:" << neuron.activation;
-            }        
+           // if (m_currentEpoch % 10 == 0 && layerIdx == 1) {
+           //     qDebug() << "  neuron" << neuronIdx
+           //              //<< "weights:" << neuron.weights
+           //              << "weightedSum:" << weightedSum
+           //              << "threshold:" << threshold
+           //              << "activationBeforeFatigue:" << biologicalActivation(weightedSum, threshold)
+           //              << "activation:" << neuron.activation;
+           //}        
         }
         
         currentLayer.layerActivation /= currentLayer.neurons.size();
 
-        if (m_currentEpoch % 10 == 0) {        
-            qDebug() << "[BIO-NET][DEBUG] Layer" << layerIdx << "mean activation:" << currentLayer.layerActivation;
-        }
+        //if (m_currentEpoch % 10 == 0) {        
+        //    qDebug() << "[BIO-NET][DEBUG] Layer" << layerIdx << "mean activation:" << currentLayer.layerActivation;
+        //}
      
     }
 
