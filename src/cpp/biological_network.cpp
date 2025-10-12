@@ -365,7 +365,8 @@ void BiologicalNetwork::onLearningCycle()
 
         if (m_currentEpoch % 10 == 0) {
                 qDebug() << "apprentissage : sortie=" << networkOutput
-                         << "apprentissage : target=" << example.targetNonce << " -> predictNonce=" << predictedNonce; 
+                        << " targets=" << targets  
+                        << " targetNonce=" << example.targetNonce << " -> predictNonce=" << predictedNonce; 
         }
         
         if (predictedNonce == example.targetNonce) {
@@ -477,12 +478,12 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
     }
 
     // --- LOG OUTPUT ---
-    if (m_currentEpoch % 10 == 0) {
-        qDebug() << "[BIO-NET][DEBUG] Output layer activations:";
-        for (int i = 0; i < m_layers.last().neurons.size(); ++i) {
-            qDebug() << "  neuron" << i << "activation:" << m_layers.last().neurons[i].activation;
-        }
-    }
+    //if (m_currentEpoch % 10 == 0) {
+    //    qDebug() << "[BIO-NET][DEBUG] Output layer activations:";
+    //    for (int i = 0; i < m_layers.last().neurons.size(); ++i) {
+    //        qDebug() << "  neuron" << i << "activation:" << m_layers.last().neurons[i].activation;
+    //    }
+    //}
     
     QStringList inputsTmp;
     QStringList outputsTmp;
