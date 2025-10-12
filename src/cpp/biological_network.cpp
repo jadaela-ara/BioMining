@@ -328,6 +328,12 @@ void BiologicalNetwork::onLearningCycle()
     if (m_currentEpoch >= m_totalEpochs) {
         // Apprentissage terminé
         //stopLearning();
+
+        m_learningState = LearningState::Trained;
+        qDebug() << "[BIO-NET] Apprentissage terminé avec succès";
+        emit learningStateChanged(m_learningState);
+        emit learningCompleted(true);
+        
         return;
     }
     
@@ -354,7 +360,12 @@ void BiologicalNetwork::onLearningCycle()
             if (networkOutput[bit] > 0.5) {
                 predictedNonce |= (1ULL << bit);
             }
-        }    
+        }   
+
+            if (m_currentEpoch % 10 == 0) {
+                qDebug() << "apprentissage : target=" << example.targetNonce << " -> predictNonce=" << predictedNonce; 
+            }
+        
         if (predictedNonce == example.targetNonce) {
             m_successfulPredictions++;
         }
@@ -445,11 +456,11 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
     }
 
     // Émission périodique du progrès
-    if (m_currentEpoch % 10 == 0) {
-        qDebug() << "[BIO-NET] Cycle forwardPropagation"
-                 << "- Input size :" << QString::number(inputs.size(), 'f', 1)
-                 << "- Reseau size:" << QString::number(m_layers[0].neurons.size(), 'f', 1);
-    }
+    //if (m_currentEpoch % 10 == 0) {
+    //    qDebug() << "[BIO-NET] Cycle forwardPropagation"
+    //             << "- Input size :" << QString::number(inputs.size(), 'f', 1)
+    //             << "- Reseau size:" << QString::number(m_layers[0].neurons.size(), 'f', 1);
+    //}
 
 }
 
