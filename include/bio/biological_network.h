@@ -221,7 +221,58 @@ private:
     double sigmoidDerivative(double sigmoidOutput) const;
     double estimateNonceEfficiency(uint64_t nonce, uint64_t difficulty);
     void adaptNetworkThresholds();
+
+    // === NOUVELLES MÉTHODES BITCOIN MINING ===
     
+    /**
+     * @brief Structure pour représenter un block header Bitcoin
+     */
+    struct BitcoinBlockHeader {
+        uint32_t version;
+        QString previousBlockHash;  // 64 caractères hex
+        QString merkleRoot;         // 64 caractères hex  
+        uint32_t timestamp;
+        uint32_t difficultyBits;
+        uint32_t nonce;
+    };
+    
+    /**
+     * @brief Configuration d'entraînement Bitcoin
+     */
+    struct TrainingConfig {
+        int difficultyLevel;      // Nombre de zéros requis (1-4)
+        int exampleCount;         // Nombre d'exemples à générer
+        QString description;      // Description du niveau
+    };
+    
+    // Génération d'exemples Bitcoin réalistes
+    LearningData generateBitcoinTrainingExample(int difficultyLevel, int exampleIndex);
+    BitcoinBlockHeader generateRealisticBlockHeader(int seed);
+    QPair<uint64_t, QString> findValidNonce(const BitcoinBlockHeader &header, int difficultyLevel);
+    QPair<uint64_t, QString> generateArtificialSolution(const BitcoinBlockHeader &header, int difficultyLevel);
+    
+    // Conversion Bitcoin → signaux biologiques
+    QVector<double> blockHeaderToMEASignals(const BitcoinBlockHeader &header);
+    void applyBiologicalFiltering(QVector<double> &signals);
+    
+    // Calculs cryptographiques Bitcoin
+    QString calculateSHA256DoubleHash(const BitcoinBlockHeader &header);
+    QByteArray serializeBlockHeader(const BitcoinBlockHeader &header);
+    QString blockHeaderToString(const BitcoinBlockHeader &header);
+    
+    // Patterns spéciaux d'entraînement
+    void generateSpecialBitcoinPatterns(int count);
+    LearningData generateGenesisLikePattern(int index);
+    LearningData generateHalvingLikePattern(int index);
+    LearningData generateHighDifficultyPattern(int index);
+    LearningData generateSequentialPattern(int index);
+    
+    // Utilitaires Bitcoin
+    uint64_t calculateDifficultyBits(int requiredZeros);
+    int estimateAttemptsForDifficulty(int difficultyLevel);
+    void shuffleTrainingData();
+    void logTrainingDataStatistics();
+
     // État du réseau
     NetworkConfig m_config;
     LearningState m_learningState;
