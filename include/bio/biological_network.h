@@ -256,10 +256,10 @@ private:
     mutable QMutex m_networkMutex;
     
     // Constantes biologiques
-    static constexpr double DEFAULT_ACTIVATION_THRESHOLD = 0.6;
+    static constexpr double DEFAULT_ACTIVATION_THRESHOLD = 0.25; //0.6
     static constexpr double SYNAPTIC_PLASTICITY_RATE = 0.05;
     static constexpr double NEURON_FATIGUE_FACTOR = 0.95;
-    static constexpr double PATTERN_SIMILARITY_THRESHOLD = 0.8;
+    static constexpr double PATTERN_SIMILARITY_THRESHOLD = 0.4; //0.8
     static constexpr int MAX_PATTERN_MEMORY = 10000;
     static constexpr double MIN_CONNECTION_STRENGTH = 0.01;
     
