@@ -460,6 +460,7 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
            // --- LOG PAR NEURONE ---
             if (m_currentEpoch % 10 == 0) {
                 qDebug() << "  neuron" << neuronIdx
+                         << "weights:" << neuron.weights
                          << "weightedSum:" << weightedSum
                          << "threshold:" << threshold
                          << "activationBeforeFatigue:" << biologicalActivation(weightedSum, threshold)
