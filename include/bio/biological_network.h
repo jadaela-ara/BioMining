@@ -237,7 +237,7 @@ private:
     //thread apprentissage
     std::thread m_learningThread;
     std::atomic<bool> m_learningActive;
-    void learningStep();
+    //void learningStep();
 
 
 
