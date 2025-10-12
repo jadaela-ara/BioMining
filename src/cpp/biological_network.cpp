@@ -235,7 +235,7 @@ bool BiologicalNetwork::startInitialLearning(int trainingCycles)
         m_learningThread.join();
     }
     m_learningThread = std::thread([this]() {
-        while (m_learningActive && m_currentEpoch < m_totalEpochs) {
+        while (m_learningActive && m_currentEpoch <= m_totalEpochs) {
             this->onLearningCycle();
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
@@ -333,6 +333,7 @@ void BiologicalNetwork::onLearningCycle()
         qDebug() << "[BIO-NET] Apprentissage terminé avec succès";
         emit learningStateChanged(m_learningState);
         emit learningCompleted(true);
+        m_learningActive = false;
         
         return;
     }
@@ -362,9 +363,10 @@ void BiologicalNetwork::onLearningCycle()
             }
         }   
 
-            if (m_currentEpoch % 10 == 0) {
-                qDebug() << "apprentissage : target=" << example.targetNonce << " -> predictNonce=" << predictedNonce; 
-            }
+        if (m_currentEpoch % 10 == 0) {
+                qDebug() << "apprentissage : sortie=" << networkOutput
+                         << "apprentissage : target=" << example.targetNonce << " -> predictNonce=" << predictedNonce; 
+        }
         
         if (predictedNonce == example.targetNonce) {
             m_successfulPredictions++;
