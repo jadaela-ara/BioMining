@@ -458,11 +458,11 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
     }
 
     // Émission périodique du progrès
-    //if (m_currentEpoch % 10 == 0) {
-    //    qDebug() << "[BIO-NET] Cycle forwardPropagation"
-    //             << "- Input size :" << QString::number(inputs.size(), 'f', 1)
-    //             << "- Reseau size:" << QString::number(m_layers[0].neurons.size(), 'f', 1);
-    //}
+    if (m_currentEpoch % 10 == 0) {
+        qDebug() << "[BIO-NET] Cycle forwardPropagation"
+                 << "- Input :" << m_layers[0]
+                 << "- Sortie:" << m_layers.last();
+    }
 
 }
 
@@ -481,6 +481,13 @@ void BiologicalNetwork::backPropagation(const QVector<double> &targets)
         neuron.threshold += error * 0.01; // Micro-adaptation
         neuron.threshold = qBound(0.1, neuron.threshold, 0.9);
     }
+
+    // Émission périodique du progrès
+    if (m_currentEpoch % 10 == 0) {
+        qDebug() << "[BIO-NET] Cycle backPropagation"
+                 << "- outputErrors :" << outputErrors;
+    }
+
     
     // Rétropropagation de l'erreur vers les couches cachées
     for (int layerIdx = m_layers.size() - 2; layerIdx >= 1; --layerIdx) {
@@ -505,12 +512,6 @@ void BiologicalNetwork::backPropagation(const QVector<double> &targets)
         
         outputErrors = layerErrors; // Pour la prochaine itération
     }
-
-    // Émission périodique du progrès
-    //if (m_currentEpoch % 10 == 0) {
-    //    qDebug() << "[BIO-NET] Cycle backPropagation"
-    //             << "- neurone threshold :" << QString::number(neuron.threshold, 'f', 5);
-    //}
 
 }
 
