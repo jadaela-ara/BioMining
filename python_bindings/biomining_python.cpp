@@ -225,7 +225,11 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def(py::init<>())
         .def_readwrite("deviceType", &BioMining::Bio::RealMEAConfig::deviceType)
         .def_readwrite("protocol", &BioMining::Bio::RealMEAConfig::protocol)
-        .def_readwrite("devicePath", &BioMining::Bio::RealMEAConfig::devicePath)
+        //.def_readwrite("devicePath", &BioMining::Bio::RealMEAConfig::devicePath)
+        .def_property("devicePath",
+                [](const BioMining::Bio::RealMEAConfig& self) { return self.devicePath.toStdString();},
+                [](BioMining::Bio::RealMEAConfig& self, const std::string& s) { self.devicePath = QString::fromStdString(s);}
+        )
         .def_readwrite("networkHost", &BioMining::Bio::RealMEAConfig::networkHost)
         .def_readwrite("networkPort", &BioMining::Bio::RealMEAConfig::networkPort)
         .def_readwrite("baudRate", &BioMining::Bio::RealMEAConfig::baudRate)
