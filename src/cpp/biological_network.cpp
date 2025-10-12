@@ -26,8 +26,8 @@ BiologicalNetwork::BiologicalNetwork(QObject *parent)
     , m_optimizationTimer(std::make_unique<QTimer>(this))
     , m_networkEfficiency(0.0)
     , m_successfulPredictions(0)
-    , m_totalPredictions(0)
     , m_learningActive(false)
+    , m_totalPredictions(0)
     , m_averageConfidence(0.0)
 {
     // Configuration par défaut
@@ -470,7 +470,7 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
     if (m_currentEpoch % 10 == 0) {
         qDebug() << "[BIO-NET] Cycle forwardPropagation"
                  << "- Input :" << inputsTmp
-                 << "- Sortie:" << outputTmp;
+                 << "- Sortie:" << outputsTmp;
     }
 
 }
