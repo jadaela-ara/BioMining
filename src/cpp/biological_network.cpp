@@ -240,9 +240,9 @@ bool BiologicalNetwork::startInitialLearning(int trainingCycles)
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
         // Fin de l'apprentissage
-        if (m_learningActive) {
-            this->stopLearning();
-        }
+        //if (m_learningActive) {
+        //    this->stopLearning();
+        //}
     });
     
     qDebug() << "[BIO-NET] Apprentissage initial démarré -" << trainingCycles << "cycles";
@@ -295,7 +295,8 @@ void BiologicalNetwork::stopLearning()
     
     //m_learningTimer->stop();
     m_learningActive = false;
-    if (m_learningThread.joinable()) {
+    // Empêche le thread de se joindre lui-même (deadlock)
+    if (m_learningThread.joinable() && std::this_thread::get_id() != m_learningThread.get_id()) {
         m_learningThread.join();
     }
     
