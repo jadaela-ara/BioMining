@@ -13,6 +13,7 @@
 #include <numeric>
 #include <thread>
 #include <atomic>
+#include <QDataStream>
 
 using namespace BioMining::Network; 
 
@@ -642,7 +643,7 @@ BiologicalNetwork::BitcoinPredictionResult BiologicalNetwork::validateBitcoinPre
     // Reconstruction du nonce prédit
     QVector<double> networkOutput = getNetworkOutput();
     result.predictedNonce = 0;
-    for (int bit = 0; bit < qMin(32, static_cast<int>(networkOutout.size())); ++bit) {
+    for (int bit = 0; bit < qMin(32, static_cast<int>(networkOutput.size())); ++bit) {
         if (networkOutput[bit] > 0.5) {
             result.predictedNonce |= (1ULL << bit);
         }
@@ -1938,7 +1939,7 @@ QPair<uint64_t, QString> BiologicalNetwork::findValidNonce(
     //uint64_t maxAttempts = qMin(10000000ULL, 1ULL << (difficultyLevel * 4));
     //uint64_t stepSize = qMax(1ULL, maxAttempts / 100000);
     uint64_t maxAttempts = std::min(10000000ULL, 1ULL << (difficultyLevel * 4));
-    uint64_t stepSize = std::max(1ULL, maxAttempts / 100000);
+    uint64_t stepSize = std::max(uint64_t(1), uint64_t(maxAttempts / 100000));
     
     for (uint64_t nonce = 0; nonce < maxAttempts; nonce += stepSize) {
         BitcoinBlockHeader testHeader = header;
@@ -1985,7 +1986,7 @@ QPair<uint64_t, QString> BiologicalNetwork::generateArtificialSolution(
  */
 QVector<double> BiologicalNetwork::blockHeaderToMEASignals(const BitcoinBlockHeader &header)
 {
-    QVector<double> signals(m_config.neuronCount);
+    QVector<double> inputs(m_config.neuronCount);
     
     // Sérialisation du block header
     QByteArray headerBytes = serializeBlockHeader(header);
@@ -2015,7 +2016,7 @@ QVector<double> BiologicalNetwork::blockHeaderToMEASignals(const BitcoinBlockHea
         // 5. Composante de corrélation inter-électrodes
         double correlationComponent = 0.0;
         if (electrode > 0) {
-            correlationComponent = signals[electrode - 1] * 0.15; // Couplage faible
+            correlationComponent = inputs[electrode - 1] * 0.15; // Couplage faible
         }
         
         // 6. Bruit biologique réaliste
@@ -2026,13 +2027,13 @@ QVector<double> BiologicalNetwork::blockHeaderToMEASignals(const BitcoinBlockHea
                 + correlationComponent + biologicalNoise;
         
         // Contraintes biologiques réalistes
-        signals[electrode] = qBound(-2.0, signal, 2.0);
+        inputs[electrode] = qBound(-2.0, signal, 2.0);
     }
     
     // === POST-TRAITEMENT BIOLOGIQUE ===
-    applyBiologicalFiltering(signals);
+    applyBiologicalFiltering(inputs);
     
-    return signals;
+    return inputs;
 }
 
 /**
