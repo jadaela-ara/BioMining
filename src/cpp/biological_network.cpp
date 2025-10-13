@@ -105,6 +105,7 @@ void BiologicalNetwork::initializeNetwork()
         neuron.isActive = true;
         neuron.connectionCount = 0;
         neuron.adaptationFactor = 1.0;
+        neuron.bitcoin_response_score = 0.0;  // ← AJOUT
     }
     
     m_layers.append(inputLayer);
@@ -127,6 +128,7 @@ void BiologicalNetwork::initializeNetwork()
             neuron.isActive = true;
             neuron.connectionCount = 0;
             neuron.adaptationFactor = 1.0;
+            neuron.bitcoin_response_score = 0.0;  // ← AJOUT
             
             // Connexions avec la couche précédente
             int prevLayerSize = m_layers.last().neurons.size();
@@ -158,6 +160,7 @@ void BiologicalNetwork::initializeNetwork()
         neuron.isActive = true;
         neuron.connectionCount = 0;
         neuron.adaptationFactor = 1.0;
+        neuron.bitcoin_response_score = 0.0;  // ← AJOUT
         
         // Connexions avec la dernière couche cachée
         int prevLayerSize = m_layers.last().neurons.size();
@@ -503,19 +506,6 @@ void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, cons
 }
 
 /**
- * @brief Structure de contexte d'apprentissage Bitcoin
- */
-struct BiologicalNetwork::BitcoinLearningContext {
-    uint64_t targetNonce;          // Nonce cible
-    int difficultyLevel;           // Niveau de difficulté (1-4)
-    double patternComplexity;      // Complexité du pattern d'entrée
-    bool isSpecialPattern;         // Pattern spécial (Genesis, Halving, etc.)
-    double adaptiveLearningRate;   // Taux adapté à ce contexte
-    QVector<int> criticalBits;     // Bits critiques pour ce nonce
-    double expectedConfidence;     // Confiance attendue
-};
-
-/**
  * @brief Analyse le contexte d'apprentissage Bitcoin
  */
 BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearningContext(
@@ -636,19 +626,6 @@ void BiologicalNetwork::adjustBitcoinSynapticWeights(const BitcoinLearningContex
         }
     }
 }
-
-/**
- * @brief Validation de prédiction Bitcoin
- */
-struct BiologicalNetwork::BitcoinPredictionResult {
-    uint64_t predictedNonce;
-    double accuracy;
-    bool isSuccessful;
-    bool needsReinforcement;
-    int correctBits;
-    double confidence;
-    QString errorAnalysis;
-};
 
 BiologicalNetwork::BitcoinPredictionResult BiologicalNetwork::validateBitcoinPrediction(const QVector<double> &targets)
 {
@@ -2059,22 +2036,22 @@ QVector<double> BiologicalNetwork::blockHeaderToMEASignals(const BitcoinBlockHea
 /**
  * @brief Applique un filtrage biologique réaliste aux signaux
  */
-void BiologicalNetwork::applyBiologicalFiltering(QVector<double> &signals)
+void BiologicalNetwork::applyBiologicalFiltering(QVector<double> &inputs)
 {
     // Filtrage passe-bas simple (simulation de la réponse cellulaire)
     const double alpha = 0.3; // Constante de filtrage
     
-    for (int i = 1; i < signals.size(); ++i) {
-        signals[i] = alpha * signals[i] + (1.0 - alpha) * signals[i - 1];
+    for (int i = 1; i < inputs.size(); ++i) {
+        inputs[i] = alpha * inputs[i] + (1.0 - alpha) * inputs[i - 1];
     }
     
     // Normalisation douce pour éviter la saturation
-    double maxSignal = *std::max_element(signals.begin(), signals.end());
-    double minSignal = *std::min_element(signals.begin(), signals.end());
+    double maxSignal = *std::max_element(inputs.begin(), inputs.end());
+    double minSignal = *std::min_element(inputs.begin(), inputs.end());
     
     if (maxSignal - minSignal > 3.0) { // Plage trop large
         double scale = 3.0 / (maxSignal - minSignal);
-        for (double &signal : signals) {
+        for (double &signal : inputs) {
             signal *= scale;
         }
     }
