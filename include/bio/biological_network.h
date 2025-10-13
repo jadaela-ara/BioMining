@@ -292,7 +292,7 @@ private:
     
     // Conversion Bitcoin → signaux biologiques
     QVector<double> blockHeaderToMEASignals(const BitcoinBlockHeader &header);
-    void applyBiologicalFiltering(QVector<double> &signals);
+    void applyBiologicalFiltering(QVector<double> &inputs);
     
     // Calculs cryptographiques Bitcoin
     QString calculateSHA256DoubleHash(const BitcoinBlockHeader &header);
