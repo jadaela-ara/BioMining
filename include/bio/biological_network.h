@@ -244,7 +244,46 @@ private:
         int exampleCount;         // Nombre d'exemples à générer
         QString description;      // Description du niveau
     };
+
+/**
+     * @brief Structure de contexte d'apprentissage Bitcoin
+     */
+    struct BitcoinLearningContext {
+        uint64_t targetNonce;          // Nonce cible
+        int difficultyLevel;           // Niveau de difficulté (1-4)
+        double patternComplexity;      // Complexité du pattern d'entrée
+        bool isSpecialPattern;         // Pattern spécial (Genesis, Halving, etc.)
+        double adaptiveLearningRate;   // Taux adapté à ce contexte
+        QVector<int> criticalBits;     // Bits critiques pour ce nonce
+        double expectedConfidence;     // Confiance attendue
+    };
     
+    /**
+     * @brief Structure de résultat de prédiction Bitcoin
+     */
+    struct BitcoinPredictionResult {
+        uint64_t predictedNonce;
+        double accuracy;
+        bool isSuccessful;
+        bool needsReinforcement;
+        int correctBits;
+        double confidence;
+        QString errorAnalysis;
+    };
+    
+    /**
+     * @brief Structure de mémorisation des patterns Bitcoin réussis
+     */
+    struct BitcoinPatternMemory {
+        QVector<double> inputPattern;
+        QVector<double> targetPattern;
+        QJsonObject networkSnapshot;
+        QDateTime successTimestamp;
+        double accuracy;
+        double confidence;
+    };
+
+
     // Génération d'exemples Bitcoin réalistes
     LearningData generateBitcoinTrainingExample(int difficultyLevel, int exampleIndex);
     BitcoinBlockHeader generateRealisticBlockHeader(int seed);
@@ -273,6 +312,41 @@ private:
     void shuffleTrainingData();
     void logTrainingDataStatistics();
 
+// === MÉTHODES BITCOIN PERFORM_LEARNING_CYCLE AMÉLIORÉ ===
+    
+    // Analyse du contexte d'apprentissage Bitcoin
+    BitcoinLearningContext analyzeBitcoinLearningContext(const QVector<double> &inputs, const QVector<double> &targets);
+    int estimateDifficultyFromNonce(uint64_t nonce);
+    bool detectSpecialBitcoinPattern(const QVector<double> &inputs);
+    double estimateExpectedConfidence(const BitcoinLearningContext &context);
+    
+    // Back propagation spécialisée Bitcoin
+    void performBitcoinBackPropagation(const QVector<double> &targets, const BitcoinLearningContext &context);
+    
+    // Ajustement synaptique spécialisé Bitcoin
+    void adjustBitcoinSynapticWeights(const BitcoinLearningContext &context);
+    
+    // Validation et résultats Bitcoin
+    BitcoinPredictionResult validateBitcoinPrediction(const QVector<double> &targets);
+    
+    // Renforcement adaptatif Bitcoin
+    void applyBitcoinReinforcement(const BitcoinPredictionResult &result, const BitcoinLearningContext &context);
+    
+    // Croissance et élagage spécialisés Bitcoin
+    void stimulateBitcoinNeuronGrowth(const BitcoinLearningContext &context);
+    void pruneBitcoinWeakConnections(const BitcoinPredictionResult &result);
+    
+    // Mémorisation des patterns réussis
+    void memorizeBitcoinPattern(const QVector<double> &inputs, const QVector<double> &targets, const BitcoinPredictionResult &result);
+    QJsonObject captureNetworkSnapshot() const;
+    
+    // Calculs adaptatifs
+    double calculateAdaptiveLearningRate(const BitcoinLearningContext &context);
+    QVector<int> identifyCriticalBits(uint64_t nonce);
+    
+    // Logging détaillé
+    void logBitcoinLearningDetails(const BitcoinLearningContext &context, const BitcoinPredictionResult &result);
+    
     // État du réseau
     NetworkConfig m_config;
     LearningState m_learningState;
@@ -296,7 +370,9 @@ private:
     QVector<LearningData> m_learningHistory;
     QVector<LearningData> m_patternMemory;
     QVector<double> m_lastMEASignals;
+    QVector<BitcoinPatternMemory> m_bitcoinPatternMemory;  // Mémoire des patterns Bitcoin réussis
     
+
     // Métriques de performance
     double m_networkEfficiency;
     int m_successfulPredictions;
