@@ -441,6 +441,7 @@ void BiologicalNetwork::onLearningCycle()
     }
 }
 
+/* ANCIENNE VERSION
 void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, const QVector<double> &targets)
 {
     // Forward propagation
@@ -458,6 +459,480 @@ void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, cons
         pruneWeakConnections();
     }
 }
+*/
+
+/* NOUVELLE METHODE */
+void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, const QVector<double> &targets)
+{
+    // === ANALYSE PRE-APPRENTISSAGE BITCOIN ===
+    BitcoinLearningContext context = analyzeBitcoinLearningContext(inputs, targets);
+    
+    // === FORWARD PROPAGATION AVEC MONITORING BITCOIN ===
+    forwardPropagation(inputs);
+    QVector<double> initialOutput = getNetworkOutput();
+    
+    // === BACK PROPAGATION ADAPTATIF BITCOIN ===
+    performBitcoinBackPropagation(targets, context);
+    
+    // === AJUSTEMENT SYNAPTIQUE SPÉCIALISÉ ===
+    adjustBitcoinSynapticWeights(context);
+    
+    // === VALIDATION ET CORRECTION BITCOIN ===
+    BitcoinPredictionResult result = validateBitcoinPrediction(targets);
+    
+    // === RENFORCEMENT ADAPTATIF ===
+    if (result.needsReinforcement) {
+        applyBitcoinReinforcement(result, context);
+    }
+    
+    // === CROISSANCE NEURONALE GUIDÉE BITCOIN ===
+    if (m_currentEpoch % 25 == 0) { // Plus fréquent pour Bitcoin
+        stimulateBitcoinNeuronGrowth(context);
+        pruneBitcoinWeakConnections(result);
+    }
+    
+    // === MÉMORISATION DES PATTERNS RÉUSSIS ===
+    if (result.isSuccessful) {
+        memorizeBitcoinPattern(inputs, targets, result);
+    }
+    
+    // === LOGGING DÉTAILLÉ (OPTIONNEL) ===
+    if (m_currentEpoch % 100 == 0) {
+        logBitcoinLearningDetails(context, result);
+    }
+}
+
+/**
+ * @brief Structure de contexte d'apprentissage Bitcoin
+ */
+struct BiologicalNetwork::BitcoinLearningContext {
+    uint64_t targetNonce;          // Nonce cible
+    int difficultyLevel;           // Niveau de difficulté (1-4)
+    double patternComplexity;      // Complexité du pattern d'entrée
+    bool isSpecialPattern;         // Pattern spécial (Genesis, Halving, etc.)
+    double adaptiveLearningRate;   // Taux adapté à ce contexte
+    QVector<int> criticalBits;     // Bits critiques pour ce nonce
+    double expectedConfidence;     // Confiance attendue
+};
+
+/**
+ * @brief Analyse le contexte d'apprentissage Bitcoin
+ */
+BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearningContext(
+    const QVector<double> &inputs, const QVector<double> &targets)
+{
+    BitcoinLearningContext context;
+    
+    // === EXTRACTION DU NONCE CIBLE ===
+    context.targetNonce = 0;
+    for (int bit = 0; bit < qMin(32, targets.size()); ++bit) {
+        if (targets[bit] > 0.5) {
+            context.targetNonce |= (1ULL << bit);
+        }
+    }
+    
+    // === ANALYSE DE LA DIFFICULTÉ ===
+    context.difficultyLevel = estimateDifficultyFromNonce(context.targetNonce);
+    
+    // === CALCUL DE LA COMPLEXITÉ DU PATTERN ===
+    double variance = 0.0;
+    double mean = std::accumulate(inputs.begin(), inputs.end(), 0.0) / inputs.size();
+    for (double input : inputs) {
+        variance += (input - mean) * (input - mean);
+    }
+    context.patternComplexity = sqrt(variance / inputs.size());
+    
+    // === DÉTECTION DE PATTERNS SPÉCIAUX ===
+    context.isSpecialPattern = detectSpecialBitcoinPattern(inputs);
+    
+    // === TAUX D'APPRENTISSAGE ADAPTATIF ===
+    context.adaptiveLearningRate = calculateAdaptiveLearningRate(context);
+    
+    // === IDENTIFICATION DES BITS CRITIQUES ===
+    context.criticalBits = identifyCriticalBits(context.targetNonce);
+    
+    // === CONFIANCE ATTENDUE ===
+    context.expectedConfidence = estimateExpectedConfidence(context);
+    
+    return context;
+}
+
+/**
+ * @brief Back propagation spécialisée Bitcoin
+ */
+void BiologicalNetwork::performBitcoinBackPropagation(const QVector<double> &targets, const BitcoinLearningContext &context)
+{
+    // Back propagation standard
+    backPropagation(targets);
+    
+    // === CORRECTIONS SPÉCIFIQUES BITCOIN ===
+    
+    // 1. Emphasis sur les bits critiques
+    NetworkLayer &outputLayer = m_layers.last();
+    for (int criticalBit : context.criticalBits) {
+        if (criticalBit < outputLayer.neurons.size()) {
+            BiologicalNeuron &neuron = outputLayer.neurons[criticalBit];
+            
+            // Augmenter l'influence des bits critiques
+            double targetValue = targets[criticalBit];
+            double currentOutput = neuron.activation;
+            double criticalError = (targetValue - currentOutput) * 1.5; // Emphasis x1.5
+            
+            // Ajustement direct du seuil pour les bits critiques
+            neuron.threshold += criticalError * 0.02;
+            neuron.threshold = qBound(0.1, neuron.threshold, 0.9);
+        }
+    }
+    
+    // 2. Ajustement basé sur la difficulté
+    double difficultyMultiplier = 1.0 + (context.difficultyLevel * 0.3);
+    for (NetworkLayer &layer : m_layers) {
+        for (BiologicalNeuron &neuron : layer.neurons) {
+            neuron.threshold *= difficultyMultiplier;
+            neuron.threshold = qBound(0.05, neuron.threshold, 0.95);
+        }
+    }
+}
+
+/**
+ * @brief Ajustement synaptique spécialisé Bitcoin
+ */
+void BiologicalNetwork::adjustBitcoinSynapticWeights(const BitcoinLearningContext &context)
+{
+    // Utiliser le taux d'apprentissage adaptatif
+    adjustSynapticWeights(context.adaptiveLearningRate);
+    
+    // === RENFORCEMENTS SPÉCIALISÉS BITCOIN ===
+    
+    // 1. Renforcement des connexions vers les bits critiques
+    if (m_layers.size() >= 2) {
+        NetworkLayer &outputLayer = m_layers.last();
+        NetworkLayer &prevLayer = m_layers[m_layers.size() - 2];
+        
+        for (int criticalBit : context.criticalBits) {
+            if (criticalBit < outputLayer.neurons.size()) {
+                BiologicalNeuron &criticalNeuron = outputLayer.neurons[criticalBit];
+                
+                // Renforcer les connexions entrantes vers les neurones critiques
+                for (int weightIdx = 0; weightIdx < criticalNeuron.weights.size(); ++weightIdx) {
+                    double preActivation = prevLayer.neurons[weightIdx].activation;
+                    if (preActivation > 0.5) { // Neurone pré-synaptique actif
+                        criticalNeuron.weights[weightIdx] += context.adaptiveLearningRate * 0.1;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 2. Modulation par complexité du pattern
+    if (context.patternComplexity > 0.5) {
+        // Pattern complexe : apprentissage plus conservateur
+        for (NetworkLayer &layer : m_layers) {
+            for (BiologicalNeuron &neuron : layer.neurons) {
+                for (double &weight : neuron.weights) {
+                    weight *= 0.99; // Légère réduction pour stabilité
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Validation de prédiction Bitcoin
+ */
+struct BiologicalNetwork::BitcoinPredictionResult {
+    uint64_t predictedNonce;
+    double accuracy;
+    bool isSuccessful;
+    bool needsReinforcement;
+    int correctBits;
+    double confidence;
+    QString errorAnalysis;
+};
+
+BiologicalNetwork::BitcoinPredictionResult BiologicalNetwork::validateBitcoinPrediction(const QVector<double> &targets)
+{
+    BitcoinPredictionResult result;
+    
+    // Reconstruction du nonce cible
+    uint64_t targetNonce = 0;
+    for (int bit = 0; bit < qMin(32, targets.size()); ++bit) {
+        if (targets[bit] > 0.5) {
+            targetNonce |= (1ULL << bit);
+        }
+    }
+    
+    // Reconstruction du nonce prédit
+    QVector<double> networkOutput = getNetworkOutput();
+    result.predictedNonce = 0;
+    for (int bit = 0; bit < qMin(32, networkOutput.size()); ++bit) {
+        if (networkOutput[bit] > 0.5) {
+            result.predictedNonce |= (1ULL << bit);
+        }
+    }
+    
+    // Calculs de précision
+    uint64_t xorResult = result.predictedNonce ^ targetNonce;
+    result.correctBits = 32 - __builtin_popcountll(xorResult);
+    result.accuracy = static_cast<double>(result.correctBits) / 32.0;
+    
+    // Succès si match exact ou très proche
+    result.isSuccessful = (result.accuracy >= 0.95);
+    
+    // Renforcement nécessaire si performance faible
+    result.needsReinforcement = (result.accuracy < 0.7);
+    
+    // Confiance du réseau
+    double totalConfidence = 0.0;
+    for (double output : networkOutput) {
+        totalConfidence += qMax(output, 1.0 - output); // Distance à 0.5
+    }
+    result.confidence = (totalConfidence / networkOutput.size() - 0.5) * 2.0;
+    
+    // Analyse d'erreur
+    if (result.accuracy < 0.5) {
+        result.errorAnalysis = "POOR_PATTERN_RECOGNITION";
+    } else if (result.accuracy < 0.8) {
+        result.errorAnalysis = "PARTIAL_LEARNING";
+    } else {
+        result.errorAnalysis = "GOOD_CONVERGENCE";
+    }
+    
+    return result;
+}
+
+/**
+ * @brief Applique le renforcement Bitcoin
+ */
+void BiologicalNetwork::applyBitcoinReinforcement(const BitcoinPredictionResult &result, const BitcoinLearningContext &context)
+{
+    if (result.isSuccessful) {
+        // === RENFORCEMENT POSITIF ===
+        
+        // 1. Augmenter les seuils des neurones performants
+        for (NetworkLayer &layer : m_layers) {
+            for (BiologicalNeuron &neuron : layer.neurons) {
+                if (neuron.activation > 0.7) {
+                    neuron.adaptationFactor = qMin(2.0, neuron.adaptationFactor * 1.05);
+                }
+            }
+        }
+        
+        // 2. Renforcer les connexions synaptiques réussies
+        for (int layerIdx = 1; layerIdx < m_layers.size(); ++layerIdx) {
+            NetworkLayer &layer = m_layers[layerIdx];
+            for (int neuronIdx = 0; neuronIdx < layer.neurons.size(); ++neuronIdx) {
+                for (int synapseIdx = 0; synapseIdx < layer.synapses[neuronIdx].size(); ++synapseIdx) {
+                    if (layer.synapses[neuronIdx][synapseIdx] > 0.6) {
+                        layer.synapses[neuronIdx][synapseIdx] *= 1.02; // Renforcement 2%
+                    }
+                }
+            }
+        }
+        
+    } else if (result.needsReinforcement) {
+        // === CORRECTION NÉGATIVE ===
+        
+        // 1. Réajuster les neurones sur-confiants
+        QVector<double> networkOutput = getNetworkOutput();
+        for (int bit = 0; bit < qMin(32, networkOutput.size()); ++bit) {
+            if (m_layers.size() > 0) {
+                NetworkLayer &outputLayer = m_layers.last();
+                if (bit < outputLayer.neurons.size()) {
+                    BiologicalNeuron &neuron = outputLayer.neurons[bit];
+                    
+                    // Si le neurone était très confiant mais faux
+                    if ((networkOutput[bit] > 0.8 || networkOutput[bit] < 0.2) && result.correctBits < 20) {
+                        neuron.threshold += (0.5 - networkOutput[bit]) * 0.05; // Ramener vers 0.5
+                        neuron.threshold = qBound(0.1, neuron.threshold, 0.9);
+                    }
+                }
+            }
+        }
+        
+        // 2. Affaiblir les connexions dominantes défaillantes
+        for (int layerIdx = 1; layerIdx < m_layers.size(); ++layerIdx) {
+            NetworkLayer &layer = m_layers[layerIdx];
+            for (int neuronIdx = 0; neuronIdx < layer.neurons.size(); ++neuronIdx) {
+                for (int synapseIdx = 0; synapseIdx < layer.synapses[neuronIdx].size(); ++synapseIdx) {
+                    if (layer.synapses[neuronIdx][synapseIdx] > 0.8) {
+                        layer.synapses[neuronIdx][synapseIdx] *= 0.95; // Affaiblissement 5%
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Croissance neuronale guidée par Bitcoin
+ */
+void BiologicalNetwork::stimulateBitcoinNeuronGrowth(const BitcoinLearningContext &context)
+{
+    // Croissance plus agressive pour les patterns difficiles
+    double growthFactor = 1.0 + (context.difficultyLevel * 0.1);
+    
+    for (NetworkLayer &layer : m_layers) {
+        for (BiologicalNeuron &neuron : layer.neurons) {
+            
+            // Critères de croissance Bitcoin-spécifiques
+            bool shouldGrow = false;
+            
+            if (neuron.activation > 0.8 && neuron.bitcoin_response_score > 0.6) {
+                shouldGrow = true; // Neurone performant pour Bitcoin
+            }
+            
+            if (context.isSpecialPattern && neuron.activation > 0.6) {
+                shouldGrow = true; // Pattern spécial nécessite plus de capacité
+            }
+            
+            if (shouldGrow) {
+                neuron.adaptationFactor = qMin(2.0, neuron.adaptationFactor * (1.0 + growthFactor * 0.01));
+                
+                // Augmenter la connectivité pour les neurones Bitcoin performants
+                if (neuron.connectionCount < neuron.weights.size() * 1.4) {
+                    neuron.adaptationFactor *= 1.005;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Élagage spécialisé Bitcoin
+ */
+void BiologicalNetwork::pruneBitcoinWeakConnections(const BitcoinPredictionResult &result)
+{
+    // Élagage plus agressif si les performances Bitcoin sont faibles
+    double pruningThreshold = MIN_CONNECTION_STRENGTH;
+    
+    if (result.accuracy < 0.5) {
+        pruningThreshold *= 1.5; // Élagage plus agressif
+    }
+    
+    for (int layerIdx = 1; layerIdx < m_layers.size(); ++layerIdx) {
+        NetworkLayer &layer = m_layers[layerIdx];
+        
+        for (int neuronIdx = 0; neuronIdx < layer.neurons.size(); ++neuronIdx) {
+            for (int synapseIdx = 0; synapseIdx < layer.synapses[neuronIdx].size(); ++synapseIdx) {
+                
+                if (layer.synapses[neuronIdx][synapseIdx] < pruningThreshold) {
+                    
+                    // Élagage différentiel selon performance Bitcoin
+                    if (result.accuracy < 0.3) {
+                        layer.synapses[neuronIdx][synapseIdx] *= 0.7; // Élagage fort
+                    } else {
+                        layer.synapses[neuronIdx][synapseIdx] *= 0.9; // Élagage normal
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Mémorise les patterns Bitcoin réussis
+ */
+void BiologicalNetwork::memorizeBitcoinPattern(const QVector<double> &inputs, const QVector<double> &targets, const BitcoinPredictionResult &result)
+{
+    // Créer un snapshot du réseau pour ce pattern réussi
+    BitcoinPatternMemory memory;
+    memory.inputPattern = inputs;
+    memory.targetPattern = targets;
+    memory.networkSnapshot = captureNetworkSnapshot();
+    memory.successTimestamp = QDateTime::currentDateTime();
+    memory.accuracy = result.accuracy;
+    memory.confidence = result.confidence;
+    
+    // Stocker dans la mémoire des patterns réussis
+    m_bitcoinPatternMemory.append(memory);
+    
+    // Limiter la taille de la mémoire
+    while (m_bitcoinPatternMemory.size() > 100) {
+        m_bitcoinPatternMemory.removeFirst();
+    }
+}
+
+/**
+ * @brief Calcule un taux d'apprentissage adaptatif
+ */
+double BiologicalNetwork::calculateAdaptiveLearningRate(const BitcoinLearningContext &context)
+{
+    double baseLearningRate = m_config.learningRate;
+    
+    // Modulation par difficulté
+    double difficultyFactor = 1.0 + (context.difficultyLevel * 0.2);
+    
+    // Modulation par complexité
+    double complexityFactor = 1.0 + (context.patternComplexity * 0.3);
+    
+    // Modulation pour patterns spéciaux
+    double specialFactor = context.isSpecialPattern ? 1.5 : 1.0;
+    
+    // Modulation par performance récente
+    double performanceFactor = 1.0;
+    if (m_totalPredictions > 10) {
+        double recentSuccessRate = static_cast<double>(m_successfulPredictions) / m_totalPredictions;
+        if (recentSuccessRate < 0.3) {
+            performanceFactor = 1.3; // Augmenter si performance faible
+        } else if (recentSuccessRate > 0.8) {
+            performanceFactor = 0.8; // Diminuer si performance très bonne
+        }
+    }
+    
+    double adaptiveRate = baseLearningRate * difficultyFactor * complexityFactor * specialFactor * performanceFactor;
+    
+    // Borner le taux d'apprentissage
+    return qBound(0.0001, adaptiveRate, 0.1);
+}
+
+/**
+ * @brief Identifie les bits critiques d'un nonce
+ */
+QVector<int> BiologicalNetwork::identifyCriticalBits(uint64_t nonce)
+{
+    QVector<int> criticalBits;
+    
+    // Les bits de poids fort sont généralement plus critiques
+    for (int bit = 24; bit < 32; ++bit) {
+        if ((nonce >> bit) & 1) {
+            criticalBits.append(bit);
+        }
+    }
+    
+    // Ajouter des bits avec des patterns particuliers
+    for (int bit = 0; bit < 32; bit += 4) {
+        uint8_t nibble = (nonce >> bit) & 0xF;
+        if (nibble == 0x0 || nibble == 0xF) { // Nibbles tout 0 ou tout 1
+            for (int subBit = 0; subBit < 4; ++subBit) {
+                criticalBits.append(bit + subBit);
+            }
+        }
+    }
+    
+    return criticalBits;
+}
+
+/**
+ * @brief Logging détaillé de l'apprentissage Bitcoin
+ */
+void BiologicalNetwork::logBitcoinLearningDetails(const BitcoinLearningContext &context, const BitcoinPredictionResult &result)
+{
+    qDebug() << "[BIO-NET] 🧬₿ === BITCOIN LEARNING CYCLE DETAILS ===";
+    qDebug() << "  🎯 Target Nonce:" << QString("0x%1").arg(context.targetNonce, 8, 16, QChar('0'));
+    qDebug() << "  📊 Difficulty Level:" << context.difficultyLevel;
+    qDebug() << "  🌊 Pattern Complexity:" << QString::number(context.patternComplexity, 'f', 3);
+    qDebug() << "  ⭐ Special Pattern:" << (context.isSpecialPattern ? "YES" : "NO");
+    qDebug() << "  📈 Adaptive LR:" << QString::number(context.adaptiveLearningRate, 'f', 6);
+    qDebug() << "  🎯 Predicted Nonce:" << QString("0x%1").arg(result.predictedNonce, 8, 16, QChar('0'));
+    qDebug() << "  ✅ Correct Bits:" << result.correctBits << "/32";
+    qDebug() << "  📊 Accuracy:" << QString::number(result.accuracy * 100, 'f', 1) << "%";
+    qDebug() << "  🎪 Confidence:" << QString::number(result.confidence * 100, 'f', 1) << "%";
+    qDebug() << "  🔍 Error Analysis:" << result.errorAnalysis;
+    qDebug() << "  🏅 Critical Bits:" << context.criticalBits.size();
+}
+
+
 
 void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
 {
