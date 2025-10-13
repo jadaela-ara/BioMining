@@ -105,6 +105,7 @@ void BiologicalNetwork::initializeNetwork()
         neuron.isActive = true;
         neuron.connectionCount = 0;
         neuron.adaptationFactor = 1.0;
+        neuron.bitcoin_response_score = 0.0;  // ← AJOUT
     }
     
     m_layers.append(inputLayer);
@@ -127,6 +128,7 @@ void BiologicalNetwork::initializeNetwork()
             neuron.isActive = true;
             neuron.connectionCount = 0;
             neuron.adaptationFactor = 1.0;
+            neuron.bitcoin_response_score = 0.0;  // ← AJOUT
             
             // Connexions avec la couche précédente
             int prevLayerSize = m_layers.last().neurons.size();
@@ -158,6 +160,7 @@ void BiologicalNetwork::initializeNetwork()
         neuron.isActive = true;
         neuron.connectionCount = 0;
         neuron.adaptationFactor = 1.0;
+        neuron.bitcoin_response_score = 0.0;  // ← AJOUT
         
         // Connexions avec la dernière couche cachée
         int prevLayerSize = m_layers.last().neurons.size();
@@ -503,19 +506,6 @@ void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, cons
 }
 
 /**
- * @brief Structure de contexte d'apprentissage Bitcoin
- */
-struct BiologicalNetwork::BitcoinLearningContext {
-    uint64_t targetNonce;          // Nonce cible
-    int difficultyLevel;           // Niveau de difficulté (1-4)
-    double patternComplexity;      // Complexité du pattern d'entrée
-    bool isSpecialPattern;         // Pattern spécial (Genesis, Halving, etc.)
-    double adaptiveLearningRate;   // Taux adapté à ce contexte
-    QVector<int> criticalBits;     // Bits critiques pour ce nonce
-    double expectedConfidence;     // Confiance attendue
-};
-
-/**
  * @brief Analyse le contexte d'apprentissage Bitcoin
  */
 BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearningContext(
@@ -525,7 +515,7 @@ BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearn
     
     // === EXTRACTION DU NONCE CIBLE ===
     context.targetNonce = 0;
-    for (int bit = 0; bit < qMin(32, targets.size()); ++bit) {
+    for (int bit = 0; bit < qMin(32, static_cast<int>(targets.size())); ++bit) {
         if (targets[bit] > 0.5) {
             context.targetNonce |= (1ULL << bit);
         }
@@ -637,26 +627,13 @@ void BiologicalNetwork::adjustBitcoinSynapticWeights(const BitcoinLearningContex
     }
 }
 
-/**
- * @brief Validation de prédiction Bitcoin
- */
-struct BiologicalNetwork::BitcoinPredictionResult {
-    uint64_t predictedNonce;
-    double accuracy;
-    bool isSuccessful;
-    bool needsReinforcement;
-    int correctBits;
-    double confidence;
-    QString errorAnalysis;
-};
-
 BiologicalNetwork::BitcoinPredictionResult BiologicalNetwork::validateBitcoinPrediction(const QVector<double> &targets)
 {
     BitcoinPredictionResult result;
     
     // Reconstruction du nonce cible
     uint64_t targetNonce = 0;
-    for (int bit = 0; bit < qMin(32, targets.size()); ++bit) {
+    for (int bit = 0; bit < qMin(32, static_cast<int>(targets.size())); ++bit) {
         if (targets[bit] > 0.5) {
             targetNonce |= (1ULL << bit);
         }
@@ -665,7 +642,7 @@ BiologicalNetwork::BitcoinPredictionResult BiologicalNetwork::validateBitcoinPre
     // Reconstruction du nonce prédit
     QVector<double> networkOutput = getNetworkOutput();
     result.predictedNonce = 0;
-    for (int bit = 0; bit < qMin(32, networkOutput.size()); ++bit) {
+    for (int bit = 0; bit < qMin(32, static_cast<int>(networkOutout.size())); ++bit) {
         if (networkOutput[bit] > 0.5) {
             result.predictedNonce |= (1ULL << bit);
         }
@@ -735,7 +712,7 @@ void BiologicalNetwork::applyBitcoinReinforcement(const BitcoinPredictionResult 
         
         // 1. Réajuster les neurones sur-confiants
         QVector<double> networkOutput = getNetworkOutput();
-        for (int bit = 0; bit < qMin(32, networkOutput.size()); ++bit) {
+        for (int bit = 0; bit < qMin(32, static_cast<int>(networkOutput.size())); ++bit) {
             if (m_layers.size() > 0) {
                 NetworkLayer &outputLayer = m_layers.last();
                 if (bit < outputLayer.neurons.size()) {
@@ -787,7 +764,7 @@ void BiologicalNetwork::stimulateBitcoinNeuronGrowth(const BitcoinLearningContex
             }
             
             if (shouldGrow) {
-                neuron.adaptationFactor = qMin(2.0, neuron.adaptationFactor * (1.0 + growthFactor * 0.01));
+                neuron.adaptationFactor = qMin(2.0, static_cast<double>(neuron.adaptationFactor * (1.0 + growthFactor * 0.01)));
                 
                 // Augmenter la connectivité pour les neurones Bitcoin performants
                 if (neuron.connectionCount < neuron.weights.size() * 1.4) {
@@ -1038,7 +1015,7 @@ void BiologicalNetwork::backPropagation(const QVector<double> &targets)
         // Adaptation biologique du seuil
         BiologicalNeuron &neuron = outputLayer.neurons[i];
         neuron.threshold += error * 0.01; // Micro-adaptation
-        neuron.threshold = qBound(0.1, neuron.threshold, 0.9);
+        neuron.threshold = qBound(0.1, static_cast<double>(neuron.threshold), 0.9);
     }
 
     // Émission périodique du progrès
@@ -1066,7 +1043,7 @@ void BiologicalNetwork::backPropagation(const QVector<double> &targets)
             
             // Adaptation du seuil biologique
             currentLayer.neurons[neuronIdx].threshold += layerErrors[neuronIdx] * 0.005;
-            currentLayer.neurons[neuronIdx].threshold = qBound(0.1, currentLayer.neurons[neuronIdx].threshold, 0.9);
+            currentLayer.neurons[neuronIdx].threshold = qBound(0.1, static_cast<double>(currentLayer.neurons[neuronIdx].threshold), 0.9);
         }
         
         outputErrors = layerErrors; // Pour la prochaine itération
@@ -1096,9 +1073,9 @@ void BiologicalNetwork::adjustSynapticWeights(double learningSignal)
                 currentLayer.synapses[neuronIdx][weightIdx] += weightDelta * 0.1;
                 
                 // Contraintes biologiques
-                neuron.weights[weightIdx] = qBound(-2.0, neuron.weights[weightIdx], 2.0);
+                neuron.weights[weightIdx] = qBound(-2.0, static_cast<double>(neuron.weights[weightIdx]), 2.0);
                 currentLayer.synapses[neuronIdx][weightIdx] = qBound(MIN_CONNECTION_STRENGTH, 
-                                                                   currentLayer.synapses[neuronIdx][weightIdx], 1.0);
+                                                                   static_cast<double>(currentLayer.synapses[neuronIdx][weightIdx]), 1.0);
             }
         }
     }
@@ -1449,7 +1426,7 @@ void BiologicalNetwork::adaptNetworkThresholds()
         
         for (BiologicalNeuron &neuron : layer.neurons) {
             neuron.threshold += thresholdAdjustment;
-            neuron.threshold = qBound(0.1, neuron.threshold, 0.9);
+            neuron.threshold = qBound(0.1, static_cast<double>(neuron.threshold), 0.9);
         }
     }
 }
@@ -1530,7 +1507,7 @@ void BiologicalNetwork::weakenFailurePaths(const LearningData &failureData)
                 }
                 
                 // Réduction du facteur d'adaptation
-                neuron.adaptationFactor = qMax(0.5, neuron.adaptationFactor * 0.99);
+                neuron.adaptationFactor = qMax(0.5, static_cast<double>(neuron.adaptationFactor * 0.99));
             }
         }
     }
@@ -1958,8 +1935,10 @@ QPair<uint64_t, QString> BiologicalNetwork::findValidNonce(
     QString targetPattern = QString("0").repeated(difficultyLevel);
     
     // Recherche efficace avec saut adaptatif
-    uint64_t maxAttempts = qMin(10000000ULL, 1ULL << (difficultyLevel * 4));
-    uint64_t stepSize = qMax(1ULL, maxAttempts / 100000);
+    //uint64_t maxAttempts = qMin(10000000ULL, 1ULL << (difficultyLevel * 4));
+    //uint64_t stepSize = qMax(1ULL, maxAttempts / 100000);
+    uint64_t maxAttempts = std::min(10000000ULL, 1ULL << (difficultyLevel * 4));
+    uint64_t stepSize = std::max(1ULL, maxAttempts / 100000);
     
     for (uint64_t nonce = 0; nonce < maxAttempts; nonce += stepSize) {
         BitcoinBlockHeader testHeader = header;
@@ -2059,22 +2038,22 @@ QVector<double> BiologicalNetwork::blockHeaderToMEASignals(const BitcoinBlockHea
 /**
  * @brief Applique un filtrage biologique réaliste aux signaux
  */
-void BiologicalNetwork::applyBiologicalFiltering(QVector<double> &signals)
+void BiologicalNetwork::applyBiologicalFiltering(QVector<double> &inputs)
 {
     // Filtrage passe-bas simple (simulation de la réponse cellulaire)
     const double alpha = 0.3; // Constante de filtrage
     
-    for (int i = 1; i < signals.size(); ++i) {
-        signals[i] = alpha * signals[i] + (1.0 - alpha) * signals[i - 1];
+    for (int i = 1; i < inputs.size(); ++i) {
+        inputs[i] = alpha * inputs[i] + (1.0 - alpha) * inputs[i - 1];
     }
     
     // Normalisation douce pour éviter la saturation
-    double maxSignal = *std::max_element(signals.begin(), signals.end());
-    double minSignal = *std::min_element(signals.begin(), signals.end());
+    double maxSignal = *std::max_element(inputs.begin(), inputs.end());
+    double minSignal = *std::min_element(inputs.begin(), inputs.end());
     
     if (maxSignal - minSignal > 3.0) { // Plage trop large
         double scale = 3.0 / (maxSignal - minSignal);
-        for (double &signal : signals) {
+        for (double &signal : inputs) {
             signal *= scale;
         }
     }
