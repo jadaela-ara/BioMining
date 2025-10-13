@@ -171,6 +171,7 @@ private:
         bool isActive;                  // État actif/inactif
         int connectionCount;            // Nombre de connexions
         double adaptationFactor;        // Facteur d'adaptation
+        double bitcoin_response_score;  // Score de réponse spécifique Bitcoin
     };
 
     struct NetworkLayer {
