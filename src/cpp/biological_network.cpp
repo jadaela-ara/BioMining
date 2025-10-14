@@ -2239,5 +2239,444 @@ void BiologicalNetwork::shuffleTrainingData()
     }
 }
 
+/**
+ * @brief Capture un instantané complet de l'état actuel du réseau biologique
+ * @return QJsonObject contenant toutes les données du réseau
+ */
+QJsonObject BiologicalNetwork::captureNetworkSnapshot() const
+{
+    QMutexLocker locker(&m_networkMutex);
+    
+    QJsonObject snapshot;
+    
+    // === MÉTADONNÉES DE L'INSTANTANÉ ===
+    
+    snapshot["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+    snapshot["version"] = "1.0";
+    snapshot["network_type"] = "BiologicalNetwork";
+    snapshot["capture_epoch"] = m_currentEpoch;
+    snapshot["total_epochs"] = m_totalEpochs;
+    snapshot["learning_state"] = static_cast<int>(m_learningState);
+    
+    // === CONFIGURATION DU RÉSEAU ===
+    
+    QJsonObject configObj;
+    configObj["neuron_count"] = m_config.neuronCount;
+    configObj["learning_rate"] = m_config.learningRate;
+    configObj["stimulation_threshold"] = m_config.stimulationThreshold;
+    configObj["adaptation_rate"] = m_config.adaptationRate;
+    configObj["memory_depth"] = m_config.memoryDepth;
+    configObj["use_reinforcement_learning"] = m_config.useReinforcementLearning;
+    configObj["input_size"] = m_config.inputSize;
+    configObj["output_size"] = m_config.outputSize;
+    configObj["enable_plasticity"] = m_config.enablePlasticity;
+    configObj["enable_adaptation"] = m_config.enableAdaptation;
+    configObj["momentum"] = m_config.momentum;
+    configObj["decay_rate"] = m_config.decayRate;
+    configObj["adaptive_threshold"] = m_config.adaptiveThreshold;
+    configObj["max_epochs"] = m_config.maxEpochs;
+    
+    // Sérialiser les couches cachées
+    QJsonArray hiddenLayersArray;
+    for (int layerSize : m_config.hiddenLayers) {
+        hiddenLayersArray.append(layerSize);
+    }
+    configObj["hidden_layers"] = hiddenLayersArray;
+    
+    snapshot["configuration"] = configObj;
+    
+    // === ARCHITECTURE DU RÉSEAU (COUCHES) ===
+    
+    QJsonArray layersArray;
+    
+    for (int layerIdx = 0; layerIdx < m_layers.size(); ++layerIdx) {
+        const NetworkLayer &layer = m_layers[layerIdx];
+        QJsonObject layerObj;
+        
+        // Métadonnées de la couche
+        layerObj["layer_index"] = layerIdx;
+        layerObj["layer_type"] = layer.layerType;
+        layerObj["layer_activation"] = layer.layerActivation;
+        layerObj["neuron_count"] = layer.neurons.size();
+        
+        // === NEURONES DE LA COUCHE ===
+        
+        QJsonArray neuronsArray;
+        
+        for (int neuronIdx = 0; neuronIdx < layer.neurons.size(); ++neuronIdx) {
+            const BiologicalNeuron &neuron = layer.neurons[neuronIdx];
+            QJsonObject neuronObj;
+            
+            // État du neurone
+            neuronObj["neuron_index"] = neuronIdx;
+            neuronObj["activation"] = neuron.activation;
+            neuronObj["threshold"] = neuron.threshold;
+            neuronObj["last_stimulation"] = neuron.lastStimulation;
+            neuronObj["is_active"] = neuron.isActive;
+            neuronObj["connection_count"] = neuron.connectionCount;
+            neuronObj["adaptation_factor"] = neuron.adaptationFactor;
+            neuronObj["bitcoin_response_score"] = neuron.bitcoin_response_score;
+            
+            // Poids des connexions
+            QJsonArray weightsArray;
+            for (double weight : neuron.weights) {
+                weightsArray.append(weight);
+            }
+            neuronObj["weights"] = weightsArray;
+            
+            // Entrées dendritiques
+            QJsonArray dendritesArray;
+            for (double dendrite : neuron.dendrites) {
+                dendritesArray.append(dendrite);
+            }
+            neuronObj["dendrites"] = dendritesArray;
+            
+            neuronsArray.append(neuronObj);
+        }
+        
+        layerObj["neurons"] = neuronsArray;
+        
+        // === CONNEXIONS SYNAPTIQUES ===
+        
+        QJsonArray synapsesArray;
+        
+        for (int neuronIdx = 0; neuronIdx < layer.synapses.size(); ++neuronIdx) {
+            const QVector<double> &neuronSynapses = layer.synapses[neuronIdx];
+            
+            QJsonArray neuronSynapsesArray;
+            for (double synapseStrength : neuronSynapses) {
+                neuronSynapsesArray.append(synapseStrength);
+            }
+            
+            QJsonObject synapseObj;
+            synapseObj["source_neuron"] = neuronIdx;
+            synapseObj["connections"] = neuronSynapsesArray;
+            
+            synapsesArray.append(synapseObj);
+        }
+        
+        layerObj["synapses"] = synapsesArray;
+        
+        layersArray.append(layerObj);
+    }
+    
+    snapshot["layers"] = layersArray;
+    
+    // === MÉTRIQUES DE PERFORMANCE ===
+    
+    QJsonObject metricsObj;
+    metricsObj["network_efficiency"] = m_networkEfficiency;
+    metricsObj["successful_predictions"] = m_successfulPredictions;
+    metricsObj["total_predictions"] = m_totalPredictions;
+    metricsObj["average_confidence"] = m_averageConfidence;
+    metricsObj["training_progress"] = m_trainingProgress;
+    
+    // Calculer des métriques supplémentaires
+    double successRate = (m_totalPredictions > 0) ? 
+                        static_cast<double>(m_successfulPredictions) / m_totalPredictions : 0.0;
+    metricsObj["success_rate"] = successRate;
+    
+    // Calculer la complexité du réseau
+    int totalConnections = 0;
+    int activeNeurons = 0;
+    double avgActivation = 0.0;
+    int totalNeurons = 0;
+    
+    for (const NetworkLayer &layer : m_layers) {
+        for (const BiologicalNeuron &neuron : layer.neurons) {
+            totalNeurons++;
+            totalConnections += neuron.connectionCount;
+            if (neuron.isActive) {
+                activeNeurons++;
+            }
+            avgActivation += neuron.activation;
+        }
+    }
+    
+    if (totalNeurons > 0) {
+        avgActivation /= totalNeurons;
+    }
+    
+    metricsObj["total_neurons"] = totalNeurons;
+    metricsObj["total_connections"] = totalConnections;
+    metricsObj["active_neurons"] = activeNeurons;
+    metricsObj["activity_ratio"] = (totalNeurons > 0) ? 
+                                   static_cast<double>(activeNeurons) / totalNeurons : 0.0;
+    metricsObj["average_activation"] = avgActivation;
+    metricsObj["network_complexity"] = static_cast<double>(totalConnections) / qMax(1, totalNeurons);
+    
+    snapshot["performance_metrics"] = metricsObj;
+    
+    // === HISTORIQUE D'APPRENTISSAGE (ÉCHANTILLON) ===
+    
+    QJsonArray historyArray;
+    
+    // Capturer les derniers exemples d'apprentissage (maximum 20)
+    int historyStart = qMax(0, m_learningHistory.size() - 20);
+    for (int i = historyStart; i < m_learningHistory.size(); ++i) {
+        const LearningData &data = m_learningHistory[i];
+        
+        QJsonObject historyObj;
+        historyObj["target_nonce"] = QString("0x%1").arg(data.targetNonce, 8, 16, QChar('0'));
+        historyObj["block_header"] = data.blockHeader;
+        historyObj["difficulty"] = QString("0x%1").arg(data.difficulty, 8, 16, QChar('0'));
+        historyObj["was_successful"] = data.wasSuccessful;
+        historyObj["attempts"] = data.attempts;
+        historyObj["compute_time"] = data.computeTime;
+        historyObj["timestamp"] = data.timestamp.toString(Qt::ISODate);
+        
+        // Sérialiser quelques signaux d'entrée (premiers 16 pour économiser l'espace)
+        QJsonArray signalsArray;
+        int signalCount = qMin(16, data.inputSignals.size());
+        for (int j = 0; j < signalCount; ++j) {
+            signalsArray.append(data.inputSignals[j]);
+        }
+        historyObj["input_signals_sample"] = signalsArray;
+        
+        historyArray.append(historyObj);
+    }
+    
+    snapshot["learning_history_sample"] = historyArray;
+    
+    // === MÉMOIRE DES PATTERNS BITCOIN ===
+    
+    QJsonArray bitcoinPatternsArray;
+    
+    // Capturer les patterns Bitcoin mémorisés (maximum 10)
+    int patternStart = qMax(0, m_bitcoinPatternMemory.size() - 10);
+    for (int i = patternStart; i < m_bitcoinPatternMemory.size(); ++i) {
+        const BitcoinPatternMemory &pattern = m_bitcoinPatternMemory[i];
+        
+        QJsonObject patternObj;
+        patternObj["success_timestamp"] = pattern.successTimestamp.toString(Qt::ISODate);
+        patternObj["accuracy"] = pattern.accuracy;
+        patternObj["confidence"] = pattern.confidence;
+        
+        // Sérialiser les patterns d'entrée et cible (échantillon)
+        QJsonArray inputPatternArray;
+        int inputCount = qMin(16, pattern.inputPattern.size());
+        for (int j = 0; j < inputCount; ++j) {
+            inputPatternArray.append(pattern.inputPattern[j]);
+        }
+        patternObj["input_pattern_sample"] = inputPatternArray;
+        
+        QJsonArray targetPatternArray;
+        int targetCount = qMin(32, pattern.targetPattern.size());
+        for (int j = 0; j < targetCount; ++j) {
+            targetPatternArray.append(pattern.targetPattern[j]);
+        }
+        patternObj["target_pattern_sample"] = targetPatternArray;
+        
+        bitcoinPatternsArray.append(patternObj);
+    }
+    
+    snapshot["bitcoin_patterns_memory"] = bitcoinPatternsArray;
+    
+    // === SIGNAUX MEA RÉCENTS ===
+    
+    QJsonArray meaSignalsArray;
+    for (double signal : m_lastMEASignals) {
+        meaSignalsArray.append(signal);
+    }
+    snapshot["last_mea_signals"] = meaSignalsArray;
+    
+    // === CONSTANTES BIOLOGIQUES ===
+    
+    QJsonObject constantsObj;
+    constantsObj["default_activation_threshold"] = DEFAULT_ACTIVATION_THRESHOLD;
+    constantsObj["synaptic_plasticity_rate"] = SYNAPTIC_PLASTICITY_RATE;
+    constantsObj["neuron_fatigue_factor"] = NEURON_FATIGUE_FACTOR;
+    constantsObj["pattern_similarity_threshold"] = PATTERN_SIMILARITY_THRESHOLD;
+    constantsObj["max_pattern_memory"] = MAX_PATTERN_MEMORY;
+    constantsObj["min_connection_strength"] = MIN_CONNECTION_STRENGTH;
+    
+    snapshot["biological_constants"] = constantsObj;
+    
+    // === STATISTIQUES DE L'INSTANTANÉ ===
+    
+    QJsonObject statsObj;
+    statsObj["total_layers"] = m_layers.size();
+    statsObj["snapshot_size_bytes"] = QJsonDocument(snapshot).toJson(QJsonDocument::Compact).size();
+    statsObj["capture_duration_ms"] = 0; // Pourrait être mesuré avec QElapsedTimer
+    
+    snapshot["snapshot_statistics"] = statsObj;
+    
+    // === LOGGING DE L'INSTANTANÉ ===
+    
+    if (m_currentEpoch % 50 == 0) {
+        qDebug() << "[BIO-NET] 📸 Instantané réseau capturé :";
+        qDebug() << "  🧬 Neurones totaux:" << totalNeurons;
+        qDebug() << "  🔗 Connexions totales:" << totalConnections;
+        qDebug() << "  📊 Taux d'activité:" << QString::number(metricsObj["activity_ratio"].toDouble() * 100, 'f', 1) << "%";
+        qDebug() << "  🎯 Taux de succès:" << QString::number(successRate * 100, 'f', 1) << "%";
+        qDebug() << "  💾 Taille instantané:" << statsObj["snapshot_size_bytes"].toInt() << "octets";
+    }
+    
+    return snapshot;
+}
+
+/**
+ * @brief Restaure l'état du réseau à partir d'un instantané
+ * @param snapshot Instantané du réseau au format JSON
+ * @return true si la restauration a réussi
+ */
+bool BiologicalNetwork::restoreNetworkSnapshot(const QJsonObject &snapshot)
+{
+    QMutexLocker locker(&m_networkMutex);
+    
+    try {
+        // === VÉRIFICATION DE COMPATIBILITÉ ===
+        
+        if (!snapshot.contains("version") || !snapshot.contains("network_type")) {
+            qDebug() << "[BIO-NET] ❌ Instantané incompatible : métadonnées manquantes";
+            return false;
+        }
+        
+        QString version = snapshot["version"].toString();
+        QString networkType = snapshot["network_type"].toString();
+        
+        if (networkType != "BiologicalNetwork") {
+            qDebug() << "[BIO-NET] ❌ Type de réseau incompatible :" << networkType;
+            return false;
+        }
+        
+        // === RESTAURATION DE LA CONFIGURATION ===
+        
+        if (snapshot.contains("configuration")) {
+            QJsonObject configObj = snapshot["configuration"].toObject();
+            
+            m_config.neuronCount = configObj["neuron_count"].toInt();
+            m_config.learningRate = configObj["learning_rate"].toDouble();
+            m_config.stimulationThreshold = configObj["stimulation_threshold"].toDouble();
+            m_config.adaptationRate = configObj["adaptation_rate"].toDouble();
+            m_config.memoryDepth = configObj["memory_depth"].toInt();
+            m_config.useReinforcementLearning = configObj["use_reinforcement_learning"].toBool();
+            m_config.inputSize = configObj["input_size"].toInt();
+            m_config.outputSize = configObj["output_size"].toInt();
+            m_config.enablePlasticity = configObj["enable_plasticity"].toBool();
+            m_config.enableAdaptation = configObj["enable_adaptation"].toBool();
+            m_config.momentum = configObj["momentum"].toDouble();
+            m_config.decayRate = configObj["decay_rate"].toDouble();
+            m_config.adaptiveThreshold = configObj["adaptive_threshold"].toDouble();
+            m_config.maxEpochs = configObj["max_epochs"].toInt();
+            
+            // Restaurer les couches cachées
+            if (configObj.contains("hidden_layers")) {
+                QJsonArray hiddenLayersArray = configObj["hidden_layers"].toArray();
+                m_config.hiddenLayers.clear();
+                for (const QJsonValue &value : hiddenLayersArray) {
+                    m_config.hiddenLayers.append(value.toInt());
+                }
+            }
+        }
+        
+        // === RESTAURATION DES COUCHES ===
+        
+        if (snapshot.contains("layers")) {
+            QJsonArray layersArray = snapshot["layers"].toArray();
+            m_layers.clear();
+            
+            for (const QJsonValue &layerValue : layersArray) {
+                QJsonObject layerObj = layerValue.toObject();
+                NetworkLayer layer;
+                
+                layer.layerType = layerObj["layer_type"].toString();
+                layer.layerActivation = layerObj["layer_activation"].toDouble();
+                
+                // Restaurer les neurones
+                if (layerObj.contains("neurons")) {
+                    QJsonArray neuronsArray = layerObj["neurons"].toArray();
+                    
+                    for (const QJsonValue &neuronValue : neuronsArray) {
+                        QJsonObject neuronObj = neuronValue.toObject();
+                        BiologicalNeuron neuron;
+                        
+                        neuron.activation = neuronObj["activation"].toDouble();
+                        neuron.threshold = neuronObj["threshold"].toDouble();
+                        neuron.lastStimulation = neuronObj["last_stimulation"].toDouble();
+                        neuron.isActive = neuronObj["is_active"].toBool();
+                        neuron.connectionCount = neuronObj["connection_count"].toInt();
+                        neuron.adaptationFactor = neuronObj["adaptation_factor"].toDouble();
+                        neuron.bitcoin_response_score = neuronObj["bitcoin_response_score"].toDouble();
+                        
+                        // Restaurer les poids
+                        if (neuronObj.contains("weights")) {
+                            QJsonArray weightsArray = neuronObj["weights"].toArray();
+                            for (const QJsonValue &weightValue : weightsArray) {
+                                neuron.weights.append(weightValue.toDouble());
+                            }
+                        }
+                        
+                        // Restaurer les dendrites
+                        if (neuronObj.contains("dendrites")) {
+                            QJsonArray dendritesArray = neuronObj["dendrites"].toArray();
+                            for (const QJsonValue &dendriteValue : dendritesArray) {
+                                neuron.dendrites.append(dendriteValue.toDouble());
+                            }
+                        }
+                        
+                        layer.neurons.append(neuron);
+                    }
+                }
+                
+                // Restaurer les synapses
+                if (layerObj.contains("synapses")) {
+                    QJsonArray synapsesArray = layerObj["synapses"].toArray();
+                    
+                    for (const QJsonValue &synapseValue : synapsesArray) {
+                        QJsonObject synapseObj = synapseValue.toObject();
+                        QVector<double> neuronSynapses;
+                        
+                        if (synapseObj.contains("connections")) {
+                            QJsonArray connectionsArray = synapseObj["connections"].toArray();
+                            for (const QJsonValue &connectionValue : connectionsArray) {
+                                neuronSynapses.append(connectionValue.toDouble());
+                            }
+                        }
+                        
+                        layer.synapses.append(neuronSynapses);
+                    }
+                }
+                
+                m_layers.append(layer);
+            }
+        }
+        
+        // === RESTAURATION DES MÉTRIQUES ===
+        
+        if (snapshot.contains("performance_metrics")) {
+            QJsonObject metricsObj = snapshot["performance_metrics"].toObject();
+            
+            m_networkEfficiency = metricsObj["network_efficiency"].toDouble();
+            m_successfulPredictions = metricsObj["successful_predictions"].toInt();
+            m_totalPredictions = metricsObj["total_predictions"].toInt();
+            m_averageConfidence = metricsObj["average_confidence"].toDouble();
+            m_trainingProgress = metricsObj["training_progress"].toDouble();
+        }
+        
+        // === RESTAURATION DE L'ÉTAT ===
+        
+        m_currentEpoch = snapshot["capture_epoch"].toInt();
+        m_totalEpochs = snapshot["total_epochs"].toInt();
+        m_learningState = static_cast<LearningState>(snapshot["learning_state"].toInt());
+        
+        qDebug() << "[BIO-NET] ✅ Instantané réseau restauré avec succès";
+        qDebug() << "  📅 Version:" << version;
+        qDebug() << "  🧬 Couches restaurées:" << m_layers.size();
+        qDebug() << "  📊 Époque:" << m_currentEpoch;
+        
+        return true;
+        
+    } catch (const std::exception &e) {
+        qDebug() << "[BIO-NET] ❌ Erreur lors de la restauration :" << e.what();
+        return false;
+    } catch (...) {
+        qDebug() << "[BIO-NET] ❌ Erreur inconnue lors de la restauration";
+        return false;
+    }
+}
+
+
+
 
 //#include "biological_network.moc"
