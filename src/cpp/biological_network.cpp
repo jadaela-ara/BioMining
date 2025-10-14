@@ -534,7 +534,7 @@ BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearn
     context.patternComplexity = sqrt(variance / inputs.size());
     
     // === DÉTECTION DE PATTERNS SPÉCIAUX ===
-    context.isSpecialPattern = detectSpecialBitcoinPattern(inputs);
+    context.isSpecialPattern = false; // A REVOIR avec header.version : detectSpecialBitcoinPattern(inputs);
     
     // === TAUX D'APPRENTISSAGE ADAPTATIF ===
     context.adaptiveLearningRate = calculateAdaptiveLearningRate(context);
