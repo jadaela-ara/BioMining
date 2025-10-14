@@ -26,8 +26,8 @@ BiologicalNetwork::BiologicalNetwork(QObject *parent)
     , m_learningTimer(std::make_unique<QTimer>(this))
     , m_optimizationTimer(std::make_unique<QTimer>(this))
     , m_networkEfficiency(0.0)
-    , m_successfulPredictions(0)
     , m_learningActive(false)
+    , m_successfulPredictions(0)
     , m_totalPredictions(0)
     , m_averageConfidence(0.0)
 {
@@ -2206,6 +2206,37 @@ BiologicalNetwork::LearningData BiologicalNetwork::generateSequentialPattern(int
     example.targetNonce = (example.targetNonce & 0xFFFF0000) | (index % 65536);
     
     return example;
+}
+
+/**
+ * @brief Calcule les bits de difficulté pour un nombre de zéros requis
+ */
+uint64_t BiologicalNetwork::calculateDifficultyBits(int requiredZeros)
+{
+    // Formule Bitcoin simplifiée pour l'entraînement
+    return 0x1d000000 + (0x00ffffff >> requiredZeros);
+}
+
+/**
+ * @brief Estime le nombre de tentatives nécessaires pour une difficulté
+ */
+int BiologicalNetwork::estimateAttemptsForDifficulty(int difficultyLevel)
+{
+    // Estimation statistique basée sur la probabilité
+    int baseAttempts = 1000;
+    return baseAttempts * static_cast<int>(std::pow(16, difficultyLevel));
+}
+
+/**
+ * @brief Mélange les données d'entraînement pour éviter l'overfitting
+ */
+void BiologicalNetwork::shuffleTrainingData()
+{
+    // Algorithme de mélange Fisher-Yates
+    for (int i = m_learningHistory.size() - 1; i > 0; --i) {
+        int j = QRandomGenerator::global()->bounded(i + 1);
+        m_learningHistory.swapItemsAt(i, j);
+    }
 }
 
 
