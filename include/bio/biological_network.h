@@ -340,6 +340,9 @@ private:
     // Mémorisation des patterns réussis
     void memorizeBitcoinPattern(const QVector<double> &inputs, const QVector<double> &targets, const BitcoinPredictionResult &result);
     QJsonObject captureNetworkSnapshot() const;
+
+    //restauration de reseau
+    bool restoreNetworkSnapshot(const QJsonObject &snapshot);
     
     // Calculs adaptatifs
     double calculateAdaptiveLearningRate(const BitcoinLearningContext &context);
