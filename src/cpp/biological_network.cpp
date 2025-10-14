@@ -2676,6 +2676,19 @@ bool BiologicalNetwork::restoreNetworkSnapshot(const QJsonObject &snapshot)
     }
 }
 
+/* VERSION SIMPLE */
+int BioMining::Network::BiologicalNetwork::estimateDifficultyFromNonce(uint64_t nonce) {
+    // Implémentation simple : plus le nonce est petit, plus la difficulté estimée est élevée.
+    // (À adapter selon la logique de ton projet !)
+    if (nonce == 0) return 0;
+    int estimatedZeros = 0;
+    uint64_t mask = 0xF0000000; // 4 bits par zéro hexadécimal
+    while ((nonce & mask) == 0 && mask) {
+        estimatedZeros++;
+        mask >>= 4;
+    }
+    return estimatedZeros;
+}
 
 
 
