@@ -336,7 +336,7 @@ void BiologicalNetwork::generateTrainingData()
              << m_learningHistory.size() << "exemples réalistes";
     
     // Statistiques détaillées
-    logTrainingDataStatistics();
+    // A REVOIR : logTrainingDataStatistics();
 }
 
 
@@ -543,7 +543,7 @@ BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearn
     context.criticalBits = identifyCriticalBits(context.targetNonce);
     
     // === CONFIANCE ATTENDUE ===
-    context.expectedConfidence = estimateExpectedConfidence(context);
+    // A REVOIR : context.expectedConfidence = estimateExpectedConfidence(context);
     
     return context;
 }
@@ -2675,6 +2675,232 @@ bool BiologicalNetwork::restoreNetworkSnapshot(const QJsonObject &snapshot)
         return false;
     }
 }
+
+
+/**
+ * @brief Estime le niveau de difficulté Bitcoin à partir d'un nonce
+ * @param nonce Nonce à analyser
+ * @return Niveau de difficulté estimé (1-4, où 4 = le plus difficile)
+ */
+int BiologicalNetwork::estimateDifficultyFromNonce(uint64_t nonce)
+{
+    if (nonce == 0) {
+        return 1; // Difficulté minimale par défaut
+    }
+    
+    // === ANALYSE DES PATTERNS BINAIRES ===
+    
+    // Convertir le nonce en représentation binaire pour analyse
+    QVector<bool> binaryBits(32, false);
+    for (int i = 0; i < 32; ++i) {
+        binaryBits[i] = (nonce >> i) & 1;
+    }
+    
+    // === COMPTAGE DES ZÉROS CONSÉCUTIFS ===
+    
+    // Compter les zéros consécutifs depuis les bits de poids fort (MSB)
+    int leadingZeros = 0;
+    for (int i = 31; i >= 0; --i) {
+        if (!binaryBits[i]) {
+            leadingZeros++;
+        } else {
+            break;
+        }
+    }
+    
+    // Compter les zéros consécutifs depuis les bits de poids faible (LSB)
+    int trailingZeros = 0;
+    for (int i = 0; i < 32; ++i) {
+        if (!binaryBits[i]) {
+            trailingZeros++;
+        } else {
+            break;
+        }
+    }
+    
+    // === ANALYSE DE LA COMPLEXITÉ ===
+    
+    // Compter le nombre total de bits à 1
+    int setBitsCount = 0;
+    for (bool bit : binaryBits) {
+        if (bit) setBitsCount++;
+    }
+    
+    // Calculer la densité de bits (0 = tous zéros, 1 = tous uns)
+    double bitDensity = static_cast<double>(setBitsCount) / 32.0;
+    
+    // === ANALYSE DES TRANSITIONS ===
+    
+    // Compter les transitions 0->1 et 1->0
+    int transitions = 0;
+    for (int i = 1; i < 32; ++i) {
+        if (binaryBits[i] != binaryBits[i-1]) {
+            transitions++;
+        }
+    }
+    
+    // === ANALYSE DES PATTERNS SPÉCIAUX ===
+    
+    // Détecter des patterns de haute difficulté connus
+    bool hasSpecialPattern = false;
+    QString patternType = "";
+    
+    // Pattern 1: Beaucoup de zéros au début (haute difficulté mining)
+    if (leadingZeros >= 8) {
+        hasSpecialPattern = true;
+        patternType = "LEADING_ZEROS";
+    }
+    
+    // Pattern 2: Très faible densité de bits (nonce "propre")
+    if (bitDensity <= 0.2) {
+        hasSpecialPattern = true;
+        patternType = "LOW_DENSITY";
+    }
+    
+    // Pattern 3: Très haute densité de bits (nonce saturé)
+    if (bitDensity >= 0.8) {
+        hasSpecialPattern = true;
+        patternType = "HIGH_DENSITY";
+    }
+    
+    // Pattern 4: Peu de transitions (nonce "lisse")
+    if (transitions <= 4) {
+        hasSpecialPattern = true;
+        patternType = "LOW_TRANSITIONS";
+    }
+    
+    // Pattern 5: Beaucoup de transitions (nonce "chaotique")
+    if (transitions >= 20) {
+        hasSpecialPattern = true;
+        patternType = "HIGH_TRANSITIONS";
+    }
+    
+    // === DÉTECTION DE NONCES HISTORIQUES BITCOIN ===
+    
+    // Nonces connus de blocs célèbres Bitcoin
+    const uint64_t GENESIS_NONCE = 2083236893ULL;        // Genesis Block
+    const uint64_t PIZZA_NONCE = 1639830024ULL;          // Pizza Day approximatif
+    const uint64_t HALVING_1_NONCE = 2595206473ULL;      // Premier halving approximatif
+    const uint64_t HALVING_2_NONCE = 429496729ULL;       // Deuxième halving approximatif
+    
+    bool isHistoricalNonce = false;
+    QString historicalType = "";
+    
+    if (nonce == GENESIS_NONCE) {
+        isHistoricalNonce = true;
+        historicalType = "GENESIS";
+    } else if (qAbs(static_cast<int64_t>(nonce - PIZZA_NONCE)) < 1000000) {
+        isHistoricalNonce = true;
+        historicalType = "PIZZA_ERA";
+    } else if (qAbs(static_cast<int64_t>(nonce - HALVING_1_NONCE)) < 5000000) {
+        isHistoricalNonce = true;
+        historicalType = "HALVING_1_ERA";
+    } else if (qAbs(static_cast<int64_t>(nonce - HALVING_2_NONCE)) < 5000000) {
+        isHistoricalNonce = true;
+        historicalType = "HALVING_2_ERA";
+    }
+    
+    // === CALCUL DU SCORE DE DIFFICULTÉ ===
+    
+    double difficultyScore = 0.0;
+    
+    // Facteur 1: Zéros consécutifs (plus de zéros = plus difficile)
+    double zerosScore = static_cast<double>(qMax(leadingZeros, trailingZeros)) / 16.0;
+    zerosScore = qBound(0.0, zerosScore, 1.0);
+    
+    // Facteur 2: Densité de bits (extrêmes = plus difficile)
+    double densityScore = 0.0;
+    if (bitDensity <= 0.5) {
+        densityScore = (0.5 - bitDensity) * 2.0; // Plus proche de 0 = score plus élevé
+    } else {
+        densityScore = (bitDensity - 0.5) * 2.0; // Plus proche de 1 = score plus élevé
+    }
+    densityScore = qBound(0.0, densityScore, 1.0);
+    
+    // Facteur 3: Transitions (extrêmes = plus difficile)
+    double transitionScore = 0.0;
+    double normalizedTransitions = static_cast<double>(transitions) / 31.0;
+    if (normalizedTransitions <= 0.3 || normalizedTransitions >= 0.7) {
+        transitionScore = qMax(0.3 - normalizedTransitions, normalizedTransitions - 0.7) / 0.3;
+    }
+    transitionScore = qBound(0.0, transitionScore, 1.0);
+    
+    // Facteur 4: Bonus pour patterns spéciaux
+    double specialBonus = hasSpecialPattern ? 0.3 : 0.0;
+    
+    // Facteur 5: Bonus pour nonces historiques
+    double historicalBonus = isHistoricalNonce ? 0.2 : 0.0;
+    
+    // === COMBINAISON PONDÉRÉE ===
+    
+    difficultyScore = (zerosScore * 0.40) + 
+                     (densityScore * 0.25) + 
+                     (transitionScore * 0.20) + 
+                     (specialBonus * 0.10) + 
+                     (historicalBonus * 0.05);
+    
+    difficultyScore = qBound(0.0, difficultyScore, 1.0);
+    
+    // === CONVERSION EN NIVEAU DE DIFFICULTÉ ===
+    
+    int difficultyLevel;
+    
+    if (difficultyScore >= 0.75) {
+        difficultyLevel = 4; // Très difficile
+    } else if (difficultyScore >= 0.50) {
+        difficultyLevel = 3; // Difficile
+    } else if (difficultyScore >= 0.25) {
+        difficultyLevel = 2; // Modéré
+    } else {
+        difficultyLevel = 1; // Facile
+    }
+    
+    // === AJUSTEMENTS SPÉCIAUX ===
+    
+    // Forcer niveau 4 pour certains patterns extrêmes
+    if (leadingZeros >= 12 || bitDensity <= 0.1 || bitDensity >= 0.9) {
+        difficultyLevel = 4;
+    }
+    
+    // Forcer niveau 4 pour nonces historiques importants
+    if (isHistoricalNonce && (historicalType == "GENESIS" || historicalType == "HALVING_1_ERA")) {
+        difficultyLevel = qMax(difficultyLevel, 3);
+    }
+    
+    // === LOGGING DÉTAILLÉ ===
+    
+    if (m_currentEpoch % 100 == 0) {
+        qDebug() << "[BIO-NET] 🎯 estimateDifficultyFromNonce analyse:";
+        qDebug() << "  🔢 Nonce:" << QString("0x%1").arg(nonce, 8, 16, QChar('0'));
+        qDebug() << "  📊 Bits à 1:" << setBitsCount << "/32 (densité:" << QString::number(bitDensity, 'f', 3) << ")";
+        qDebug() << "  🔄 Transitions:" << transitions << "/31";
+        qDebug() << "  0️⃣  Zéros début/fin:" << leadingZeros << "/" << trailingZeros;
+        
+        if (hasSpecialPattern) {
+            qDebug() << "  ⭐ Pattern spécial:" << patternType;
+        }
+        
+        if (isHistoricalNonce) {
+            qDebug() << "  🏛️  Nonce historique:" << historicalType;
+        }
+        
+        qDebug() << "  🎯 Score difficulté:" << QString::number(difficultyScore, 'f', 3);
+        qDebug() << "  📈 Niveau final:" << difficultyLevel << "/4";
+    }
+    
+    // === LOGGING SPÉCIALISÉ POUR CAS INTÉRESSANTS ===
+    
+    if (difficultyLevel >= 3 && m_currentEpoch % 50 == 0) {
+        qDebug() << "[BIO-NET] 🎖️  Nonce haute difficulté détecté:"
+                 << "niveau" << difficultyLevel
+                 << "score" << QString::number(difficultyScore, 'f', 3)
+                 << "nonce 0x" << QString::number(nonce, 16);
+    }
+    
+    return difficultyLevel;
+}
+
+
 
 
 
