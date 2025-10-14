@@ -414,7 +414,7 @@ void BiologicalNetwork::onLearningCycle()
             }
         }   
 
-        if (m_currentEpoch % 10 == 0) {
+        if (m_currentEpoch % 100 == 0) {
                 qDebug() << "apprentissage : sortie=" << networkOutput
                         << " targets=" << targets  
                         << " targetNonce=" << example.targetNonce << " -> predictNonce=" << predictedNonce; 
@@ -432,7 +432,7 @@ void BiologicalNetwork::onLearningCycle()
     m_trainingProgress = static_cast<double>(m_currentEpoch) / m_totalEpochs;
     
     // Émission périodique du progrès
-    if (m_currentEpoch % 10 == 0) {
+    if (m_currentEpoch % 100 == 0) {
         emit trainingProgress(m_trainingProgress * 100.0);
         
         // Calcul de l'efficacité du réseau
@@ -995,7 +995,7 @@ void BiologicalNetwork::forwardPropagation(const QVector<double> &inputs)
     }
     
     // Émission périodique du progrès
-    if (m_currentEpoch % 10 == 0) {
+    if (m_currentEpoch % 100 == 0) {
         qDebug() << "[BIO-NET] Cycle forwardPropagation"
                  << "- Input :" << inputsTmp
                  << "- Sortie:" << outputsTmp;
@@ -1020,7 +1020,7 @@ void BiologicalNetwork::backPropagation(const QVector<double> &targets)
     }
 
     // Émission périodique du progrès
-    if (m_currentEpoch % 10 == 0) {
+    if (m_currentEpoch % 100 == 0) {
         qDebug() << "[BIO-NET] Cycle backPropagation"
                  << "- outputErrors :" << outputErrors;
     }
@@ -2503,7 +2503,7 @@ QJsonObject BiologicalNetwork::captureNetworkSnapshot() const
     
     // === LOGGING DE L'INSTANTANÉ ===
     
-    if (m_currentEpoch % 50 == 0) {
+    if (m_currentEpoch % 100 == 0) {
         qDebug() << "[BIO-NET] 📸 Instantané réseau capturé :";
         qDebug() << "  🧬 Neurones totaux:" << totalNeurons;
         qDebug() << "  🔗 Connexions totales:" << totalConnections;
@@ -2890,7 +2890,7 @@ int BiologicalNetwork::estimateDifficultyFromNonce(uint64_t nonce)
     
     // === LOGGING SPÉCIALISÉ POUR CAS INTÉRESSANTS ===
     
-    if (difficultyLevel >= 3 && m_currentEpoch % 50 == 0) {
+    if (difficultyLevel >= 3 && m_currentEpoch % 100 == 0) {
         qDebug() << "[BIO-NET] 🎖️  Nonce haute difficulté détecté:"
                  << "niveau" << difficultyLevel
                  << "score" << QString::number(difficultyScore, 'f', 3)
