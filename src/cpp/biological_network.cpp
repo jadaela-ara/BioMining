@@ -436,7 +436,7 @@ void BiologicalNetwork::onLearningCycle()
         emit trainingProgress(m_trainingProgress * 100.0);
         
         // Calcul de l'efficacité du réseau
-        calculateNetworkEfficiency();
+        // A REVOIR : calculateNetworkEfficiency();
         
         qDebug() << "[BIO-NET] Cycle" << m_currentEpoch << "/" << m_totalEpochs 
                  << "- Progression :" << QString::number(m_trainingProgress, 'f', 3)
