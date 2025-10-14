@@ -336,7 +336,7 @@ void BiologicalNetwork::generateTrainingData()
              << m_learningHistory.size() << "exemples réalistes";
     
     // Statistiques détaillées
-    logTrainingDataStatistics();
+    // A REVOIR : logTrainingDataStatistics();
 }
 
 
@@ -543,7 +543,7 @@ BiologicalNetwork::BitcoinLearningContext BiologicalNetwork::analyzeBitcoinLearn
     context.criticalBits = identifyCriticalBits(context.targetNonce);
     
     // === CONFIANCE ATTENDUE ===
-    context.expectedConfidence = estimateExpectedConfidence(context);
+    // A REVOIR : context.expectedConfidence = estimateExpectedConfidence(context);
     
     return context;
 }
