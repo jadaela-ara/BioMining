@@ -238,6 +238,7 @@ bool BiologicalNetwork::startInitialLearning(int trainingCycles)
     if (m_learningThread.joinable()) {
         m_learningThread.join();
     }
+    
     m_learningThread = std::thread([this]() {
         while (m_learningActive && m_currentEpoch <= m_totalEpochs) {
             this->onLearningCycle();
@@ -375,6 +376,7 @@ bool BiologicalNetwork::isLearningComplete() const
 void BiologicalNetwork::onLearningCycle()
 {
     QMutexLocker locker(&m_networkMutex);
+    //std::unique_lock<std::mutex> lock(m_learningCycleMutex);
     
     if (m_currentEpoch >= m_totalEpochs) {
         // Apprentissage terminé
@@ -518,8 +520,8 @@ void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, cons
     // === MÉMORISATION DES PATTERNS RÉUSSIS ===
     if (result.isSuccessful) {
         qDebug() << "[BIO-NET] performLearningCycle isSuccessful"; 
-        memorizeBitcoinPattern(inputs, targets, result);
-        qDebug() << "[BIO-NET] performLearningCycle memorizeBP"; 
+        // A REVOIR : memorizeBitcoinPattern(inputs, targets, result);
+        //qDebug() << "[BIO-NET] performLearningCycle memorizeBP"; 
     }
     
     // === LOGGING DÉTAILLÉ (OPTIONNEL) ===
