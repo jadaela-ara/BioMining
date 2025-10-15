@@ -6,6 +6,8 @@
 #include <QDateTime>
 #include <cmath>
 
+using namespace BioMining::Bio;
+
 namespace BioMining {
 namespace Bio {
 
