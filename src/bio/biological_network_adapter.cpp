@@ -114,11 +114,11 @@ bool BiologicalNetworkAdapter::applyStimulus(const StimulusPattern &pattern)
     return true;
 }
 
-BioMining::Bio::BioResponse BiologicalNetworkAdapter::captureResponse(int waitTimeMs)
+BioMining::Bio::IBioComputeInterface::BioResponse BiologicalNetworkAdapter::captureResponse(int waitTimeMs)
 {
     QMutexLocker locker(&m_mutex);
     
-    BioMining::Bio::BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     response.isValid = false;
     
     if (!isReady()) {
@@ -153,9 +153,9 @@ BioMining::Bio::BioResponse BiologicalNetworkAdapter::captureResponse(int waitTi
     return response;
 }
 
-BioMining::Bio::BioResponse BiologicalNetworkAdapter::stimulateAndCapture(const StimulusPattern &pattern)
+BioMining::Bio::IBioComputeInterface::BioResponse BiologicalNetworkAdapter::stimulateAndCapture(const StimulusPattern &pattern)
 {
-    BioMining::Bio::BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     response.isValid = false;
     
     qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
@@ -256,9 +256,9 @@ void BiologicalNetworkAdapter::onNetworkLearningStateChanged(Network::Biological
 }
 
 // Private methods
-BioMining::Bio::BioResponse BiologicalNetworkAdapter::convertNetworkOutputToResponse(const QVector<double> &output)
+BioMining::Bio::IBioComputeInterface::BioResponse BiologicalNetworkAdapter::convertNetworkOutputToResponse(const QVector<double> &output)
 {
-    BioMining::Bio::BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     
     if (output.isEmpty()) {
         response.isValid = false;
