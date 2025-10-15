@@ -264,24 +264,24 @@ BioResponse BiologicalNetworkAdapter::convertNetworkOutputToResponse(const QVect
     
     // Utiliser la sortie du réseau comme signaux de réponse
     // Si output < 60, on le complète avec les derniers signaux
-    response.signals.resize(60);
+    response.rsignals.resize(60);
     
     for (int i = 0; i < 60; ++i) {
         if (i < output.size()) {
-            response.signals[i] = output[i];
+            response.rsignals[i] = output[i];
         } else if (i < m_lastStimulusSignals.size()) {
             // Compléter avec stimulus atténué
-            response.signals[i] = m_lastStimulusSignals[i] * 0.5;
+            response.rsignals[i] = m_lastStimulusSignals[i] * 0.5;
         } else {
-            response.signals[i] = 0.0;
+            response.rsignals[i] = 0.0;
         }
     }
     
     // Calculer la force de réponse
-    response.responseStrength = calculateNetworkResponseStrength(response.signals);
+    response.responseStrength = calculateNetworkResponseStrength(response.rsignals);
     
     // Calculer la qualité du signal (simulation = haute qualité)
-    response.signalQuality = calculateNetworkSignalQuality(response.signals);
+    response.signalQuality = calculateNetworkSignalQuality(response.rsignals);
     
     // Timestamp actuel
     response.responseTime = QDateTime::currentMSecsSinceEpoch() * 1000;
