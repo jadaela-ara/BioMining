@@ -41,7 +41,7 @@ public:
      * @brief Réponse du système biologique (sortie)
      */
     struct BioResponse {
-        QVector<double> signals;        // 60 signaux de réponse
+        QVector<double> rsignals;        // 60 signaux de réponse
         double responseStrength;        // Force globale de la réponse
         double signalQuality;           // Qualité du signal [0,1]
         qint64 responseTime;            // Temps de réponse [μs]

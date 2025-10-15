@@ -2517,7 +2517,7 @@ uint32_t HybridBitcoinMiner::mineWithBioEntropy(const QString& blockHeader, uint
                 .arg(bioResponse.signalQuality);
     
     // ÉTAPE 4: Générer seed d'entropie
-    auto entropySeed = m_entropyGenerator->generateEntropySeed(bioResponse.signals, features);
+    auto entropySeed = m_entropyGenerator->generateEntropySeed(bioResponse.rsignals, features);
     
     qDebug() << QString("[HybridBitcoinMiner] Entropy seed: 0x%1, confidence=%2")
                 .arg(entropySeed.primarySeed, 16, 16, QChar('0'))
@@ -2541,7 +2541,7 @@ uint32_t HybridBitcoinMiner::mineWithBioEntropy(const QString& blockHeader, uint
     if (foundNonce != 0) {
         double reward = 1.0;
         m_bioCompute->reinforcePattern(bioStimulus, foundNonce, reward);
-        m_entropyGenerator->reinforceSuccessfulPattern(features, bioResponse.signals, foundNonce);
+        m_entropyGenerator->reinforceSuccessfulPattern(features, bioResponse.rsignals, foundNonce);
         
         qDebug() << "[HybridBitcoinMiner] Pattern reinforced successfully";
         
