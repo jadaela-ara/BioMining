@@ -1,4 +1,5 @@
 # Dockerfile.cpp-simple - version corrigée pour build C++/Qt/Pybind11 avec support MOC (renommage .moc en .moc.cpp)
+# Updated to include Bio-Entropy Mining Architecture (d63d12d)
 
 FROM python:3.11-slim
 
@@ -46,7 +47,7 @@ ENV QT_SELECT=5
 ENV QT_QPA_PLATFORM=offscreen
 ENV DISPLAY=:0
 
-# Generate ALL required MOC files before compilation
+# Generate ALL required MOC files before compilation (including Bio-Entropy)
 RUN echo "🔧 Generating Qt MOC files..." && \
     /usr/lib/qt5/bin/moc include/bio/biological_network.h -o src/cpp/biological_network.moc && \
     /usr/lib/qt5/bin/moc include/crypto/bitcoin_miner.h -o src/cpp/bitcoin_miner.moc && \
@@ -59,33 +60,42 @@ RUN echo "🔧 Generating Qt MOC files..." && \
     if grep -q "Q_OBJECT" include/crypto/hybrid_bitcoin_miner.h; then \
         /usr/lib/qt5/bin/moc include/crypto/hybrid_bitcoin_miner.h -o src/cpp/hybrid_bitcoin_miner.moc; \
     fi && \
+    echo "🧬 Generating Bio-Entropy MOC files..." && \
+    /usr/lib/qt5/bin/moc include/bio/ibio_compute_interface.h -o src/bio/ibio_compute_interface.moc && \
+    /usr/lib/qt5/bin/moc include/bio/real_mea_adapter.h -o src/bio/real_mea_adapter.moc && \
+    /usr/lib/qt5/bin/moc include/bio/biological_network_adapter.h -o src/bio/biological_network_adapter.moc && \
+    /usr/lib/qt5/bin/moc include/crypto/bio_entropy_generator.h -o src/crypto/bio_entropy_generator.moc && \
     echo "✅ MOC generation completed" && \
-    ls -la src/cpp/*.moc
+    ls -la src/cpp/*.moc src/bio/*.moc src/crypto/*.moc
 
-# Renommer les fichiers .moc en .moc.cpp pour setuptools
+# Renommer les fichiers .moc en .moc.cpp pour setuptools (including Bio-Entropy)
 RUN mv src/cpp/biological_network.moc src/cpp/biological_network.moc.cpp && \
     mv src/cpp/bitcoin_miner.moc src/cpp/bitcoin_miner.moc.cpp && \
     mv src/cpp/real_mea_interface.moc src/cpp/real_mea_interface.moc.cpp && \
     mv src/cpp/mea_interface.moc src/cpp/mea_interface.moc.cpp && \
-    mv src/cpp/hybrid_bitcoin_miner.moc src/cpp/hybrid_bitcoin_miner.moc.cpp
+    mv src/cpp/hybrid_bitcoin_miner.moc src/cpp/hybrid_bitcoin_miner.moc.cpp && \
+    mv src/bio/ibio_compute_interface.moc src/bio/ibio_compute_interface.moc.cpp && \
+    mv src/bio/real_mea_adapter.moc src/bio/real_mea_adapter.moc.cpp && \
+    mv src/bio/biological_network_adapter.moc src/bio/biological_network_adapter.moc.cpp && \
+    mv src/crypto/bio_entropy_generator.moc src/crypto/bio_entropy_generator.moc.cpp
 
-# Verify MOC files were created
+# Verify MOC files were created (including Bio-Entropy)
 RUN echo "🔍 Verifying MOC files exist:" && \
-    ls -la src/cpp/*.moc.cpp || echo "⚠️ Some MOC files missing"
+    ls -la src/cpp/*.moc.cpp src/bio/*.moc.cpp src/crypto/*.moc.cpp || echo "⚠️ Some MOC files missing"
 
 # Crée un setup_simple.py (adapté pour build avec tous les .moc.cpp)
 WORKDIR /app/python_bindings
 
 RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
-    echo "# Simple setup.py for Qt MOC-enabled C++ bindings" >> setup_simple.py && \
+    echo "# Simple setup.py for Qt MOC-enabled C++ bindings (with Bio-Entropy support)" >> setup_simple.py && \
     echo "import os" >> setup_simple.py && \
     echo "from pybind11.setup_helpers import Pybind11Extension, build_ext" >> setup_simple.py && \
     echo "from setuptools import setup" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "# Qt5 configuration" >> setup_simple.py && \
-    echo "qt_include_dirs = ['../include', '../src/cpp', '/usr/include/x86_64-linux-gnu/qt5', '/usr/include/x86_64-linux-gnu/qt5/QtCore', '/usr/include/x86_64-linux-gnu/qt5/QtNetwork', '/usr/include/x86_64-linux-gnu/qt5/QtSerialPort', '/usr/include/x86_64-linux-gnu/qt5/QtWidgets']" >> setup_simple.py && \
+    echo "qt_include_dirs = ['../include', '../src/cpp', '../src/bio', '../src/crypto', '/usr/include/x86_64-linux-gnu/qt5', '/usr/include/x86_64-linux-gnu/qt5/QtCore', '/usr/include/x86_64-linux-gnu/qt5/QtNetwork', '/usr/include/x86_64-linux-gnu/qt5/QtSerialPort', '/usr/include/x86_64-linux-gnu/qt5/QtWidgets', '/usr/include/x86_64-linux-gnu/qt5/QtConcurrent']" >> setup_simple.py && \
     echo "qt_lib_dirs = ['/usr/lib/x86_64-linux-gnu']" >> setup_simple.py && \
-    echo "qt_libs = ['Qt5Core', 'Qt5Network', 'Qt5SerialPort', 'Qt5Widgets']" >> setup_simple.py && \
+    echo "qt_libs = ['Qt5Core', 'Qt5Network', 'Qt5SerialPort', 'Qt5Widgets', 'Qt5Concurrent']" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "cpp_sources = [" >> setup_simple.py && \
     echo "    'biomining_python.cpp'," >> setup_simple.py && \
@@ -99,6 +109,12 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "    '../src/cpp/mea_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.moc.cpp'," >> setup_simple.py && \
+    echo "    '../src/bio/real_mea_adapter.cpp'," >> setup_simple.py && \
+    echo "    '../src/bio/real_mea_adapter.moc.cpp'," >> setup_simple.py && \
+    echo "    '../src/bio/biological_network_adapter.cpp'," >> setup_simple.py && \
+    echo "    '../src/bio/biological_network_adapter.moc.cpp'," >> setup_simple.py && \
+    echo "    '../src/crypto/bio_entropy_generator.cpp'," >> setup_simple.py && \
+    echo "    '../src/crypto/bio_entropy_generator.moc.cpp'," >> setup_simple.py && \
     echo "]" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
     echo "ext_modules = [Pybind11Extension(" >> setup_simple.py && \
@@ -109,11 +125,11 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "    libraries=qt_libs," >> setup_simple.py && \
     echo "    language='c++'," >> setup_simple.py && \
     echo "    cxx_std=17," >> setup_simple.py && \
-    echo "    extra_compile_args=['-DQT_CORE_LIB','-DQT_NETWORK_LIB','-DQT_SERIALPORT_LIB','-DQT_WIDGETS_LIB','-std=c++17','-frtti']," >> setup_simple.py && \
+    echo "    extra_compile_args=['-DQT_CORE_LIB','-DQT_NETWORK_LIB','-DQT_SERIALPORT_LIB','-DQT_WIDGETS_LIB','-DQT_CONCURRENT_LIB','-std=c++17','-frtti']," >> setup_simple.py && \
     echo "    extra_link_args=['-Wl,-rpath,$ORIGIN']," >> setup_simple.py && \
     echo ")]" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
-    echo "setup(name='biomining-cpp-simple', version='1.0.0', ext_modules=ext_modules, cmdclass={'build_ext': build_ext}, zip_safe=False)" >> setup_simple.py
+    echo "setup(name='biomining-cpp-bioentropy', version='2.0.0', ext_modules=ext_modules, cmdclass={'build_ext': build_ext}, zip_safe=False)" >> setup_simple.py
 
 # Compile the C++ bindings with MOC support
 RUN echo "🚀 Compiling C++ bindings with Qt MOC support..." && \
