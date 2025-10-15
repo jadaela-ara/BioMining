@@ -8,7 +8,7 @@ set -e
 # Configuration
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project)}"
 SERVICE_NAME="biomining-cpp-ultra-simple"
-REGION="us-central1"
+REGION="europe-west1"
 SOURCE_DOCKERFILE="Dockerfile.cpp-simple"
 TARGET_DOCKERFILE="Dockerfile"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
