@@ -22,7 +22,7 @@ echo "   Source Dockerfile: $SOURCE_DOCKERFILE"
 echo "   Image: $IMAGE_NAME"
 echo ""
 
-# Verify required files exist
+# Verify required files exist (including Bio-Entropy)
 echo "🔍 Verifying required files..."
 required_files=(
     "$SOURCE_DOCKERFILE"
@@ -35,7 +35,18 @@ required_files=(
     "web/api/server.py"
 )
 
-for file in "${required_files[@]}"; do
+echo "🧬 Verifying Bio-Entropy files..."
+bio_entropy_files=(
+    "include/bio/ibio_compute_interface.h"
+    "include/bio/real_mea_adapter.h"
+    "include/bio/biological_network_adapter.h"
+    "include/crypto/bio_entropy_generator.h"
+    "src/bio/real_mea_adapter.cpp"
+    "src/bio/biological_network_adapter.cpp"
+    "src/crypto/bio_entropy_generator.cpp"
+)
+
+for file in "${required_files[@]}" "${bio_entropy_files[@]}"; do
     if [[ -f "$file" ]]; then
         echo "✅ Found: $file"
     else
@@ -167,6 +178,31 @@ if [[ -n "$SERVICE_URL" ]]; then
         echo "📋 Response: $TEST_RESPONSE"
     fi
     
+    echo ""
+    echo "🧬 Testing Bio-Entropy endpoints..."
+    
+    # Test Bio-Entropy extract features
+    FEATURE_TEST=$(curl -s -X POST "$SERVICE_URL/api/bio-entropy/extract-features" \
+        -H "Content-Type: application/json" \
+        -d '{"block_header": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "difficulty": 1}' || echo "error")
+    
+    if [[ "$FEATURE_TEST" == *"features"* ]]; then
+        echo "✅ Bio-Entropy feature extraction working"
+    else
+        echo "⚠️ Bio-Entropy feature extraction test failed"
+        echo "📋 Response: $FEATURE_TEST"
+    fi
+    
+    # Test Bio-Entropy stats
+    STATS_TEST=$(curl -s "$SERVICE_URL/api/bio-entropy/stats" || echo "error")
+    
+    if [[ "$STATS_TEST" == *"stats"* ]] || [[ "$STATS_TEST" == *"mode"* ]]; then
+        echo "✅ Bio-Entropy stats endpoint working"
+    else
+        echo "⚠️ Bio-Entropy stats endpoint test failed"
+        echo "📋 Response: $STATS_TEST"
+    fi
+    
 else
     echo "❌ Could not retrieve service URL"
 fi
@@ -190,6 +226,14 @@ if [[ -n "$SERVICE_URL" ]]; then
     echo "   curl -X POST $SERVICE_URL/api/configure-biological-network \\"
     echo "        -H 'Content-Type: application/json' \\"
     echo "        -d '{\"learning_rate\": 0.01, \"epochs\": 10}'"
+    echo ""
+    echo "🧬 Test Bio-Entropy feature extraction:"
+    echo "   curl -X POST $SERVICE_URL/api/bio-entropy/extract-features \\"
+    echo "        -H 'Content-Type: application/json' \\"
+    echo "        -d '{\"block_header\": \"...\", \"difficulty\": 1}'"
+    echo ""
+    echo "📊 Get Bio-Entropy stats:"
+    echo "   curl $SERVICE_URL/api/bio-entropy/stats"
 fi
 
 echo ""
@@ -197,5 +241,13 @@ echo "✅ Deployment completed! Real C++ methods should now be available."
 echo ""
 echo "🎯 User requested: \"non je veux rester avec les vraies méthodes C++\""
 echo "✅ This deployment provides REAL C++ BiologicalNetwork.startInitialLearning() method!"
+echo "🧬 Bio-Entropy Mining Platform with dual-mode architecture (RealMEA + SimulatedNetwork)!"
 echo ""
 echo "🔧 This version uses the ultra-simple approach: temporary Dockerfile rename!"
+echo ""
+echo "📊 Bio-Entropy Features:"
+echo "   - 60-dimensional feature extraction from block headers"
+echo "   - 3 adaptive strategies: Uniform, Fibonacci, BioGuided"
+echo "   - Smart nonce generation: 1000 starting points × 4M window"
+echo "   - Reinforcement learning on successful patterns"
+echo "   - Runtime mode switching: RealMEA ↔ SimulatedNetwork"
