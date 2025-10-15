@@ -265,9 +265,9 @@ BioResponse RealMEAAdapter::convertElectrodeDataToResponse(const QVector<Electro
     }
     
     // Extraire les signaux de voltage
-    response.signals.resize(60);
+    response.rsignals.resize(60);
     for (int i = 0; i < 60; ++i) {
-        response.signals[i] = electrodeData[i].voltage;
+        response.rsignals[i] = electrodeData[i].voltage;
     }
     
     // Calculer la force de réponse
