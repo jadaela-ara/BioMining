@@ -34,6 +34,12 @@
 #include "../bio/mea_interface.h"
 #include "../bio/real_mea_interface.h"
 
+// === BIO-ENTROPY MINING ARCHITECTURE ===
+#include "../bio/ibio_compute_interface.h"
+#include "../bio/real_mea_adapter.h"
+#include "../bio/biological_network_adapter.h"
+#include "bio_entropy_generator.h"
+
 // Forward declarations to avoid circular dependencies
 namespace BioMining {
 namespace HCrypto {
@@ -455,6 +461,47 @@ private:
     QVector<double> blockHeaderToNetworkInput(const QString& blockHeader);
     bool isTripleSystemReady() const;
     
+    // === BIO-ENTROPY MINING METHODS ===
+public:
+    /**
+     * @brief Mode de calcul biologique
+     */
+    enum class BioComputeMode {
+        RealMEA,              // MEA avec vraies cellules biologiques
+        SimulatedNetwork      // Réseau biologique simulé
+    };
+    Q_ENUM(BioComputeMode)
+    
+    /**
+     * @brief Configure le mode de calcul biologique
+     */
+    void setBioComputeMode(BioComputeMode mode);
+    BioComputeMode getBioComputeMode() const { return m_bioComputeMode; }
+    
+    /**
+     * @brief Initialise le système bio-entropy
+     */
+    bool initializeBioEntropy();
+    
+    /**
+     * @brief Mining avec bio-entropy (Approche 3)
+     */
+    uint32_t mineWithBioEntropy(const QString& blockHeader, uint64_t difficulty);
+    
+    /**
+     * @brief Obtient les statistiques d'entropie
+     */
+    QJsonObject getBioEntropyStats() const;
+    
+private:
+    // Méthodes bio-entropy privées
+    bool validateNonceCandidate(const QString& blockHeader, uint64_t difficulty, uint32_t nonce);
+    void parallelSearchCandidates(const QString& blockHeader, 
+                                  uint64_t difficulty,
+                                  const QVector<uint32_t>& candidates,
+                                  uint32_t windowSize,
+                                  uint32_t& foundNonce);
+    
 private:
     // Composants principaux - SYSTÈME TRIPLE
     std::unique_ptr<BioMining::Crypto::BitcoinMiner> m_traditionalMiner;
@@ -506,6 +553,15 @@ private:
     mutable QMutex m_dataMutex;
     mutable QMutex m_learningMutex;
     QWaitCondition m_miningCondition;
+    
+    // === BIO-ENTROPY SYSTEM MEMBERS ===
+    BioComputeMode m_bioComputeMode;
+    QSharedPointer<BioMining::Bio::IBioComputeInterface> m_bioCompute;
+    QSharedPointer<BioMining::Crypto::BioEntropyGenerator> m_entropyGenerator;
+    
+    // Adapteurs spécifiques
+    QSharedPointer<BioMining::Bio::RealMEAAdapter> m_realMeaAdapter;
+    QSharedPointer<BioMining::Bio::BiologicalNetworkAdapter> m_networkAdapter;
     
     // Constantes
     static constexpr int MAX_TRAINING_HISTORY = 10000;

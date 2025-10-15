@@ -2347,6 +2347,326 @@ class HybridBitcoinMiningApp {
         
         return allForms.length;
     }
+
+    // ================================================================
+    // BIO-ENTROPY MINING METHODS
+    // ================================================================
+
+    /**
+     * Initialize Bio-Entropy system
+     */
+    initializeBioEntropy() {
+        console.log('🧬 Initializing Bio-Entropy system...');
+        
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'initialize_bio_entropy'
+            });
+        }
+        
+        this.showNotification('info', 'Initializing Bio-Entropy mining system...');
+    }
+
+    /**
+     * Set bio-compute mode (RealMEA or SimulatedNetwork)
+     */
+    setBioComputeMode(mode) {
+        console.log(`🔄 Setting bio-compute mode to: ${mode}`);
+        
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'set_bio_compute_mode',
+                mode: mode
+            });
+        }
+        
+        // Update UI
+        const modeDisplay = document.getElementById('bioEntropyMode');
+        if (modeDisplay) {
+            modeDisplay.textContent = mode;
+        }
+        
+        this.showNotification('success', `Bio-compute mode set to ${mode}`);
+    }
+
+    /**
+     * Update Bio-Entropy statistics display
+     */
+    updateBioEntropyStats(data) {
+        console.log('📊 Updating Bio-Entropy stats:', data);
+        
+        // Update entropy seed display
+        if (data.primary_seed !== undefined) {
+            const seedElement = document.getElementById('primarySeed');
+            if (seedElement) {
+                seedElement.textContent = '0x' + data.primary_seed.toString(16).padStart(16, '0');
+            }
+        }
+        
+        if (data.confidence !== undefined) {
+            this.updateElement('seedConfidence', `${(data.confidence * 100).toFixed(1)}%`);
+            this.updateElement('entropyConfidence', `${(data.confidence * 100).toFixed(1)}%`);
+        }
+        
+        if (data.response_strength !== undefined) {
+            this.updateElement('responseStrength', data.response_strength.toFixed(2));
+        }
+        
+        // Update starting points
+        if (data.total_points !== undefined) {
+            this.updateElement('totalStartingPoints', data.total_points);
+            this.updateElement('startingPoints', data.total_points);
+        }
+        
+        if (data.strategy !== undefined) {
+            this.updateElement('activeStrategy', data.strategy);
+            this.updateElement('entropyStrategy', data.strategy);
+        }
+        
+        if (data.expected_coverage !== undefined) {
+            this.updateElement('estimatedCoverage', `${(data.expected_coverage * 100).toFixed(2)}%`);
+        }
+        
+        // Update biological response metrics
+        if (data.response_time !== undefined) {
+            this.updateElement('bioResponseTime', `${data.response_time} ms`);
+        }
+        
+        if (data.signal_quality !== undefined) {
+            this.updateElement('signalQuality', `${(data.signal_quality * 100).toFixed(1)}%`);
+        }
+        
+        if (data.reinforced_patterns !== undefined) {
+            this.updateElement('reinforcedPatterns', data.reinforced_patterns);
+        }
+        
+        // Update parallel search stats
+        if (data.active_threads !== undefined) {
+            this.updateElement('activeThreads', data.active_threads);
+        }
+        
+        if (data.window_per_point !== undefined) {
+            this.updateElement('windowPerPoint', this.formatNumber(data.window_per_point));
+        }
+        
+        if (data.hashrate !== undefined) {
+            this.updateElement('bioEntropyHashrate', `${this.formatNumber(data.hashrate)} H/s`);
+        }
+    }
+
+    /**
+     * Update entropy distribution chart
+     */
+    updateEntropyDistributionChart(startingPoints) {
+        const chartCanvas = document.getElementById('entropyDistributionChart');
+        if (!chartCanvas) return;
+        
+        // Initialize chart if it doesn't exist
+        if (!this.charts.entropyDistribution) {
+            this.charts.entropyDistribution = new Chart(chartCanvas, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Starting Points',
+                        data: [],
+                        backgroundColor: 'rgba(138, 43, 226, 0.6)',
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Nonce Space' },
+                            min: 0,
+                            max: 4294967296,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value / 1e9).toFixed(1) + 'B';
+                                }
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Density' },
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update chart data
+        const chartData = startingPoints.map((nonce, idx) => ({
+            x: nonce,
+            y: 0.5 + (Math.random() * 0.5) // Random density visualization
+        }));
+        
+        this.charts.entropyDistribution.data.datasets[0].data = chartData;
+        this.charts.entropyDistribution.update();
+        
+        console.log(`📈 Updated entropy distribution chart with ${startingPoints.length} points`);
+    }
+
+    /**
+     * Update biological response chart
+     */
+    updateBioResponseChart(signals) {
+        const chartCanvas = document.getElementById('bioResponseChart');
+        if (!chartCanvas) return;
+        
+        // Initialize chart if it doesn't exist
+        if (!this.charts.bioResponse) {
+            this.charts.bioResponse = new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 60}, (_, i) => `E${i+1}`),
+                    datasets: [{
+                        label: 'Signal Amplitude (μV)',
+                        data: new Array(60).fill(0),
+                        borderColor: 'rgba(34, 139, 34, 1)',
+                        backgroundColor: 'rgba(34, 139, 34, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'Amplitude (μV)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update chart data
+        this.charts.bioResponse.data.datasets[0].data = signals;
+        this.charts.bioResponse.update();
+        
+        console.log(`📊 Updated bio-response chart with ${signals.length} signals`);
+    }
+
+    /**
+     * Handle Bio-Entropy configuration form submission
+     */
+    setupBioEntropyHandlers() {
+        // Bio-Entropy config form
+        const bioEntropyForm = document.getElementById('bioEntropyConfigForm');
+        if (bioEntropyForm) {
+            bioEntropyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.submitBioEntropyConfig();
+            });
+        }
+        
+        // Mode selector radio buttons
+        const modeRadios = document.querySelectorAll('input[name="bioComputeMode"]');
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.setBioComputeMode(e.target.value);
+                }
+            });
+        });
+        
+        // Initialize Bio-Entropy button
+        const initButton = document.getElementById('initBioEntropy');
+        if (initButton) {
+            initButton.addEventListener('click', () => {
+                this.initializeBioEntropy();
+            });
+        }
+        
+        // System start/stop buttons for bio-entropy
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-start-system') && 
+                e.target.getAttribute('data-system') === 'bio-entropy') {
+                this.startBioEntropySystem();
+            }
+            
+            if (e.target.classList.contains('btn-stop-system') && 
+                e.target.getAttribute('data-system') === 'bio-entropy') {
+                this.stopBioEntropySystem();
+            }
+        });
+        
+        console.log('✅ Bio-Entropy handlers initialized');
+    }
+
+    /**
+     * Submit Bio-Entropy configuration
+     */
+    submitBioEntropyConfig() {
+        const config = {
+            mode: document.querySelector('input[name="bioComputeMode"]:checked')?.value || 'SimulatedNetwork',
+            strategy: document.getElementById('entropyStrategy')?.value || 'auto',
+            starting_points: parseInt(document.getElementById('startingPointsCount')?.value) || 1000,
+            window_size: parseInt(document.getElementById('windowSize')?.value) || 4194304,
+            max_voltage: parseFloat(document.getElementById('maxVoltage')?.value) || 3.0,
+            enable_reinforcement: document.getElementById('enableReinforcement')?.checked || true,
+            reward_weight: parseFloat(document.getElementById('rewardWeight')?.value) || 1.0,
+            history_size: parseInt(document.getElementById('historySize')?.value) || 100
+        };
+        
+        console.log('💾 Submitting Bio-Entropy config:', config);
+        
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'configure_bio_entropy',
+                config: config
+            });
+        }
+        
+        this.showNotification('success', 'Bio-Entropy configuration updated');
+    }
+
+    /**
+     * Start Bio-Entropy system
+     */
+    startBioEntropySystem() {
+        console.log('🚀 Starting Bio-Entropy system...');
+        
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'start_bio_entropy'
+            });
+        }
+        
+        // Update UI
+        const status = document.getElementById('bioEntropyStatus');
+        if (status) {
+            status.textContent = 'En ligne';
+            status.className = 'card-status online';
+        }
+        
+        this.showNotification('success', 'Bio-Entropy system started');
+    }
+
+    /**
+     * Stop Bio-Entropy system
+     */
+    stopBioEntropySystem() {
+        console.log('🛑 Stopping Bio-Entropy system...');
+        
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.sendWebSocketMessage({
+                type: 'stop_bio_entropy'
+            });
+        }
+        
+        // Update UI
+        const status = document.getElementById('bioEntropyStatus');
+        if (status) {
+            status.textContent = 'Hors ligne';
+            status.className = 'card-status offline';
+        }
+        
+        this.showNotification('info', 'Bio-Entropy system stopped');
+    }
 }
 
 /**
@@ -2354,6 +2674,13 @@ class HybridBitcoinMiningApp {
  */
 document.addEventListener('DOMContentLoaded', () => {
     window.hybridMiningApp = new HybridBitcoinMiningApp();
+    
+    // Setup Bio-Entropy handlers after app initialization
+    setTimeout(() => {
+        if (window.hybridMiningApp) {
+            window.hybridMiningApp.setupBioEntropyHandlers();
+        }
+    }, 500);
 });
 
 /**

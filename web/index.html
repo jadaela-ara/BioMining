@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧠⚡ BioMining Platform - Triple System Revolutionary Interface ⚡🧠</title>
+    <title>🧠⚡ BioMining Platform - Bio-Entropy Mining System ⚡🧠</title>
     
     <!-- Styles CSS -->
     <link rel="stylesheet" href="css/styles.css">
@@ -20,7 +20,7 @@
         <div class="header-content">
             <div class="logo-section">
                 <h1>🧠⚡ BioMining Platform</h1>
-                <span class="version">Triple System v1.0</span>
+                <span class="version">Bio-Entropy Mining v2.0</span>
             </div>
             
             <nav class="main-nav">
@@ -124,6 +124,40 @@
                                         <i class="fas fa-play"></i> Démarrer
                                     </button>
                                     <button class="btn-stop-system btn-secondary" data-system="mea" disabled>
+                                        <i class="fas fa-stop"></i> Arrêter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="overview-card bio-entropy">
+                            <div class="card-icon"><i class="fas fa-dna"></i></div>
+                            <div class="card-content">
+                                <h3>Bio-Entropy Mining</h3>
+                                <div class="card-metrics">
+                                    <span class="metric-value" id="bioEntropyMode">SimulatedNetwork</span>
+                                    <span class="metric-label">Mode actif</span>
+                                </div>
+                                <div class="card-status offline" id="bioEntropyStatus">Hors ligne</div>
+                                <div class="card-stats">
+                                    <div class="stat-mini">
+                                        <span class="stat-label">Confiance:</span>
+                                        <span class="stat-value" id="entropyConfidence">0%</span>
+                                    </div>
+                                    <div class="stat-mini">
+                                        <span class="stat-label">Stratégie:</span>
+                                        <span class="stat-value" id="entropyStrategy">-</span>
+                                    </div>
+                                    <div class="stat-mini">
+                                        <span class="stat-label">Points:</span>
+                                        <span class="stat-value" id="startingPoints">0</span>
+                                    </div>
+                                </div>
+                                <div class="card-actions">
+                                    <button class="btn-start-system btn-primary" data-system="bio-entropy">
+                                        <i class="fas fa-play"></i> Démarrer
+                                    </button>
+                                    <button class="btn-stop-system btn-secondary" data-system="bio-entropy" disabled>
                                         <i class="fas fa-stop"></i> Arrêter
                                     </button>
                                 </div>
@@ -259,6 +293,120 @@
                             </button>
                             <button type="button" id="autoOptimize" class="btn-accent">
                                 <i class="fas fa-magic"></i> Optimisation auto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Bio-Entropy Mining Configuration -->
+                <div class="panel bio-entropy-config">
+                    <h2>🧬 Configuration Bio-Entropy Mining</h2>
+                    <form id="bioEntropyConfigForm" class="config-form">
+                        <div class="bio-mode-selector">
+                            <h3>Mode de calcul biologique</h3>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="bioComputeMode" value="SimulatedNetwork" checked>
+                                    <div class="radio-card">
+                                        <i class="fas fa-brain"></i>
+                                        <h4>Réseau Simulé</h4>
+                                        <p>BiologicalNetwork pour simulation rapide</p>
+                                    </div>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="bioComputeMode" value="RealMEA">
+                                    <div class="radio-card">
+                                        <i class="fas fa-microchip"></i>
+                                        <h4>MEA Réel</h4>
+                                        <p>Neurones biologiques réels via MEA</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="entropy-strategy">
+                            <h3>Stratégie d'exploration</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="entropyStrategy">Stratégie adaptative</label>
+                                    <select id="entropyStrategy">
+                                        <option value="auto">Automatique (adaptatif)</option>
+                                        <option value="uniform">Uniform (distribution égale)</option>
+                                        <option value="fibonacci">Fibonacci (ratio d'or)</option>
+                                        <option value="bioguided">BioGuided (pics biologiques)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="startingPointsCount">Nombre de points de départ</label>
+                                    <input type="number" id="startingPointsCount" value="1000" min="100" max="10000" step="100">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="windowSize">Fenêtre de recherche (nonces)</label>
+                                    <input type="number" id="windowSize" value="4194304" min="1000000" max="10000000" step="1000000">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="maxVoltage">Tension maximale stimulation (V)</label>
+                                    <input type="number" id="maxVoltage" value="3.0" min="0.5" max="5.0" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="entropy-features">
+                            <h3>Extraction de caractéristiques</h3>
+                            <div class="feature-checkboxes">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="extractTimestamp" checked>
+                                    <span>Timestamp normalisé</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="extractDifficulty" checked>
+                                    <span>Niveau de difficulté</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="extractPrevHash" checked>
+                                    <span>Entropie previousHash</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="extractMerkle" checked>
+                                    <span>Entropie merkleRoot</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="extractBytes" checked>
+                                    <span>Distribution d'octets</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="reinforcement-learning">
+                            <h3>Apprentissage par renforcement</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="enableReinforcement">Activer RL</label>
+                                    <input type="checkbox" id="enableReinforcement" checked>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="rewardWeight">Poids de récompense</label>
+                                    <input type="range" id="rewardWeight" min="0.1" max="2.0" step="0.1" value="1.0">
+                                    <span class="range-value">1.0</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="historySize">Taille historique</label>
+                                    <input type="number" id="historySize" value="100" min="10" max="1000">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Appliquer configuration Bio-Entropy
+                            </button>
+                            <button type="button" id="initBioEntropy" class="btn-accent">
+                                <i class="fas fa-power-off"></i> Initialiser système
                             </button>
                         </div>
                     </form>
@@ -558,7 +706,8 @@
                             <div class="form-group">
                                 <label for="miningMode">Mode de mining</label>
                                 <select id="miningMode">
-                                    <option value="triple">Triple système (recommandé)</option>
+                                    <option value="bio-entropy">Bio-Entropy Mining (recommandé)</option>
+                                    <option value="triple">Triple système classique</option>
                                     <option value="sha256">SHA-256 seul</option>
                                     <option value="biological">Réseau biologique seul</option>
                                     <option value="mea">MEA seul</option>
@@ -629,6 +778,106 @@
                     
                     <div class="mining-chart">
                         <canvas id="miningChart" width="800" height="300"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Bio-Entropy Mining Statistics -->
+                <div class="panel bio-entropy-stats">
+                    <h2>🧬 Statistiques Bio-Entropy</h2>
+                    <div class="entropy-metrics">
+                        <div class="entropy-metric-card">
+                            <div class="metric-header">
+                                <i class="fas fa-dna"></i>
+                                <h4>Seed d'entropie</h4>
+                            </div>
+                            <div class="metric-details">
+                                <div class="detail-row">
+                                    <span>Primary Seed:</span>
+                                    <span id="primarySeed" class="mono-value">0x0000000000000000</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Confiance:</span>
+                                    <span id="seedConfidence">0%</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Force réponse:</span>
+                                    <span id="responseStrength">0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="entropy-metric-card">
+                            <div class="metric-header">
+                                <i class="fas fa-map-marked-alt"></i>
+                                <h4>Points de départ</h4>
+                            </div>
+                            <div class="metric-details">
+                                <div class="detail-row">
+                                    <span>Total points:</span>
+                                    <span id="totalStartingPoints">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Stratégie active:</span>
+                                    <span id="activeStrategy">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Couverture estimée:</span>
+                                    <span id="estimatedCoverage">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="entropy-metric-card">
+                            <div class="metric-header">
+                                <i class="fas fa-brain"></i>
+                                <h4>Réponse biologique</h4>
+                            </div>
+                            <div class="metric-details">
+                                <div class="detail-row">
+                                    <span>Temps réponse:</span>
+                                    <span id="bioResponseTime">0 ms</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Qualité signal:</span>
+                                    <span id="signalQuality">0%</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Patterns renforcés:</span>
+                                    <span id="reinforcedPatterns">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="entropy-metric-card">
+                            <div class="metric-header">
+                                <i class="fas fa-search"></i>
+                                <h4>Recherche parallèle</h4>
+                            </div>
+                            <div class="metric-details">
+                                <div class="detail-row">
+                                    <span>Threads actifs:</span>
+                                    <span id="activeThreads">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Fenêtre par point:</span>
+                                    <span id="windowPerPoint">0</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Hashes/seconde:</span>
+                                    <span id="bioEntropyHashrate">0 H/s</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="entropy-visualization">
+                        <h3>Visualisation de la distribution des points</h3>
+                        <canvas id="entropyDistributionChart" width="800" height="250"></canvas>
+                    </div>
+                    
+                    <div class="bio-response-visualization">
+                        <h3>Signal biologique en temps réel</h3>
+                        <canvas id="bioResponseChart" width="800" height="200"></canvas>
                     </div>
                 </div>
             </div>

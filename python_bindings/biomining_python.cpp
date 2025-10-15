@@ -16,6 +16,11 @@ void cloudrunQtLogger(QtMsgType type, const QMessageLogContext &context, const Q
 #include "../include/crypto/hybrid_bitcoin_miner.h"
 #include "../include/bio/real_mea_interface.h"
 #include "../include/bio/biological_network.h"
+// Bio-Entropy Mining Architecture headers
+#include "../include/bio/ibio_compute_interface.h"
+#include "../include/bio/real_mea_adapter.h"
+#include "../include/bio/biological_network_adapter.h"
+#include "../include/crypto/bio_entropy_generator.h"
 
 namespace py = pybind11;
 
@@ -518,4 +523,144 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Perform forward propagation with inputs")
         .def("backPropagation", &BioMining::Network::BiologicalNetwork::backPropagation,
              "Perform back propagation with target values");
+
+    // ==========================================================================
+    // BIO-ENTROPY MINING ARCHITECTURE MODULE
+    // ==========================================================================
+    
+    // ComputeMode enum for IBioComputeInterface
+    py::enum_<BioMining::Bio::IBioComputeInterface::ComputeMode>(m_bio, "ComputeMode")
+        .value("RealMEA", BioMining::Bio::IBioComputeInterface::ComputeMode::RealMEA)
+        .value("SimulatedNetwork", BioMining::Bio::IBioComputeInterface::ComputeMode::SimulatedNetwork);
+    
+    // StimulusPattern structure
+    py::class_<BioMining::Bio::IBioComputeInterface::StimulusPattern>(m_bio, "StimulusPattern")
+        .def(py::init<>())
+        .def_readwrite("amplitudes", &BioMining::Bio::IBioComputeInterface::StimulusPattern::amplitudes)
+        .def_readwrite("frequencies", &BioMining::Bio::IBioComputeInterface::StimulusPattern::frequencies)
+        .def_readwrite("durationMs", &BioMining::Bio::IBioComputeInterface::StimulusPattern::durationMs);
+    
+    // BioResponse structure
+    py::class_<BioMining::Bio::IBioComputeInterface::BioResponse>(m_bio, "BioResponse")
+        .def(py::init<>())
+        .def_readwrite("signals", &BioMining::Bio::IBioComputeInterface::BioResponse::signals)
+        .def_readwrite("responseStrength", &BioMining::Bio::IBioComputeInterface::BioResponse::responseStrength)
+        .def_readwrite("signalQuality", &BioMining::Bio::IBioComputeInterface::BioResponse::signalQuality)
+        .def_readwrite("responseTime", &BioMining::Bio::IBioComputeInterface::BioResponse::responseTime)
+        .def_readwrite("isValid", &BioMining::Bio::IBioComputeInterface::BioResponse::isValid);
+    
+    // IBioComputeInterface abstract base class
+    py::class_<BioMining::Bio::IBioComputeInterface, QObject>(m_bio, "IBioComputeInterface")
+        .def("getComputeMode", &BioMining::Bio::IBioComputeInterface::getComputeMode,
+             "Get current compute mode (RealMEA or SimulatedNetwork)")
+        .def("initialize", &BioMining::Bio::IBioComputeInterface::initialize,
+             "Initialize the bio-compute interface")
+        .def("applyStimulus", &BioMining::Bio::IBioComputeInterface::applyStimulus,
+             "Apply stimulus pattern to biological system")
+        .def("captureResponse", &BioMining::Bio::IBioComputeInterface::captureResponse,
+             "Capture biological response", py::arg("waitTimeMs") = 100)
+        .def("stimulateAndCapture", &BioMining::Bio::IBioComputeInterface::stimulateAndCapture,
+             "Stimulate and immediately capture response")
+        .def("reinforcePattern", &BioMining::Bio::IBioComputeInterface::reinforcePattern,
+             "Reinforce successful pattern with reward");
+    
+    // RealMEAAdapter class
+    py::class_<BioMining::Bio::RealMEAAdapter, BioMining::Bio::IBioComputeInterface>(m_bio, "RealMEAAdapter")
+        .def(py::init<>())
+        .def("getComputeMode", &BioMining::Bio::RealMEAAdapter::getComputeMode,
+             "Returns ComputeMode::RealMEA")
+        .def("initialize", &BioMining::Bio::RealMEAAdapter::initialize,
+             "Initialize real MEA interface")
+        .def("applyStimulus", &BioMining::Bio::RealMEAAdapter::applyStimulus,
+             "Apply electrical stimulus to MEA electrodes")
+        .def("captureResponse", &BioMining::Bio::RealMEAAdapter::captureResponse,
+             "Capture neural signals from MEA")
+        .def("stimulateAndCapture", &BioMining::Bio::RealMEAAdapter::stimulateAndCapture,
+             "Stimulate MEA and capture response")
+        .def("reinforcePattern", &BioMining::Bio::RealMEAAdapter::reinforcePattern,
+             "Reinforce successful MEA pattern");
+    
+    // BiologicalNetworkAdapter class
+    py::class_<BioMining::Bio::BiologicalNetworkAdapter, BioMining::Bio::IBioComputeInterface>(m_bio, "BiologicalNetworkAdapter")
+        .def(py::init<>())
+        .def("getComputeMode", &BioMining::Bio::BiologicalNetworkAdapter::getComputeMode,
+             "Returns ComputeMode::SimulatedNetwork")
+        .def("initialize", &BioMining::Bio::BiologicalNetworkAdapter::initialize,
+             "Initialize simulated biological network")
+        .def("applyStimulus", &BioMining::Bio::BiologicalNetworkAdapter::applyStimulus,
+             "Apply stimulus to neural network")
+        .def("captureResponse", &BioMining::Bio::BiologicalNetworkAdapter::captureResponse,
+             "Capture network output signals")
+        .def("stimulateAndCapture", &BioMining::Bio::BiologicalNetworkAdapter::stimulateAndCapture,
+             "Stimulate network and capture response")
+        .def("reinforcePattern", &BioMining::Bio::BiologicalNetworkAdapter::reinforcePattern,
+             "Reinforce successful network pattern");
+    
+    // BioEntropyGenerator structures
+    py::class_<BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures>(m_bio, "BlockHeaderFeatures")
+        .def(py::init<>())
+        .def_readwrite("timestampNorm", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::timestampNorm)
+        .def_readwrite("difficultyLevel", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::difficultyLevel)
+        .def_readwrite("prevHashEntropy", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::prevHashEntropy)
+        .def_readwrite("prevHashLeadingZeros", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::prevHashLeadingZeros)
+        .def_readwrite("merkleEntropy", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::merkleEntropy)
+        .def_readwrite("prevHashBytes", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::prevHashBytes)
+        .def_readwrite("merkleBytes", &BioMining::Crypto::BioEntropyGenerator::BlockHeaderFeatures::merkleBytes);
+    
+    py::class_<BioMining::Crypto::BioEntropyGenerator::BioEntropySeed>(m_bio, "BioEntropySeed")
+        .def(py::init<>())
+        .def_readwrite("primarySeed", &BioMining::Crypto::BioEntropyGenerator::BioEntropySeed::primarySeed)
+        .def_readwrite("diverseSeeds", &BioMining::Crypto::BioEntropyGenerator::BioEntropySeed::diverseSeeds)
+        .def_readwrite("confidence", &BioMining::Crypto::BioEntropyGenerator::BioEntropySeed::confidence)
+        .def_readwrite("responseStrength", &BioMining::Crypto::BioEntropyGenerator::BioEntropySeed::responseStrength)
+        .def_readwrite("rawResponse", &BioMining::Crypto::BioEntropyGenerator::BioEntropySeed::rawResponse);
+    
+    py::class_<BioMining::Crypto::BioEntropyGenerator::SmartStartingPoints>(m_bio, "SmartStartingPoints")
+        .def(py::init<>())
+        .def_readwrite("nonceStarts", &BioMining::Crypto::BioEntropyGenerator::SmartStartingPoints::nonceStarts)
+        .def_readwrite("windowSize", &BioMining::Crypto::BioEntropyGenerator::SmartStartingPoints::windowSize)
+        .def_readwrite("expectedCoverage", &BioMining::Crypto::BioEntropyGenerator::SmartStartingPoints::expectedCoverage)
+        .def_property("strategy",
+            [](const BioMining::Crypto::BioEntropyGenerator::SmartStartingPoints& self) {
+                return self.strategy.toStdString();
+            },
+            [](BioMining::Crypto::BioEntropyGenerator::SmartStartingPoints& self, const std::string& s) {
+                self.strategy = QString::fromStdString(s);
+            }
+        );
+    
+    // BioEntropyGenerator class
+    py::class_<BioMining::Crypto::BioEntropyGenerator>(m_bio, "BioEntropyGenerator")
+        .def(py::init<>())
+        .def("extractHeaderFeatures", &BioMining::Crypto::BioEntropyGenerator::extractHeaderFeatures,
+             "Extract 60-dimensional features from block header",
+             py::arg("blockHeader"), py::arg("difficulty"))
+        .def("featuresToStimulus", &BioMining::Crypto::BioEntropyGenerator::featuresToStimulus,
+             "Convert features to biological stimulus pattern",
+             py::arg("features"), py::arg("maxVoltage") = 3.0)
+        .def("generateEntropySeed", &BioMining::Crypto::BioEntropyGenerator::generateEntropySeed,
+             "Generate entropy seed from biological response",
+             py::arg("meaResponse"), py::arg("features"))
+        .def("generateStartingPoints", &BioMining::Crypto::BioEntropyGenerator::generateStartingPoints,
+             "Generate smart starting points from entropy seed",
+             py::arg("seed"), py::arg("pointCount") = 1000, py::arg("windowSize") = 4194304)
+        .def("reinforceSuccessfulPattern", &BioMining::Crypto::BioEntropyGenerator::reinforceSuccessfulPattern,
+             "Reinforce pattern that led to successful nonce",
+             py::arg("features"), py::arg("response"), py::arg("nonce"))
+        .def("getEntropyStats", &BioMining::Crypto::BioEntropyGenerator::getEntropyStats,
+             "Get entropy generation statistics");
+    
+    // Add bio-entropy methods to HybridBitcoinMiner
+    py::class_<BioMining::HCrypto::HybridBitcoinMiner>(m_crypto, "HybridBitcoinMiner_BioEntropy", py::module_local())
+        .def("setBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::setBioComputeMode,
+             "Set bio-compute mode (RealMEA or SimulatedNetwork)")
+        .def("getBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::getBioComputeMode,
+             "Get current bio-compute mode")
+        .def("initializeBioEntropy", &BioMining::HCrypto::HybridBitcoinMiner::initializeBioEntropy,
+             "Initialize bio-entropy mining system")
+        .def("mineWithBioEntropy", &BioMining::HCrypto::HybridBitcoinMiner::mineWithBioEntropy,
+             "Mine using bio-entropy approach",
+             py::arg("blockHeader"), py::arg("difficulty"))
+        .def("getBioEntropyStats", &BioMining::HCrypto::HybridBitcoinMiner::getBioEntropyStats,
+             "Get bio-entropy mining statistics");
 }

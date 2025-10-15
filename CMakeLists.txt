@@ -77,6 +77,10 @@ set(LIB_SOURCES
     src/cpp/bitcoin_miner.cpp
     src/cpp/biological_network.cpp
     src/cpp/hybrid_bitcoin_miner.cpp
+    # === BIO-ENTROPY ARCHITECTURE ===
+    src/bio/real_mea_adapter.cpp
+    src/bio/biological_network_adapter.cpp
+    src/crypto/bio_entropy_generator.cpp
 )
 
 # Headers
@@ -86,6 +90,11 @@ set(LIB_HEADERS
     include/crypto/bitcoin_miner.h
     include/bio/biological_network.h
     include/crypto/hybrid_bitcoin_miner.h
+    # === BIO-ENTROPY ARCHITECTURE ===
+    include/bio/ibio_compute_interface.h
+    include/bio/real_mea_adapter.h
+    include/bio/biological_network_adapter.h
+    include/crypto/bio_entropy_generator.h
 )
 
 # Création de la bibliothèque statique

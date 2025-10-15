@@ -34,6 +34,9 @@ HybridBitcoinMiner::HybridBitcoinMiner(QObject* parent)
     , m_learningTimer(new QTimer(this))
     , m_metricsTimer(new QTimer(this))
     , m_threadPool(QThreadPool::globalInstance())
+    // === BIO-ENTROPY INITIALIZATION ===
+    , m_bioComputeMode(BioComputeMode::SimulatedNetwork) // Par défaut simulation
+    , m_entropyGenerator(QSharedPointer<BioMining::Crypto::BioEntropyGenerator>::create())
 {
     qDebug() << "Initializing HybridBitcoinMiner...";
     
@@ -51,7 +54,15 @@ HybridBitcoinMiner::HybridBitcoinMiner(QObject* parent)
     m_learningParams = BiologicalLearningParams();
     m_learningState = HybridLearningState::Uninitialized;
     
+    // === CRÉER LES ADAPTEURS BIO-ENTROPY ===
+    m_realMeaAdapter = QSharedPointer<BioMining::Bio::RealMEAAdapter>::create();
+    m_networkAdapter = QSharedPointer<BioMining::Bio::BiologicalNetworkAdapter>::create();
+    
+    // Par défaut, utiliser le mode simulé
+    m_bioCompute = m_networkAdapter;
+    
     qDebug() << "HybridBitcoinMiner initialized successfully";
+    qDebug() << "Bio-Entropy mode:" << (m_bioComputeMode == BioComputeMode::RealMEA ? "RealMEA" : "SimulatedNetwork");
 }
 
 HybridBitcoinMiner::~HybridBitcoinMiner()
@@ -2418,6 +2429,205 @@ void BiologicalLearningTask::run()
     
     // Exécution de l'apprentissage biologique en arrière-plan
     m_miner->performInitialLearning(m_trainingData);
+}
+
+// ============================================================================
+// === BIO-ENTROPY MINING IMPLEMENTATION (Approach 3) ===
+// ============================================================================
+
+void HybridBitcoinMiner::setBioComputeMode(BioComputeMode mode)
+{
+    QMutexLocker locker(&m_stateMutex);
+    
+    if (m_bioComputeMode == mode) {
+        return;
+    }
+    
+    qDebug() << "[HybridBitcoinMiner] Changing bio-compute mode to:" << 
+                (mode == BioComputeMode::RealMEA ? "RealMEA" : "SimulatedNetwork");
+    
+    m_bioComputeMode = mode;
+    
+    // Basculer l'interface
+    if (mode == BioComputeMode::RealMEA) {
+        m_bioCompute = m_realMeaAdapter;
+        qDebug() << "[HybridBitcoinMiner] Using real biological cells (MEA)";
+    } else {
+        m_bioCompute = m_networkAdapter;
+        qDebug() << "[HybridBitcoinMiner] Using simulated biological network";
+    }
+    
+    // Réinitialiser le système
+    initializeBioEntropy();
+}
+
+bool HybridBitcoinMiner::initializeBioEntropy()
+{
+    QMutexLocker locker(&m_stateMutex);
+    
+    if (!m_bioCompute) {
+        qWarning() << "[HybridBitcoinMiner] Bio-compute interface not available";
+        return false;
+    }
+    
+    // Initialiser l'interface sélectionnée
+    if (!m_bioCompute->initialize()) {
+        qWarning() << "[HybridBitcoinMiner] Failed to initialize bio-compute";
+        return false;
+    }
+    
+    qDebug() << "[HybridBitcoinMiner] Bio-entropy system initialized successfully";
+    qDebug() << "[HybridBitcoinMiner] Diagnostic:\n" << m_bioCompute->getDiagnosticInfo();
+    
+    return true;
+}
+
+uint32_t HybridBitcoinMiner::mineWithBioEntropy(const QString& blockHeader, uint64_t difficulty)
+{
+    qDebug() << "[HybridBitcoinMiner] Mining with bio-entropy, mode:" << 
+                (m_bioComputeMode == BioComputeMode::RealMEA ? "RealMEA" : "SimulatedNetwork");
+    
+    if (!m_bioCompute || !m_bioCompute->isReady()) {
+        qWarning() << "[HybridBitcoinMiner] Bio-compute system not ready";
+        return 0;
+    }
+    
+    // ÉTAPE 1: Extraire features du header
+    auto features = m_entropyGenerator->extractHeaderFeatures(blockHeader, difficulty);
+    
+    // ÉTAPE 2: Générer pattern de stimulation
+    auto stimulusPattern = m_entropyGenerator->featuresToStimulus(features, 3.0);
+    
+    // Convertir vers IBioComputeInterface::StimulusPattern
+    BioMining::Bio::IBioComputeInterface::StimulusPattern bioStimulus;
+    bioStimulus.amplitudes = stimulusPattern.amplitudes;
+    bioStimulus.frequencies = stimulusPattern.frequencies;
+    bioStimulus.durationMs = stimulusPattern.durationMs;
+    
+    // ÉTAPE 3: Stimuler le système biologique (MEA réel OU réseau simulé)
+    auto bioResponse = m_bioCompute->stimulateAndCapture(bioStimulus);
+    
+    if (!bioResponse.isValid) {
+        qWarning() << "[HybridBitcoinMiner] Invalid biological response";
+        return 0;
+    }
+    
+    qDebug() << QString("[HybridBitcoinMiner] Bio response received: strength=%1, quality=%2")
+                .arg(bioResponse.responseStrength)
+                .arg(bioResponse.signalQuality);
+    
+    // ÉTAPE 4: Générer seed d'entropie
+    auto entropySeed = m_entropyGenerator->generateEntropySeed(bioResponse.signals, features);
+    
+    qDebug() << QString("[HybridBitcoinMiner] Entropy seed: 0x%1, confidence=%2")
+                .arg(entropySeed.primarySeed, 16, 16, QChar('0'))
+                .arg(entropySeed.confidence);
+    
+    // ÉTAPE 5: Générer points de départ intelligents
+    int pointCount = 1000; // 1000 points de départ
+    uint32_t windowSize = 4194304; // 4M nonces par point
+    auto startingPoints = m_entropyGenerator->generateStartingPoints(entropySeed, pointCount, windowSize);
+    
+    qDebug() << QString("[HybridBitcoinMiner] %1 points generated (strategy: %2, coverage=%3%)")
+                .arg(startingPoints.nonceStarts.size())
+                .arg(startingPoints.strategy)
+                .arg(startingPoints.expectedCoverage * 100, 0, 'f', 2);
+    
+    // ÉTAPE 6: Recherche parallèle GPU/CPU
+    uint32_t foundNonce = 0;
+    parallelSearchCandidates(blockHeader, difficulty, startingPoints.nonceStarts, windowSize, foundNonce);
+    
+    // ÉTAPE 7: Renforcement si succès
+    if (foundNonce != 0) {
+        double reward = 1.0;
+        m_bioCompute->reinforcePattern(bioStimulus, foundNonce, reward);
+        m_entropyGenerator->reinforceSuccessfulPattern(features, bioResponse.signals, foundNonce);
+        
+        qDebug() << "[HybridBitcoinMiner] Pattern reinforced successfully";
+        
+        // Mettre à jour les métriques
+        m_metrics.successfulPredictions++;
+        m_metrics.biologicalPredictions++;
+    }
+    
+    return foundNonce;
+}
+
+bool HybridBitcoinMiner::validateNonceCandidate(const QString& blockHeader, uint64_t difficulty, uint32_t nonce)
+{
+    // Construire header complet avec nonce
+    QString fullHeader = blockHeader + QString::number(nonce);
+    
+    // Double SHA-256
+    QByteArray data = fullHeader.toUtf8();
+    QByteArray hash1 = QCryptographicHash::hash(data, QCryptographicHash::Sha256);
+    QByteArray hash2 = QCryptographicHash::hash(hash1, QCryptographicHash::Sha256);
+    
+    // Vérifier leading zeros selon difficulty
+    QString hashHex = hash2.toHex();
+    
+    int requiredZeros = static_cast<int>(std::log2(difficulty));
+    int actualZeros = 0;
+    
+    for (QChar c : hashHex) {
+        if (c == '0') {
+            actualZeros++;
+        } else {
+            break;
+        }
+    }
+    
+    return actualZeros >= requiredZeros;
+}
+
+void HybridBitcoinMiner::parallelSearchCandidates(const QString& blockHeader, 
+                                                   uint64_t difficulty,
+                                                   const QVector<uint32_t>& candidates,
+                                                   uint32_t windowSize,
+                                                   uint32_t& foundNonce)
+{
+    foundNonce = 0;
+    std::atomic<bool> found(false);
+    
+    // Recherche parallèle avec OpenMP (ou QtConcurrent)
+    #pragma omp parallel for
+    for (int i = 0; i < candidates.size(); ++i) {
+        if (found.load()) {
+            continue; // Déjà trouvé, skip
+        }
+        
+        uint32_t start = candidates[i];
+        uint32_t end = start + windowSize;
+        
+        for (uint32_t nonce = start; nonce < end; ++nonce) {
+            if (found.load()) {
+                break;
+            }
+            
+            if (validateNonceCandidate(blockHeader, difficulty, nonce)) {
+                bool expected = false;
+                if (found.compare_exchange_strong(expected, true)) {
+                    foundNonce = nonce;
+                    qDebug() << QString("[HybridBitcoinMiner] ✅ NONCE FOUND: 0x%1")
+                                .arg(nonce, 8, 16, QChar('0'));
+                }
+                break;
+            }
+            
+            // Mettre à jour métriques tous les 10000 hashs
+            if (nonce % 10000 == 0) {
+                m_metrics.totalHashes += 10000;
+            }
+        }
+    }
+}
+
+QJsonObject HybridBitcoinMiner::getBioEntropyStats() const
+{
+    if (m_entropyGenerator) {
+        return m_entropyGenerator->getEntropyStats();
+    }
+    return QJsonObject();
 }
 
 } // namespace HCrypto
