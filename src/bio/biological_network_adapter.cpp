@@ -5,6 +5,7 @@
 #include <QMutexLocker>
 #include <QDateTime>
 #include <cmath>
+#include <QRandomGenerator>
 
 using namespace BioMining::Bio;
 
