@@ -470,34 +470,56 @@ void BiologicalNetwork::performLearningCycle(const QVector<double> &inputs, cons
 {
     // === ANALYSE PRE-APPRENTISSAGE BITCOIN ===
     BitcoinLearningContext context = analyzeBitcoinLearningContext(inputs, targets);
+
+        qDebug() << "[BIO-NET] performLearningCycle BLContext"; 
+
     
     // === FORWARD PROPAGATION AVEC MONITORING BITCOIN ===
     forwardPropagation(inputs);
     QVector<double> initialOutput = getNetworkOutput();
+
+        qDebug() << "[BIO-NET] performLearningCycle forwardPropagation"; 
     
     // === BACK PROPAGATION ADAPTATIF BITCOIN ===
     performBitcoinBackPropagation(targets, context);
+
+        qDebug() << "[BIO-NET] performLearningCycle performBitcoinBackPropagation"; 
     
     // === AJUSTEMENT SYNAPTIQUE SPÉCIALISÉ ===
     adjustBitcoinSynapticWeights(context);
+
+        qDebug() << "[BIO-NET] performLearningCycle adjustBitcoinSynapW"; 
     
     // === VALIDATION ET CORRECTION BITCOIN ===
     BitcoinPredictionResult result = validateBitcoinPrediction(targets);
+
+        qDebug() << "[BIO-NET] performLearningCycle valideBitcoinPrediction"; 
     
     // === RENFORCEMENT ADAPTATIF ===
     if (result.needsReinforcement) {
+
+        qDebug() << "[BIO-NET] performLearningCycle needsReinforcement"; 
         applyBitcoinReinforcement(result, context);
+
+        qDebug() << "[BIO-NET] performLearningCycle applyBReinforcement"; 
     }
     
     // === CROISSANCE NEURONALE GUIDÉE BITCOIN ===
     if (m_currentEpoch % 25 == 0) { // Plus fréquent pour Bitcoin
+
+        qDebug() << "[BIO-NET] performLearningCycle croissanceN"; 
+
         stimulateBitcoinNeuronGrowth(context);
         pruneBitcoinWeakConnections(result);
+
+        qDebug() << "[BIO-NET] performLearningCycle stimulate & pruneB"; 
     }
     
     // === MÉMORISATION DES PATTERNS RÉUSSIS ===
     if (result.isSuccessful) {
+        qDebug() << "[BIO-NET] performLearningCycle isSuccessful"; 
         memorizeBitcoinPattern(inputs, targets, result);
+        qDebug() << "[BIO-NET] performLearningCycle memorizeBP"; 
     }
     
     // === LOGGING DÉTAILLÉ (OPTIONNEL) ===
