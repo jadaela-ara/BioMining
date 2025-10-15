@@ -1,4 +1,5 @@
 #include "bio/biological_network_adapter.h"
+#include "bio/ibio_compute_interface.h"
 #include <QDebug>
 #include <QThread>
 #include <QMutexLocker>

@@ -20,6 +20,8 @@ class IBioComputeInterface : public QObject
     Q_OBJECT
 
 public:
+    explicit IBioComputeInterface(QObject *parent = nullptr);
+
     /**
      * @brief Mode de calcul biologique
      */
