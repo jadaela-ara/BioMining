@@ -208,7 +208,7 @@ else
 fi
 
 echo ""
-echo "📋 Deployment Summary:"
+echo "📋 Deployment Summary: "
 echo "   Service: $SERVICE_NAME"
 echo "   URL: ${SERVICE_URL:-'Not available'}"
 echo "   Build: Real C++ with Qt MOC compilation (ultra simple)"
