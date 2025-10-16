@@ -109,12 +109,12 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "    '../src/cpp/mea_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.moc.cpp'," >> setup_simple.py && \
+    echo "    '../src/bio/ibio_compute_interface.cpp'," >> setup_simple.py && \
+    echo "    '../src/bio/ibio_compute_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/real_mea_adapter.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/real_mea_adapter.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/biological_network_adapter.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/biological_network_adapter.moc.cpp'," >> setup_simple.py && \
-    echo "    '../src/bio/ibio_compute_interface.cpp'," >> setup_simple.py && \
-    echo "    '../src/bio/ibio_compute_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/crypto/bio_entropy_generator.cpp'," >> setup_simple.py && \
     echo "    '../src/crypto/bio_entropy_generator.moc.cpp'," >> setup_simple.py && \
     echo "]" >> setup_simple.py && \
