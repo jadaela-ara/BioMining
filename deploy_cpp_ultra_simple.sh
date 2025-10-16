@@ -114,9 +114,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --max-instances 3 \
     --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0" \
     --project="$PROJECT_ID"
-
-
-
+    
 if [[ $? -eq 0 ]]; then
     echo "✅ Cloud Run deployment successful"
 else
