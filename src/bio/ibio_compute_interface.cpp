@@ -8,7 +8,7 @@ IBioComputeInterface::IBioComputeInterface(QObject* parent)
 {
 }
 
-IBioComputeInterface::~IBioComputeInterface() = default;
+//IBioComputeInterface::~IBioComputeInterface() = default;
 
 } // namespace Bio
 } // namespace BioMining
