@@ -543,7 +543,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
     // BioResponse structure
     py::class_<BioMining::Bio::IBioComputeInterface::BioResponse>(m_bio, "BioResponse")
         .def(py::init<>())
-        .def_readwrite("signals", &BioMining::Bio::IBioComputeInterface::BioResponse::signals)
+        .def_readwrite("rsignals", &BioMining::Bio::IBioComputeInterface::BioResponse::rsignals)
         .def_readwrite("responseStrength", &BioMining::Bio::IBioComputeInterface::BioResponse::responseStrength)
         .def_readwrite("signalQuality", &BioMining::Bio::IBioComputeInterface::BioResponse::signalQuality)
         .def_readwrite("responseTime", &BioMining::Bio::IBioComputeInterface::BioResponse::responseTime)
