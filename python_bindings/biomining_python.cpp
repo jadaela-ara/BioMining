@@ -27,6 +27,10 @@ namespace py = pybind11;
 PYBIND11_MODULE(biomining_cpp, m) {
     m.doc() = "BioMining C++ Python bindings";
 
+    // Register QObject for inheritance
+    py::class_<QObject, std::unique_ptr<QObject, py::nodelete>>(m, "QObject");
+
+    
     m.def("install_qt_logger", []() {
     qInstallMessageHandler(cloudrunQtLogger);
     }, "Installe un handler Qt qui redirige tous les logs Qt vers stderr");
