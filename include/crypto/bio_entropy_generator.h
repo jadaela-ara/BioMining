@@ -6,6 +6,8 @@
 #include <QString>
 #include <QMutex>
 #include <cstdint>
+#include <QDateTime>
+#include <QJsonObject>
 
 namespace BioMining {
 namespace Crypto {
