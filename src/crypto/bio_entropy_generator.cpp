@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <QDateTime>
 #include <QJsonObject>
+#include <cstring>
 
 namespace BioMining {
 namespace Crypto {
