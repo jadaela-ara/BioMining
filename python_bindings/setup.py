@@ -97,7 +97,8 @@ ext_modules = [
             "../src/cpp/real_mea_interface.cpp",
             "../src/cpp/biological_network.cpp",
             "../src/cpp/mea_interface.cpp",
-        ],
+             "../src/bio/ibio_compute_interface.cpp",
+       ],
         include_dirs=[
             "../include",
             "../src/cpp",
