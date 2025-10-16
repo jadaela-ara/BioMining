@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project)}"
-SERVICE_NAME="biomining-cpp-ultra-simple"
+SERVICE_NAME="biomining-entropie"
 REGION="europe-west1"
 SOURCE_DOCKERFILE="Dockerfile.cpp-simple"
 TARGET_DOCKERFILE="Dockerfile"
