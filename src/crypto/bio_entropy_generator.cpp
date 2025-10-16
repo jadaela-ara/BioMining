@@ -5,6 +5,8 @@
 #include <QRandomGenerator>
 #include <cmath>
 #include <algorithm>
+#include <QDateTime>
+#include <QJsonObject>
 
 namespace BioMining {
 namespace Crypto {
@@ -381,7 +383,9 @@ uint64_t BioEntropyGenerator::mixEntropyComponents(
     
     // Ajouter la réponse MEA
     for (double value : response) {
-        uint64_t intValue = *reinterpret_cast<const uint64_t*>(&value);
+        //uint64_t intValue = *reinterpret_cast<const uint64_t*>(&value);
+        uint64_t intValue;
+        std::memcpy(&intValue, &value, sizeof(uint64_t));
         hash.addData(reinterpret_cast<const char*>(&intValue), sizeof(intValue));
     }
     
