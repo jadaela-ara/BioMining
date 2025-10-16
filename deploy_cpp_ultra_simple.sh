@@ -108,11 +108,14 @@ gcloud run deploy "$SERVICE_NAME" \
     --region "$REGION" \
     --allow-unauthenticated \
     --memory 4Gi \
-    --cpu 4 \
-    --timeout 3600s \
+    --cpu 4 \     
+    --timeout 600s \
+    --no-cpu-throttling \
+    --cpu-boost \
+    --port 8080 \
+    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0,PYTHONUNBUFFERED=1"
     --concurrency 10 \
     --max-instances 3 \
-    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0" \
     --project="$PROJECT_ID"
 
 if [[ $? -eq 0 ]]; then
