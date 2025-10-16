@@ -110,10 +110,8 @@ gcloud run deploy "$SERVICE_NAME" \
     --memory 4Gi \
     --cpu 4 \     
     --timeout 600s \
-    --port 8080 \
     --concurrency 10 \
     --max-instances 3 \
-    --project="$PROJECT_ID"
     --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0" \
     --project="$PROJECT_ID"
 
