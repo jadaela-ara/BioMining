@@ -110,8 +110,6 @@ gcloud run deploy "$SERVICE_NAME" \
     --memory 4Gi \
     --cpu 4 \     
     --timeout 600s \
-    --no-cpu-throttling \
-    --cpu-boost \
     --port 8080 \
     --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0,PYTHONUNBUFFERED=1"
     --concurrency 10 \
