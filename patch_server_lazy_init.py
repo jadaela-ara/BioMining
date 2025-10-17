@@ -49,16 +49,29 @@ def get_platform():
             content = content.replace(old_init, new_init)
             print(f"✅ Found and replaced: {old_init}")
             
-            # Also need to replace platform usage in startup/shutdown events
-            # Replace direct platform access with get_platform()
-            content = content.replace(
-                "await platform.stop_hybrid_mining()",
-                "await get_platform().stop_hybrid_mining()"
-            )
-            content = content.replace(
-                "platform.is_training = False",
-                "get_platform().is_training = False"
-            )
+            # Replace ALL platform usage with get_platform() calls
+            # This is crucial to ensure lazy initialization works everywhere
+            
+            # Count replacements for logging
+            replacements = 0
+            
+            # Pattern 1: platform.method() → get_platform().method()
+            import re
+            pattern1 = r'\bplatform\.([\w_]+)\('
+            matches = re.findall(pattern1, content)
+            replacements += len(matches)
+            content = re.sub(pattern1, r'get_platform().\1(', content)
+            
+            # Pattern 2: platform.attribute → get_platform().attribute
+            pattern2 = r'\bplatform\.([\w_]+)(?!\()'
+            matches2 = re.findall(pattern2, content)
+            replacements += len(matches2)
+            content = re.sub(pattern2, r'get_platform().\1', content)
+            
+            # Pattern 3: return platform → return get_platform()
+            content = content.replace('return platform\n', 'return get_platform()\n')
+            
+            print(f"✅ Replaced {replacements} platform references with get_platform()")
             
             # Write back
             with open(SERVER_FILE, 'w') as f:
