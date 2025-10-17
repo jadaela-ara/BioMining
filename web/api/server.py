@@ -1555,7 +1555,57 @@ app.add_middleware(
 
 # Initialize managers and platform
 websocket_manager = WebSocketManager()
-platform = BioMiningPlatform()
+# Lazy initialization with error handling
+platform = None
+_platform_error = None
+
+def get_platform():
+    """Get platform instance with lazy initialization and error handling"""
+    global platform, _platform_error
+    
+    if platform is None and _platform_error is None:
+        try:
+            print("🚀 Initializing BioMining Platform (lazy load)...")
+            platform = BioMiningPlatform()
+            print("✅ Platform initialized successfully")
+        except Exception as e:
+            _platform_error = str(e)
+            print(f"⚠️ Failed to initialize BioMiningPlatform: {e}")
+            print(f"   Error type: {type(e).__name__}")
+            if 'pybind11' in str(e):
+                print("   → Detected pybind11 error, using fallback")
+            
+            # Create fallback dummy platform
+            class DummyPlatform:
+                is_mining = False
+                is_training = False
+                systems_status = {
+                    'mea_interface': {'status': 'fallback'},
+                    'biological_network': {'status': 'fallback'},
+                    'hybrid_miner': {'status': 'fallback'}
+                }
+                
+                def get_platform_status(self):
+                    return {
+                        "status": "fallback", 
+                        "mode": "python_only",
+                        "error": _platform_error,
+                        "systems": self.systems_status
+                    }
+                
+                def get_performance_metrics(self):
+                    return {"mode": "fallback", "error": _platform_error}
+                
+                async def stop_hybrid_mining(self):
+                    pass
+                
+                async def start_hybrid_mining(self, *args, **kwargs):
+                    return {"status": "error", "message": "C++ bindings unavailable"}
+            
+            platform = DummyPlatform()
+            print("📦 Using DummyPlatform fallback")
+    
+    return platform
 
 # Mount static files
 web_dir = Path(__file__).parent.parent
@@ -1579,7 +1629,7 @@ async def serve_index():
 @app.get("/api/status")
 async def get_platform_status():
     """Get comprehensive platform status"""
-    return JSONResponse(platform.get_platform_status())
+    return JSONResponse(get_platform().get_platform_status())
 
 @app.get("/api/bindings")
 async def get_bindings_status():
@@ -1623,17 +1673,17 @@ async def get_bindings_status():
 @app.post("/api/initialize")
 async def initialize_platform():
     """Initialize all platform systems"""
-    success = await platform.initialize_platform()
+    success = await get_platform().initialize_platform()
     
     await websocket_manager.broadcast({
         'type': 'platform_initialized',
-        'data': platform.get_platform_status()
+        'data': get_platform().get_platform_status()
     })
     
     return JSONResponse({
         "success": success,
         "message": "Platform initialized" if success else "Platform initialization failed",
-        "systems": platform.systems_status
+        "systems": get_platform().systems_status
     })
 
 # System name mapping for frontend compatibility
@@ -1670,20 +1720,20 @@ async def start_system(system_name: str):
     if not mapped_name:
         raise HTTPException(status_code=400, detail=f"Invalid system name: {system_name}")
     
-    success = await platform.start_system(mapped_name)
+    success = await get_platform().start_system(mapped_name)
     
     await websocket_manager.broadcast({
         'type': 'system_status_update',
         'data': {
             'system': system_name,  # Return original name for frontend
-            'status': platform.systems_status[mapped_name]
+            'status': get_platform().systems_status[mapped_name]
         }
     })
     
     return JSONResponse({
         "success": success,
         "message": f"System {system_name} {'started' if success else 'failed to start'}",
-        "system_status": platform.systems_status[mapped_name]
+        "system_status": get_platform().systems_status[mapped_name]
     })
 
 @app.post("/api/systems/{system_name}/stop")
@@ -1694,52 +1744,52 @@ async def stop_system(system_name: str):
     if not mapped_name:
         raise HTTPException(status_code=400, detail=f"Invalid system name: {system_name}")
     
-    success = await platform.stop_system(mapped_name)
+    success = await get_platform().stop_system(mapped_name)
     
     await websocket_manager.broadcast({
         'type': 'system_status_update',
         'data': {
             'system': system_name,  # Return original name for frontend
-            'status': platform.systems_status[mapped_name]
+            'status': get_platform().systems_status[mapped_name]
         }
     })
     
     return JSONResponse({
         "success": success,
         "message": f"System {system_name} {'stopped' if success else 'failed to stop'}",
-        "system_status": platform.systems_status[mapped_name]
+        "system_status": get_platform().systems_status[mapped_name]
     })
 
 @app.post("/api/mining/start")
 async def start_hybrid_mining(config: HybridMiningConfig):
     """Start revolutionary hybrid mining"""
-    success = await platform.start_hybrid_mining(config.dict())
+    success = await get_platform().start_hybrid_mining(config.dict())
     
     await websocket_manager.broadcast({
         'type': 'mining_started',
         'data': {
             'success': success,
             'config': config.dict(),
-            'platform_status': platform.get_platform_status()
+            'platform_status': get_platform().get_platform_status()
         }
     })
     
     return JSONResponse({
         "success": success,
         "message": "Hybrid mining started" if success else "Failed to start hybrid mining",
-        "mining_status": platform.systems_status['hybrid_miner']
+        "mining_status": get_platform().systems_status['hybrid_miner']
     })
 
 @app.post("/api/mining/stop")
 async def stop_hybrid_mining():
     """Stop hybrid mining"""
-    success = await platform.stop_hybrid_mining()
+    success = await get_platform().stop_hybrid_mining()
     
     await websocket_manager.broadcast({
         'type': 'mining_stopped',
         'data': {
             'success': success,
-            'platform_status': platform.get_platform_status()
+            'platform_status': get_platform().get_platform_status()
         }
     })
     
@@ -1751,11 +1801,11 @@ async def stop_hybrid_mining():
 @app.post("/api/training/start")
 async def start_biological_training(config: BiologicalTrainingConfig):
     """Start biological network training"""
-    success = platform.biological_network.start_learning(config.dict())
+    success = get_platform().biological_network.start_learning(config.dict())
     
     if success:
-        platform.is_training = True
-        platform.systems_status['biological_network']['learning'] = True
+        get_platform().is_training = True
+        get_platform().systems_status['biological_network']['learning'] = True
     
     return JSONResponse({
         "success": success,
@@ -1768,11 +1818,11 @@ async def stop_biological_training():
     """Stop biological network training"""
     try:
         # Stop the biological network learning
-        success = platform.biological_network.stop_learning()
+        success = get_platform().biological_network.stop_learning()
         
         # Update global training status
-        platform.is_training = False
-        platform.systems_status['biological_network']['learning'] = False
+        get_platform().is_training = False
+        get_platform().systems_status['biological_network']['learning'] = False
         
         if success:
             return JSONResponse({
@@ -1795,13 +1845,13 @@ async def stop_biological_training():
 @app.get("/api/mea/electrodes")
 async def get_mea_electrodes():
     """Get MEA electrode data"""
-    electrode_data = platform.mea_interface.get_electrode_data()
+    electrode_data = get_platform().mea_interface.get_electrode_data()
     return JSONResponse({
         "electrodes": electrode_data,
         "summary": {
             "total": len(electrode_data),
             "active": len([e for e in electrode_data if e.get('active', False)]),
-            "recording": platform.mea_interface.is_recording
+            "recording": get_platform().mea_interface.is_recording
         }
     })
 
@@ -1815,10 +1865,10 @@ async def control_electrode(electrode_id: int, control: ElectrodeControl):
             'duration': control.stimulation_duration,
             'frequency': 10.0
         }
-        success = platform.mea_interface.stimulate_electrode(electrode_id, pattern)
+        success = get_platform().mea_interface.stimulate_electrode(electrode_id, pattern)
     else:
         # Record from electrode
-        recording_data = platform.mea_interface.record_electrode(
+        recording_data = get_platform().mea_interface.record_electrode(
             electrode_id, 
             control.recording_duration
         )
@@ -1841,21 +1891,21 @@ async def control_electrode(electrode_id: int, control: ElectrodeControl):
 @app.get("/api/biological/network")
 async def get_biological_network_state():
     """Get biological network detailed state"""
-    network_state = platform.biological_network.get_network_state()
+    network_state = get_platform().biological_network.get_network_state()
     return JSONResponse({
         "network_state": network_state,
-        "cpp_enabled": platform.biological_network.is_cpp_enabled,
-        "initialized": platform.biological_network.is_initialized
+        "cpp_enabled": get_platform().biological_network.is_cpp_enabled,
+        "initialized": get_platform().biological_network.is_initialized
     })
 
 @app.get("/api/hybrid/metrics")
 async def get_hybrid_mining_metrics():
     """Get hybrid mining comprehensive metrics"""
-    mining_metrics = platform.hybrid_miner.get_metrics()
+    mining_metrics = get_platform().hybrid_miner.get_metrics()
     return JSONResponse({
         "mining_metrics": mining_metrics,
-        "cpp_enabled": platform.hybrid_miner.is_cpp_enabled,
-        "mining_active": platform.hybrid_miner.is_mining
+        "cpp_enabled": get_platform().hybrid_miner.is_cpp_enabled,
+        "mining_active": get_platform().hybrid_miner.is_mining
     })
 
 @app.post("/api/upload")
@@ -1895,13 +1945,13 @@ async def upload_training_file(file: UploadFile = File(...), file_type: str = Fo
 @app.get("/api/performance")
 async def get_performance_metrics():
     """Get system performance metrics"""
-    return JSONResponse(platform.get_performance_metrics())
+    return JSONResponse(get_platform().get_performance_metrics())
 
 @app.post("/api/biological/test-bindings")
 async def test_biological_bindings():
     """Test the new BiologicalNetwork C++ bindings"""
     try:
-        if not platform.biological_network.is_cpp_enabled:
+        if not get_platform().biological_network.is_cpp_enabled:
             return JSONResponse({
                 "success": False,
                 "message": "C++ bindings not available",
@@ -1913,35 +1963,35 @@ async def test_biological_bindings():
         
         # Test configuration
         try:
-            config = platform.biological_network.cpp_network.getNetworkConfig()
+            config = get_platform().biological_network.cpp_network.getNetworkConfig()
             tests['get_config'] = True
         except Exception as e:
             tests['get_config'] = f"Error: {e}"
         
         # Test learning state
         try:
-            state = platform.biological_network.cpp_network.getLearningState()
+            state = get_platform().biological_network.cpp_network.getLearningState()
             tests['get_learning_state'] = f"State: {state}"
         except Exception as e:
             tests['get_learning_state'] = f"Error: {e}"
         
         # Test diagnostic
         try:
-            diagnostic = platform.biological_network.cpp_network.getNetworkDiagnostic()
+            diagnostic = get_platform().biological_network.cpp_network.getNetworkDiagnostic()
             tests['get_diagnostic'] = True if diagnostic else "Empty diagnostic"
         except Exception as e:
             tests['get_diagnostic'] = f"Error: {e}"
         
         # Test efficiency
         try:
-            efficiency = platform.biological_network.cpp_network.getNetworkEfficiency()
+            efficiency = get_platform().biological_network.cpp_network.getNetworkEfficiency()
             tests['get_efficiency'] = f"Efficiency: {efficiency}"
         except Exception as e:
             tests['get_efficiency'] = f"Error: {e}"
         
         # Test learning completion check
         try:
-            is_complete = platform.biological_network.cpp_network.isLearningComplete()
+            is_complete = get_platform().biological_network.cpp_network.isLearningComplete()
             tests['is_learning_complete'] = f"Complete: {is_complete}"
         except Exception as e:
             tests['is_learning_complete'] = f"Error: {e}"
@@ -1958,15 +2008,15 @@ async def test_biological_bindings():
         return JSONResponse({
             "success": False,
             "message": f"Test failed: {str(e)}",
-            "cpp_enabled": platform.biological_network.is_cpp_enabled
+            "cpp_enabled": get_platform().biological_network.is_cpp_enabled
         })
 
 @app.post("/api/biological/start-learning")
 async def start_biological_learning():
     """Start BiologicalNetwork learning with new bindings"""
     try:
-        if not platform.biological_network.is_initialized:
-            init_success = platform.biological_network.initialize()
+        if not get_platform().biological_network.is_initialized:
+            init_success = get_platform().biological_network.initialize()
             if not init_success:
                 return JSONResponse({
                     "success": False,
@@ -1974,25 +2024,25 @@ async def start_biological_learning():
                 })
         
         # Start initial learning using new bindings
-        success = platform.biological_network.start_initial_learning()
+        success = get_platform().biological_network.start_initial_learning()
         
         if success:
-            platform.systems_status['biological_network']['learning'] = True
-            platform.systems_status['biological_network']['status'] = 'learning'
+            get_platform().systems_status['biological_network']['learning'] = True
+            get_platform().systems_status['biological_network']['status'] = 'learning'
             
             # Broadcast update
             await websocket_manager.broadcast({
                 'type': 'biological_learning_started',
                 'data': {
                     'success': success,
-                    'network_status': platform.systems_status['biological_network']
+                    'network_status': get_platform().systems_status['biological_network']
                 }
             })
         
         return JSONResponse({
             "success": success,
             "message": "Biological learning started" if success else "Failed to start learning",
-            "cpp_enabled": platform.biological_network.is_cpp_enabled
+            "cpp_enabled": get_platform().biological_network.is_cpp_enabled
         })
         
     except Exception as e:
@@ -2006,18 +2056,18 @@ async def start_biological_learning():
 async def stop_biological_learning():
     """Stop BiologicalNetwork learning"""
     try:
-        if platform.biological_network.is_cpp_enabled:
-            platform.biological_network.cpp_network.stopLearning()
+        if get_platform().biological_network.is_cpp_enabled:
+            get_platform().biological_network.cpp_network.stopLearning()
         
-        platform.systems_status['biological_network']['learning'] = False
-        platform.systems_status['biological_network']['status'] = 'initialized'
+        get_platform().systems_status['biological_network']['learning'] = False
+        get_platform().systems_status['biological_network']['status'] = 'initialized'
         
         # Broadcast update
         await websocket_manager.broadcast({
             'type': 'biological_learning_stopped',
             'data': {
                 'success': True,
-                'network_status': platform.systems_status['biological_network']
+                'network_status': get_platform().systems_status['biological_network']
             }
         })
         
@@ -2044,8 +2094,8 @@ async def get_bio_entropy_status():
     try:
         return JSONResponse({
             "initialized": hasattr(platform, 'bio_entropy_generator'),
-            "cpp_enabled": platform.bio_entropy_generator.is_cpp_enabled if hasattr(platform, 'bio_entropy_generator') else False,
-            "stats": platform.bio_entropy_generator.get_stats() if hasattr(platform, 'bio_entropy_generator') else {}
+            "cpp_enabled": get_platform().bio_entropy_generator.is_cpp_enabled if hasattr(platform, 'bio_entropy_generator') else False,
+            "stats": get_platform().bio_entropy_generator.get_stats() if hasattr(platform, 'bio_entropy_generator') else {}
         })
     except Exception as e:
         logger.error(f"❌ Error getting bio-entropy status: {e}")
@@ -2058,7 +2108,7 @@ async def extract_bio_features(data: Dict[str, Any]):
         block_header = data.get('block_header', '')
         difficulty = data.get('difficulty', 4)
         
-        features = platform.bio_entropy_generator.extract_features(block_header, difficulty)
+        features = get_platform().bio_entropy_generator.extract_features(block_header, difficulty)
         
         return JSONResponse({
             "success": True,
@@ -2078,7 +2128,7 @@ async def generate_entropy_seed(data: Dict[str, Any]):
         mea_response = data.get('mea_response', [])
         features = data.get('features', {})
         
-        seed = platform.bio_entropy_generator.generate_entropy_seed(mea_response, features)
+        seed = get_platform().bio_entropy_generator.generate_entropy_seed(mea_response, features)
         
         # Broadcast seed generation
         await websocket_manager.broadcast({
@@ -2105,7 +2155,7 @@ async def generate_starting_points(data: Dict[str, Any]):
         point_count = data.get('point_count', 1000)
         window_size = data.get('window_size', 4194304)
         
-        points = platform.bio_entropy_generator.generate_starting_points(seed, point_count, window_size)
+        points = get_platform().bio_entropy_generator.generate_starting_points(seed, point_count, window_size)
         
         # Broadcast starting points
         await websocket_manager.broadcast({
@@ -2154,7 +2204,7 @@ async def mine_with_bio_entropy(data: Dict[str, Any]):
 async def get_bio_entropy_stats():
     """Get bio-entropy mining statistics"""
     try:
-        stats = platform.bio_entropy_generator.get_stats()
+        stats = get_platform().bio_entropy_generator.get_stats()
         return JSONResponse(stats)
     except Exception as e:
         logger.error(f"❌ Error getting bio-entropy stats: {e}")
@@ -2172,7 +2222,7 @@ async def websocket_endpoint(websocket: WebSocket):
     
     try:
         # Send initial system status (with mapped names for frontend)
-        platform_status = platform.get_platform_status()
+        platform_status = get_platform().get_platform_status()
         await websocket_manager.send_personal_message({
             'type': 'system_status',
             'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
@@ -2192,7 +2242,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 }, websocket)
                 
             elif message_type == 'get_status':
-                platform_status = platform.get_platform_status()
+                platform_status = get_platform().get_platform_status()
                 await websocket_manager.send_personal_message({
                     'type': 'system_status',
                     'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
@@ -2212,14 +2262,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     # Map frontend system names to backend names
                     mapped_name = SYSTEM_NAME_MAPPING.get(system_name)
                     if mapped_name:
-                        success = await platform.start_system(mapped_name)
+                        success = await get_platform().start_system(mapped_name)
                         
                         # Broadcast system status update
                         await websocket_manager.broadcast({
                             'type': 'system_status_update',
                             'data': {
                                 'system': system_name,  # Return original name for frontend
-                                'status': platform.systems_status[mapped_name],
+                                'status': get_platform().systems_status[mapped_name],
                                 'success': success
                             }
                         })
@@ -2247,14 +2297,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     # Map frontend system names to backend names
                     mapped_name = SYSTEM_NAME_MAPPING.get(system_name)
                     if mapped_name:
-                        success = await platform.stop_system(mapped_name)
+                        success = await get_platform().stop_system(mapped_name)
                         
                         # Broadcast system status update
                         await websocket_manager.broadcast({
                             'type': 'system_status_update',
                             'data': {
                                 'system': system_name,  # Return original name for frontend
-                                'status': platform.systems_status[mapped_name],
+                                'status': get_platform().systems_status[mapped_name],
                                 'success': success
                             }
                         })
@@ -2287,7 +2337,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         'mea_weight': 0.25
                     }
                 
-                success = await platform.start_hybrid_mining(config_data)
+                success = await get_platform().start_hybrid_mining(config_data)
                 
                 # Broadcast mining status update
                 await websocket_manager.broadcast({
@@ -2295,7 +2345,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     'data': {
                         'success': success,
                         'config': config_data,
-                        'platform_status': platform.get_platform_status()
+                        'platform_status': get_platform().get_platform_status()
                     }
                 })
                 
@@ -2306,20 +2356,20 @@ async def websocket_endpoint(websocket: WebSocket):
                         'command': 'start_mining',
                         'success': success,
                         'message': "Hybrid mining started" if success else "Failed to start hybrid mining",
-                        'mining_status': platform.systems_status['hybrid_miner']
+                        'mining_status': get_platform().systems_status['hybrid_miner']
                     }
                 }, websocket)
                 
             elif message_type == 'stop_mining':
                 # Handle mining stop request
-                success = await platform.stop_hybrid_mining()
+                success = await get_platform().stop_hybrid_mining()
                 
                 # Broadcast mining status update
                 await websocket_manager.broadcast({
                     'type': 'mining_stopped',
                     'data': {
                         'success': success,
-                        'platform_status': platform.get_platform_status()
+                        'platform_status': get_platform().get_platform_status()
                     }
                 })
                 
@@ -2345,11 +2395,11 @@ async def websocket_endpoint(websocket: WebSocket):
                         'target_accuracy': 0.85
                     }
                 
-                success = platform.biological_network.start_learning(config_data)
+                success = get_platform().biological_network.start_learning(config_data)
                 
                 if success:
-                    platform.is_training = True
-                    platform.systems_status['biological_network']['learning'] = True
+                    get_platform().is_training = True
+                    get_platform().systems_status['biological_network']['learning'] = True
                 
                 # Broadcast training status update
                 await websocket_manager.broadcast({
@@ -2357,7 +2407,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     'data': {
                         'success': success,
                         'config': config_data,
-                        'training_status': platform.systems_status['biological_network']
+                        'training_status': get_platform().systems_status['biological_network']
                     }
                 })
                 
@@ -2374,15 +2424,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 
             elif message_type == 'stop_training':
                 # Handle training stop request
-                platform.is_training = False
-                platform.systems_status['biological_network']['learning'] = False
+                get_platform().is_training = False
+                get_platform().systems_status['biological_network']['learning'] = False
                 
                 # Broadcast training status update
                 await websocket_manager.broadcast({
                     'type': 'training_stopped',
                     'data': {
                         'success': True,
-                        'training_status': platform.systems_status['biological_network']
+                        'training_status': get_platform().systems_status['biological_network']
                     }
                 })
                 
@@ -2398,7 +2448,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
             elif message_type == 'get_performance_metrics':
                 # Handle performance metrics request
-                performance_data = platform.get_performance_metrics()
+                performance_data = get_platform().get_performance_metrics()
                 await websocket_manager.send_personal_message({
                     'type': 'performance_metrics',
                     'data': performance_data
@@ -2406,7 +2456,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
             elif message_type == 'get_system_status':
                 # Handle system status request
-                platform_status = platform.get_platform_status()
+                platform_status = get_platform().get_platform_status()
                 await websocket_manager.send_personal_message({
                     'type': 'system_status',
                     'data': {'systems': map_systems_for_frontend(platform_status['systems'])}
@@ -2445,7 +2495,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             'mea_weight': mea_weight
                         }
                         
-                        success = platform.hybrid_miner.configure_triple_system(mining_config)
+                        success = get_platform().hybrid_miner.configure_triple_system(mining_config)
                         response_message = f"Mining weights updated: SHA256={sha256_weight:.2f}, Bio={network_weight:.2f}, MEA={mea_weight:.2f}"
                         
                     elif form_id == 'biologicalNetworkForm':
@@ -2456,16 +2506,16 @@ async def websocket_endpoint(websocket: WebSocket):
                         activation_function = config_data.get('activationFunction', 'relu')
                         
                         # Update C++ network configuration if available
-                        if platform.biological_network.is_cpp_enabled:
+                        if get_platform().biological_network.is_cpp_enabled:
                             try:
                                 # Update network config with new parameters
-                                platform.biological_network.cpp_config.neuronCount = network_inputs
-                                platform.biological_network.cpp_config.inputSize = network_inputs  
-                                platform.biological_network.cpp_config.outputSize = 32  # Bitcoin nonce size
+                                get_platform().biological_network.cpp_config.neuronCount = network_inputs
+                                get_platform().biological_network.cpp_config.inputSize = network_inputs  
+                                get_platform().biological_network.cpp_config.outputSize = 32  # Bitcoin nonce size
                                 
                                 # Apply configuration using setNetworkConfig
-                                config_success = platform.biological_network.cpp_network.setNetworkConfig(
-                                    platform.biological_network.cpp_config
+                                config_success = get_platform().biological_network.cpp_network.setNetworkConfig(
+                                    get_platform().biological_network.cpp_config
                                 )
                                 
                                 if config_success:
@@ -2487,7 +2537,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             response_message = f"Fallback network configured: {network_inputs} inputs, {hidden_layers} layers"
                         
                         # Store config in biological network for reference
-                        platform.biological_network.network_config = {
+                        get_platform().biological_network.network_config = {
                             'network_inputs': network_inputs,
                             'hidden_layers': hidden_layers,
                             'neurons_per_layer': neurons_per_layer,
@@ -2504,7 +2554,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         }
                         
                         # Store config in MEA interface
-                        platform.mea_interface.device_config = mea_config
+                        get_platform().mea_interface.device_config = mea_config
                         success = True
                         response_message = f"MEA configured: {mea_config['device_type']} on {mea_config['serial_port']}, {mea_config['electrode_count']} electrodes"
                         
@@ -2523,7 +2573,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             'cross_training': config_data.get('enableCrossTraining') == 'on'
                         }
                         
-                        platform.training_config = training_config
+                        get_platform().training_config = training_config
                         success = True
                         response_message = f"Training configured: {training_config['epochs']} epochs, batch {training_config['batch_size']}, validation {training_config['validation_split']:.1%}"
                         
@@ -2536,7 +2586,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             'batch_size': int(config_data.get('miningBatchSize', 32))
                         }
                         
-                        platform.mining_config = mining_config
+                        get_platform().mining_config = mining_config
                         success = True
                         response_message = f"Mining configured: {mining_config['mode']} mode, difficulty {mining_config['difficulty']}, {mining_config['max_attempts']} max attempts"
                         
@@ -2588,7 +2638,7 @@ async def periodic_status_updates():
             if websocket_manager.get_connection_count() > 0:
                 # Broadcast platform status
                 # Get platform status
-                platform_status = platform.get_platform_status()
+                platform_status = get_platform().get_platform_status()
                 
                 # Broadcast system status (with mapped names for frontend)
                 await websocket_manager.broadcast({
@@ -2600,13 +2650,13 @@ async def periodic_status_updates():
                 # Broadcast performance metrics
                 await websocket_manager.broadcast({
                     'type': 'performance_metrics',
-                    'data': platform.get_performance_metrics()
+                    'data': get_platform().get_performance_metrics()
                 })
                 
                 # If mining is active, broadcast mining updates
-                if platform.is_mining:
-                    mining_metrics = platform.hybrid_miner.get_metrics()
-                    network_state = platform.biological_network.get_network_state()
+                if get_platform().is_mining:
+                    mining_metrics = get_platform().hybrid_miner.get_metrics()
+                    network_state = get_platform().biological_network.get_network_state()
                     
                     await websocket_manager.broadcast({
                         'type': 'mining_update',
@@ -2617,8 +2667,8 @@ async def periodic_status_updates():
                     })
                 
                 # Broadcast MEA electrode data
-                if platform.systems_status['mea_interface']['status'] == 'online':
-                    electrode_data = platform.mea_interface.get_electrode_data()
+                if get_platform().systems_status['mea_interface']['status'] == 'online':
+                    electrode_data = get_platform().mea_interface.get_electrode_data()
                     await websocket_manager.broadcast({
                         'type': 'electrode_data', 
                         'data': electrode_data
@@ -2652,8 +2702,8 @@ async def shutdown_event():
     logger.info("🛑 Shutting down BioMining Platform API Server")
     
     # Stop all mining and training
-    await platform.stop_hybrid_mining()
-    platform.is_training = False
+    await get_platform().stop_hybrid_mining()
+    get_platform().is_training = False
     
     logger.info("🛑 Mining stopped")
     logger.info("🛑 Fallback learning stopped") 

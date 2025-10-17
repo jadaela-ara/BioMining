@@ -10,6 +10,12 @@ import re
 
 SERVER_FILE = "/app/web/api/server.py"
 
+# Check if running locally or in Docker
+import os
+if not os.path.exists(SERVER_FILE):
+    # Try local path
+    SERVER_FILE = os.path.join(os.path.dirname(__file__), "web/api/server.py")
+
 def patch_server():
     """Apply comprehensive patch to server.py"""
     
