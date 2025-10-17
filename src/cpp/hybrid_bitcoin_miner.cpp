@@ -35,8 +35,8 @@ HybridBitcoinMiner::HybridBitcoinMiner(QObject* parent)
     , m_metricsTimer(new QTimer(this))
     , m_threadPool(QThreadPool::globalInstance())
     // === BIO-ENTROPY INITIALIZATION ===
-    //, m_bioComputeMode(BioComputeMode::SimulatedNetwork) // Par défaut simulation
-    //, m_entropyGenerator(QSharedPointer<BioMining::Crypto::BioEntropyGenerator>::create())
+    , m_bioComputeMode(BioComputeMode::SimulatedNetwork) // Par défaut simulation
+    , m_entropyGenerator(QSharedPointer<BioMining::Crypto::BioEntropyGenerator>::create())
 {
     qDebug() << "Initializing HybridBitcoinMiner...";
     

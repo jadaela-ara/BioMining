@@ -656,7 +656,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Get entropy generation statistics");
     
     // Add bio-entropy methods to HybridBitcoinMiner (inherits from QObject, needs nodelete holder)
-    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::shared_ptr<BioMining::HCrypto::HybridBitcoinMiner>>(m_crypto, "HybridBitcoinMiner_BioEntropy", py::module_local())
+    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::shared_ptr<BioMining::HCrypto::HybridBitcoinMiner>>(m_crypto, "HybridBitcoinMiner", py::module_local())
         .def("setBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::setBioComputeMode,
              "Set bio-compute mode (RealMEA or SimulatedNetwork)")
         .def("getBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::getBioComputeMode,
