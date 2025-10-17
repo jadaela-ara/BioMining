@@ -51,7 +51,7 @@ fi
 # Verify fixes are present
 echo "🔍 Verifying pybind11 QObject fix..."
 grep -c ", QObject" python_bindings/biomining_python.cpp
-# Should show: 7 (includes IBioComputeInterface + 5 entropy classes)
+# Should show: 6 (1 original IBioComputeInterface + 5 entropy fixes)
 
 echo "🔍 Verifying Dockerfile CMD..."
 grep "CMD.*uvicorn" Dockerfile.cpp-simple-safe
