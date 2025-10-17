@@ -116,7 +116,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --max-instances 3 \
     --no-cpu-throttling \
     --port 8080 \
-    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0,PYTHONUNBUFFERED=1" \
+    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0,PYTHONUNBUFFERED=1,FORCE_PYTHON_FALLBACK=1" \
     --project="$PROJECT_ID"
     
 if [[ $? -eq 0 ]]; then
