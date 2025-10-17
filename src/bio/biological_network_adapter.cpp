@@ -1,9 +1,13 @@
 #include "bio/biological_network_adapter.h"
+#include "bio/ibio_compute_interface.h"
 #include <QDebug>
 #include <QThread>
 #include <QMutexLocker>
 #include <QDateTime>
 #include <cmath>
+#include <QRandomGenerator>
+
+using namespace BioMining::Bio;
 
 namespace BioMining {
 namespace Bio {
@@ -111,11 +115,11 @@ bool BiologicalNetworkAdapter::applyStimulus(const StimulusPattern &pattern)
     return true;
 }
 
-BioResponse BiologicalNetworkAdapter::captureResponse(int waitTimeMs)
+BioMining::Bio::IBioComputeInterface::BioResponse BiologicalNetworkAdapter::captureResponse(int waitTimeMs)
 {
     QMutexLocker locker(&m_mutex);
     
-    BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     response.isValid = false;
     
     if (!isReady()) {
@@ -150,9 +154,9 @@ BioResponse BiologicalNetworkAdapter::captureResponse(int waitTimeMs)
     return response;
 }
 
-BioResponse BiologicalNetworkAdapter::stimulateAndCapture(const StimulusPattern &pattern)
+BioMining::Bio::IBioComputeInterface::BioResponse BiologicalNetworkAdapter::stimulateAndCapture(const StimulusPattern &pattern)
 {
-    BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     response.isValid = false;
     
     qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
@@ -253,9 +257,9 @@ void BiologicalNetworkAdapter::onNetworkLearningStateChanged(Network::Biological
 }
 
 // Private methods
-BioResponse BiologicalNetworkAdapter::convertNetworkOutputToResponse(const QVector<double> &output)
+BioMining::Bio::IBioComputeInterface::BioResponse BiologicalNetworkAdapter::convertNetworkOutputToResponse(const QVector<double> &output)
 {
-    BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     
     if (output.isEmpty()) {
         response.isValid = false;
@@ -264,24 +268,24 @@ BioResponse BiologicalNetworkAdapter::convertNetworkOutputToResponse(const QVect
     
     // Utiliser la sortie du réseau comme signaux de réponse
     // Si output < 60, on le complète avec les derniers signaux
-    response.signals.resize(60);
+    response.rsignals.resize(60);
     
     for (int i = 0; i < 60; ++i) {
         if (i < output.size()) {
-            response.signals[i] = output[i];
+            response.rsignals[i] = output[i];
         } else if (i < m_lastStimulusSignals.size()) {
             // Compléter avec stimulus atténué
-            response.signals[i] = m_lastStimulusSignals[i] * 0.5;
+            response.rsignals[i] = m_lastStimulusSignals[i] * 0.5;
         } else {
-            response.signals[i] = 0.0;
+            response.rsignals[i] = 0.0;
         }
     }
     
     // Calculer la force de réponse
-    response.responseStrength = calculateNetworkResponseStrength(response.signals);
+    response.responseStrength = calculateNetworkResponseStrength(response.rsignals);
     
     // Calculer la qualité du signal (simulation = haute qualité)
-    response.signalQuality = calculateNetworkSignalQuality(response.signals);
+    response.signalQuality = calculateNetworkSignalQuality(response.rsignals);
     
     // Timestamp actuel
     response.responseTime = QDateTime::currentMSecsSinceEpoch() * 1000;

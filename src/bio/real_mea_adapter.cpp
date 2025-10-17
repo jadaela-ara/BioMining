@@ -113,11 +113,11 @@ bool RealMEAAdapter::applyStimulus(const StimulusPattern &pattern)
     return success;
 }
 
-BioResponse RealMEAAdapter::captureResponse(int waitTimeMs)
+BioMining::Bio::IBioComputeInterface::BioResponse RealMEAAdapter::captureResponse(int waitTimeMs)
 {
     QMutexLocker locker(&m_mutex);
     
-    BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     response.isValid = false;
     
     if (!isReady()) {
@@ -141,9 +141,9 @@ BioResponse RealMEAAdapter::captureResponse(int waitTimeMs)
     return response;
 }
 
-BioResponse RealMEAAdapter::stimulateAndCapture(const StimulusPattern &pattern)
+BioMining::Bio::IBioComputeInterface::BioResponse RealMEAAdapter::stimulateAndCapture(const StimulusPattern &pattern)
 {
-    BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     response.isValid = false;
     
     qint64 startTime = QDateTime::currentMSecsSinceEpoch() * 1000;
@@ -255,9 +255,9 @@ void RealMEAAdapter::onMEAError(const QString &error)
 }
 
 // Private methods
-BioResponse RealMEAAdapter::convertElectrodeDataToResponse(const QVector<ElectrodeData> &electrodeData)
+BioMining::Bio::IBioComputeInterface::BioResponse RealMEAAdapter::convertElectrodeDataToResponse(const QVector<ElectrodeData> &electrodeData)
 {
-    BioResponse response;
+    BioMining::Bio::IBioComputeInterface::BioResponse response;
     
     if (electrodeData.isEmpty() || electrodeData.size() != 60) {
         response.isValid = false;
@@ -265,9 +265,9 @@ BioResponse RealMEAAdapter::convertElectrodeDataToResponse(const QVector<Electro
     }
     
     // Extraire les signaux de voltage
-    response.signals.resize(60);
+    response.rsignals.resize(60);
     for (int i = 0; i < 60; ++i) {
-        response.signals[i] = electrodeData[i].voltage;
+        response.rsignals[i] = electrodeData[i].voltage;
     }
     
     // Calculer la force de réponse

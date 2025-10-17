@@ -7,8 +7,8 @@ set -e
 
 # Configuration
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project)}"
-SERVICE_NAME="biomining-cpp-ultra-simple"
-REGION="us-central1"
+SERVICE_NAME="biomining-entropie"
+REGION="europe-west1"
 SOURCE_DOCKERFILE="Dockerfile.cpp-simple"
 TARGET_DOCKERFILE="Dockerfile"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
@@ -101,7 +101,9 @@ fi
 echo ""
 echo "🚀 Deploying to Cloud Run..."
 
-# Deploy to Cloud Run
+# Deploy to Cloud Run with optimized startup configuration
+# Fix for signal 6 (SIGABRT) - increase timeouts and disable CPU throttling
+# Note: --cpu-boost may not be available in older gcloud versions (removed for compatibility)
 gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE_NAME" \
     --platform managed \
@@ -109,12 +111,14 @@ gcloud run deploy "$SERVICE_NAME" \
     --allow-unauthenticated \
     --memory 4Gi \
     --cpu 4 \
-    --timeout 3600s \
+    --timeout 600s \
     --concurrency 10 \
     --max-instances 3 \
-    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0" \
+    --no-cpu-throttling \
+    --port 8080 \
+    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0,PYTHONUNBUFFERED=1" \
     --project="$PROJECT_ID"
-
+    
 if [[ $? -eq 0 ]]; then
     echo "✅ Cloud Run deployment successful"
 else
@@ -208,7 +212,7 @@ else
 fi
 
 echo ""
-echo "📋 Deployment Summary:"
+echo "📋 Deployment Summary: "
 echo "   Service: $SERVICE_NAME"
 echo "   URL: ${SERVICE_URL:-'Not available'}"
 echo "   Build: Real C++ with Qt MOC compilation (ultra simple)"
