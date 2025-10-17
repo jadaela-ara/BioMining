@@ -1,3 +1,4 @@
+#define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/chrono.h>
@@ -27,8 +28,8 @@ namespace py = pybind11;
 PYBIND11_MODULE(biomining_cpp, m) {
     m.doc() = "BioMining C++ Python bindings";
 
-    // Register QObject for inheritance
-    py::class_<QObject, std::unique_ptr<QObject, py::nodelete>>(m, "QObject");
+    // Register QObject for inheritance - use shared_ptr for Qt-managed objects
+    py::class_<QObject, std::shared_ptr<QObject>>(m, "QObject");
 
     
     m.def("install_qt_logger", []() {
@@ -133,7 +134,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("wasSuccessful", &BioMining::HCrypto::TripleSystemPrediction::wasSuccessful);
     
     // Main HybridBitcoinMiner class (inherits from QObject, needs nodelete holder)
-    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::unique_ptr<BioMining::HCrypto::HybridBitcoinMiner, py::nodelete>>(m_crypto, "HybridBitcoinMiner")
+    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::shared_ptr<BioMining::HCrypto::HybridBitcoinMiner>>(m_crypto, "HybridBitcoinMiner")
         .def(py::init<>())
         .def("initialize", &BioMining::HCrypto::HybridBitcoinMiner::initialize,
              "Initialize the hybrid mining system")
@@ -320,7 +321,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("totalTrainingTime", &BioMining::Bio::BitcoinLearningStats::totalTrainingTime);
     
     // Main RealMEAInterface class
-    py::class_<BioMining::Bio::RealMEAInterface, QObject, std::unique_ptr<BioMining::Bio::RealMEAInterface, py::nodelete>>(m_bio, "RealMEAInterface")
+    py::class_<BioMining::Bio::RealMEAInterface, QObject, std::shared_ptr<BioMining::Bio::RealMEAInterface>>(m_bio, "RealMEAInterface")
         .def(py::init<>())
         .def("initialize", &BioMining::Bio::RealMEAInterface::initialize,
              "Initialize MEA interface with configuration")
@@ -449,7 +450,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("computeTime", &BioMining::Network::BiologicalNetwork::LearningData::computeTime);
 
     // BiologicalNetwork class bindings - NETWORK MODULE
-    py::class_<BioMining::Network::BiologicalNetwork, QObject, std::unique_ptr<BioMining::Network::BiologicalNetwork, py::nodelete>>(m_bio, "BiologicalNetwork")
+    py::class_<BioMining::Network::BiologicalNetwork, QObject, std::shared_ptr<BioMining::Network::BiologicalNetwork>>(m_bio, "BiologicalNetwork")
         .def(py::init<>(), "Default constructor")
         //.def(py::init<int, int>(), "Constructor with neuron and synapse counts")
         .def(py::init<QObject*>(), py::arg("parent") = nullptr, "Default constructor with optional QObject parent")
@@ -554,7 +555,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("isValid", &BioMining::Bio::IBioComputeInterface::BioResponse::isValid);
     
     // IBioComputeInterface abstract base class
-    py::class_<BioMining::Bio::IBioComputeInterface, QObject, std::unique_ptr<BioMining::Bio::IBioComputeInterface, py::nodelete>>(m_bio, "IBioComputeInterface")
+    py::class_<BioMining::Bio::IBioComputeInterface, QObject, std::shared_ptr<BioMining::Bio::IBioComputeInterface>>(m_bio, "IBioComputeInterface")
         .def("getComputeMode", &BioMining::Bio::IBioComputeInterface::getComputeMode,
              "Get current compute mode (RealMEA or SimulatedNetwork)")
         .def("initialize", &BioMining::Bio::IBioComputeInterface::initialize,
@@ -569,7 +570,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Reinforce successful pattern with reward");
     
     // RealMEAAdapter class
-    py::class_<BioMining::Bio::RealMEAAdapter, BioMining::Bio::IBioComputeInterface, std::unique_ptr<BioMining::Bio::RealMEAAdapter, py::nodelete>>(m_bio, "RealMEAAdapter")
+    py::class_<BioMining::Bio::RealMEAAdapter, BioMining::Bio::IBioComputeInterface, std::shared_ptr<BioMining::Bio::RealMEAAdapter>>(m_bio, "RealMEAAdapter")
         .def(py::init<>())
         .def("getComputeMode", &BioMining::Bio::RealMEAAdapter::getComputeMode,
              "Returns ComputeMode::RealMEA")
@@ -585,7 +586,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Reinforce successful MEA pattern");
     
     // BiologicalNetworkAdapter class
-    py::class_<BioMining::Bio::BiologicalNetworkAdapter, BioMining::Bio::IBioComputeInterface, std::unique_ptr<BioMining::Bio::BiologicalNetworkAdapter, py::nodelete>>(m_bio, "BiologicalNetworkAdapter")
+    py::class_<BioMining::Bio::BiologicalNetworkAdapter, BioMining::Bio::IBioComputeInterface, std::shared_ptr<BioMining::Bio::BiologicalNetworkAdapter>>(m_bio, "BiologicalNetworkAdapter")
         .def(py::init<>())
         .def("getComputeMode", &BioMining::Bio::BiologicalNetworkAdapter::getComputeMode,
              "Returns ComputeMode::SimulatedNetwork")
@@ -634,7 +635,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         );
     
     // BioEntropyGenerator class (inherits from QObject, needs nodelete holder)
-    py::class_<BioMining::Crypto::BioEntropyGenerator, QObject, std::unique_ptr<BioMining::Crypto::BioEntropyGenerator, py::nodelete>>(m_bio, "BioEntropyGenerator")
+    py::class_<BioMining::Crypto::BioEntropyGenerator, QObject, std::shared_ptr<BioMining::Crypto::BioEntropyGenerator>>(m_bio, "BioEntropyGenerator")
         .def(py::init<>())
         .def("extractHeaderFeatures", &BioMining::Crypto::BioEntropyGenerator::extractHeaderFeatures,
              "Extract 60-dimensional features from block header",
@@ -655,7 +656,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Get entropy generation statistics");
     
     // Add bio-entropy methods to HybridBitcoinMiner (inherits from QObject, needs nodelete holder)
-    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::unique_ptr<BioMining::HCrypto::HybridBitcoinMiner, py::nodelete>>(m_crypto, "HybridBitcoinMiner_BioEntropy", py::module_local())
+    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::shared_ptr<BioMining::HCrypto::HybridBitcoinMiner>>(m_crypto, "HybridBitcoinMiner_BioEntropy", py::module_local())
         .def("setBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::setBioComputeMode,
              "Set bio-compute mode (RealMEA or SimulatedNetwork)")
         .def("getBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::getBioComputeMode,

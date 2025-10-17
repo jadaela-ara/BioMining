@@ -138,7 +138,7 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "    libraries=qt_libs," >> setup_simple.py && \
     echo "    language='c++'," >> setup_simple.py && \
     echo "    cxx_std=17," >> setup_simple.py && \
-    echo "    extra_compile_args=['-DQT_CORE_LIB','-DQT_NETWORK_LIB','-DQT_SERIALPORT_LIB','-DQT_WIDGETS_LIB','-DQT_CONCURRENT_LIB','-std=c++17','-frtti']," >> setup_simple.py && \
+    echo "    extra_compile_args=['-DQT_CORE_LIB','-DQT_NETWORK_LIB','-DQT_SERIALPORT_LIB','-DQT_WIDGETS_LIB','-DQT_CONCURRENT_LIB','-std=c++17','-frtti','-DPYBIND11_DETAILED_ERROR_MESSAGES']," >> setup_simple.py && \
     echo "    extra_link_args=['-Wl,-rpath,$ORIGIN']," >> setup_simple.py && \
     echo ")]" >> setup_simple.py && \
     echo "" >> setup_simple.py && \
