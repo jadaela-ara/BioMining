@@ -40,6 +40,7 @@ COPY real_mea_interface.py ./
 COPY config/ ./config/
 COPY start_server_safe.py ./
 COPY patch_server_lazy_init.py ./
+COPY patch_server_robust.py ./
 
 # Set Qt environment variables
 ENV QT_SELECT=5
@@ -175,8 +176,9 @@ EXPOSE 8080
 # HEALTHCHECK removed - Cloud Run uses its own probe mechanisms
 # Cloud Run ignores Dockerfile HEALTHCHECK and uses readinessProbe/livenessProbe from service config
 
-# Apply lazy initialization patch to prevent pybind11 errors at import time
-RUN python3 /app/patch_server_lazy_init.py || echo "⚠️ Patch failed, continuing anyway"
+# Apply robust lazy initialization patch to prevent pybind11 errors
+# This replaces ALL platform references with get_platform() for proper lazy loading
+RUN python3 /app/patch_server_robust.py || echo "⚠️ Patch failed, continuing anyway"
 
 # Use safe startup wrapper to handle pybind11 errors gracefully
 CMD ["python3", "/app/start_server_safe.py"]
