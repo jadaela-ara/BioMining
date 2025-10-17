@@ -234,9 +234,13 @@ class CppHybridBitcoinMiner:
         if CPP_BINDINGS_AVAILABLE:
             try:
                 # Initialize C++ HybridBitcoinMiner
-                self.cpp_miner = biomining_cpp.crypto.HybridBitcoinMiner()
+      qDebug() << "HybridBitcoinMiner etape0 ";
+              self.cpp_miner = biomining_cpp.crypto.HybridBitcoinMiner()
+    qDebug() << "HybridBitcoinMiner etape0.1 OK";
                 self.cpp_config = biomining_cpp.crypto.MiningConfig()
+    qDebug() << "HybridBitcoinMiner etape0.2 OK";
                 self.cpp_metrics = biomining_cpp.crypto.HybridMiningMetrics()
+    qDebug() << "HybridBitcoinMiner etape0.3 OK";
                 self.cpp_learning_params = biomining_cpp.crypto.BiologicalLearningParams()
 
     qDebug() << "HybridBitcoinMiner etape1 OK";
