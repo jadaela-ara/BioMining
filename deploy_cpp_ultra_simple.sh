@@ -101,7 +101,9 @@ fi
 echo ""
 echo "🚀 Deploying to Cloud Run..."
 
-# Deploy to Cloud Run
+# Deploy to Cloud Run with optimized startup configuration
+# Fix for signal 6 (SIGABRT) - increase timeouts and disable CPU throttling
+# Note: --cpu-boost may not be available in older gcloud versions (removed for compatibility)
 gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE_NAME" \
     --platform managed \
@@ -112,7 +114,9 @@ gcloud run deploy "$SERVICE_NAME" \
     --timeout 600s \
     --concurrency 10 \
     --max-instances 3 \
-    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0" \
+    --no-cpu-throttling \
+    --port 8080 \
+    --set-env-vars "BIOMINING_ENVIRONMENT=production,QT_QPA_PLATFORM=offscreen,DISPLAY=:0,PYTHONUNBUFFERED=1" \
     --project="$PROJECT_ID"
     
 if [[ $? -eq 0 ]]; then

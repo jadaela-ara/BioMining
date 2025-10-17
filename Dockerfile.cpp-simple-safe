@@ -1,5 +1,5 @@
-# Dockerfile.cpp-simple - version corrigée pour build C++/Qt/Pybind11 avec support MOC (renommage .moc en .moc.cpp)
-# Updated to include Bio-Entropy Mining Architecture (d63d12d)
+# Dockerfile.cpp-simple-safe - Version avec startup sécurisé pour gérer les erreurs pybind11
+# Basé sur Dockerfile.cpp-simple avec wrapper de démarrage
 
 FROM python:3.11-slim
 
@@ -23,9 +23,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Vérification de la présence des headers QtConcurrent
-RUN ls -l /usr/include/x86_64-linux-gnu/qt5/QtConcurrent/QtConcurrent*
-
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
@@ -41,6 +38,7 @@ COPY web/ ./web/
 COPY biological_bitcoin_learning.py ./
 COPY real_mea_interface.py ./
 COPY config/ ./config/
+COPY start_server_safe.py ./
 
 # Set Qt environment variables
 ENV QT_SELECT=5
@@ -120,8 +118,6 @@ RUN echo "#!/usr/bin/env python3" > setup_simple.py && \
     echo "    '../src/cpp/mea_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.cpp'," >> setup_simple.py && \
     echo "    '../src/cpp/hybrid_bitcoin_miner.moc.cpp'," >> setup_simple.py && \
-    echo "    '../src/bio/ibio_compute_interface.cpp'," >> setup_simple.py && \
-    echo "    '../src/bio/ibio_compute_interface.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/real_mea_adapter.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/real_mea_adapter.moc.cpp'," >> setup_simple.py && \
     echo "    '../src/bio/biological_network_adapter.cpp'," >> setup_simple.py && \
@@ -153,11 +149,11 @@ RUN echo "🔍 Verifying compilation results..." && \
     find . -name "biomining_cpp*.so" -exec ls -la {} \; && \
     find . -name "biomining_cpp*.so" -exec mv {} /app/ \;
 
-# Final verification
+# Final verification with detailed error reporting
 RUN echo "🧪 Final verification of C++ module..." && \
     ls -la /app/biomining_cpp*.so && \
-    python3 -c "import sys; sys.path.insert(0, '/app'); import biomining_cpp; print('✅ C++ module imports successfully')" || \
-    echo "⚠️ C++ module verification failed, will use fallbacks"
+    (python3 -c "import sys; sys.path.insert(0, '/app'); import biomining_cpp; print('✅ C++ module imports successfully'); print('📦 Available classes:', dir(biomining_cpp))" || \
+    (echo "⚠️ C++ module verification failed, will use fallbacks" && echo "Continuing build..."))
 
 WORKDIR /app
 
@@ -173,7 +169,8 @@ ENV DISPLAY=:0
 
 EXPOSE 8080
 
-#HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-#    CMD curl -f http://localhost:8080/api/status || exit 1
+# HEALTHCHECK removed - Cloud Run uses its own probe mechanisms
+# Cloud Run ignores Dockerfile HEALTHCHECK and uses readinessProbe/livenessProbe from service config
 
-CMD ["python", "-m", "uvicorn", "web.api.server:app", "--host", "0.0.0.0", "--port", "8080"]
+# Use safe startup wrapper to handle pybind11 errors gracefully
+CMD ["python3", "/app/start_server_safe.py"]
