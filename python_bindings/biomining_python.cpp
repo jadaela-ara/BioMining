@@ -190,7 +190,20 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def("performTripleOptimizedMining", &BioMining::HCrypto::HybridBitcoinMiner::performTripleOptimizedMining,
              "Perform triple-optimized mining")
         .def("optimizeSystemWeights", &BioMining::HCrypto::HybridBitcoinMiner::optimizeSystemWeights,
-             "Optimize system weights dynamically");
+             "Optimize system weights dynamically")
+        //Entropie
+        .def("setBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::setBioComputeMode,
+             "Set bio-compute mode (RealMEA or SimulatedNetwork)")
+        .def("getBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::getBioComputeMode,
+             "Get current bio-compute mode")
+        .def("initializeBioEntropy", &BioMining::HCrypto::HybridBitcoinMiner::initializeBioEntropy,
+             "Initialize bio-entropy mining system")
+        .def("mineWithBioEntropy", &BioMining::HCrypto::HybridBitcoinMiner::mineWithBioEntropy,
+             "Mine using bio-entropy approach",
+             py::arg("blockHeader"), py::arg("difficulty"))
+        .def("getBioEntropyStats", &BioMining::HCrypto::HybridBitcoinMiner::getBioEntropyStats,
+             "Get bio-entropy mining statistics");
+
     
     // ==========================================================================
     // REAL MEA INTERFACE MODULE
@@ -655,17 +668,4 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def("getEntropyStats", &BioMining::Crypto::BioEntropyGenerator::getEntropyStats,
              "Get entropy generation statistics");
     
-    // Add bio-entropy methods to HybridBitcoinMiner (inherits from QObject, needs nodelete holder)
-    py::class_<BioMining::HCrypto::HybridBitcoinMiner, QObject, std::shared_ptr<BioMining::HCrypto::HybridBitcoinMiner>>(m_crypto, "HybridBitcoinMiner", py::module_local())
-        .def("setBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::setBioComputeMode,
-             "Set bio-compute mode (RealMEA or SimulatedNetwork)")
-        .def("getBioComputeMode", &BioMining::HCrypto::HybridBitcoinMiner::getBioComputeMode,
-             "Get current bio-compute mode")
-        .def("initializeBioEntropy", &BioMining::HCrypto::HybridBitcoinMiner::initializeBioEntropy,
-             "Initialize bio-entropy mining system")
-        .def("mineWithBioEntropy", &BioMining::HCrypto::HybridBitcoinMiner::mineWithBioEntropy,
-             "Mine using bio-entropy approach",
-             py::arg("blockHeader"), py::arg("difficulty"))
-        .def("getBioEntropyStats", &BioMining::HCrypto::HybridBitcoinMiner::getBioEntropyStats,
-             "Get bio-entropy mining statistics");
 }
