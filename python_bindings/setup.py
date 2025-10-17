@@ -98,6 +98,9 @@ ext_modules = [
             "../src/cpp/biological_network.cpp",
             "../src/cpp/mea_interface.cpp",
              "../src/bio/ibio_compute_interface.cpp",
+             "../src/bio/biological_network_adapter.cpp",
+             "../src/bio/real_mea_adapter.cpp",
+             "../src/crypto/bio_entropy_generator.cpp",
        ],
         include_dirs=[
             "../include",
@@ -122,7 +125,8 @@ class CustomBuildExt(build_ext):
                 '-DQT_NETWORK_LIB',
                 '-DQT_SERIALPORT_LIB',
                 '-std=c++17',
-            ])
+                '-DPYBIND11_DETAILED_ERROR_MESSAGES',  # Ajout ici
+         ])
             
             if sys.platform == 'darwin':  # macOS
                 ext.extra_compile_args.extend(['-stdlib=libc++'])
