@@ -554,7 +554,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
         .def_readwrite("isValid", &BioMining::Bio::IBioComputeInterface::BioResponse::isValid);
     
     // IBioComputeInterface abstract base class
-    py::class_<BioMining::Bio::IBioComputeInterface, QObject>(m_bio, "IBioComputeInterface")
+    py::class_<BioMining::Bio::IBioComputeInterface, QObject, std::unique_ptr<BioMining::Bio::IBioComputeInterface, py::nodelete>>(m_bio, "IBioComputeInterface")
         .def("getComputeMode", &BioMining::Bio::IBioComputeInterface::getComputeMode,
              "Get current compute mode (RealMEA or SimulatedNetwork)")
         .def("initialize", &BioMining::Bio::IBioComputeInterface::initialize,
@@ -569,7 +569,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Reinforce successful pattern with reward");
     
     // RealMEAAdapter class
-    py::class_<BioMining::Bio::RealMEAAdapter, BioMining::Bio::IBioComputeInterface>(m_bio, "RealMEAAdapter")
+    py::class_<BioMining::Bio::RealMEAAdapter, BioMining::Bio::IBioComputeInterface, std::unique_ptr<BioMining::Bio::RealMEAAdapter, py::nodelete>>(m_bio, "RealMEAAdapter")
         .def(py::init<>())
         .def("getComputeMode", &BioMining::Bio::RealMEAAdapter::getComputeMode,
              "Returns ComputeMode::RealMEA")
@@ -585,7 +585,7 @@ PYBIND11_MODULE(biomining_cpp, m) {
              "Reinforce successful MEA pattern");
     
     // BiologicalNetworkAdapter class
-    py::class_<BioMining::Bio::BiologicalNetworkAdapter, BioMining::Bio::IBioComputeInterface>(m_bio, "BiologicalNetworkAdapter")
+    py::class_<BioMining::Bio::BiologicalNetworkAdapter, BioMining::Bio::IBioComputeInterface, std::unique_ptr<BioMining::Bio::BiologicalNetworkAdapter, py::nodelete>>(m_bio, "BiologicalNetworkAdapter")
         .def(py::init<>())
         .def("getComputeMode", &BioMining::Bio::BiologicalNetworkAdapter::getComputeMode,
              "Returns ComputeMode::SimulatedNetwork")
