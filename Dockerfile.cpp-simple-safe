@@ -176,9 +176,5 @@ EXPOSE 8080
 # HEALTHCHECK removed - Cloud Run uses its own probe mechanisms
 # Cloud Run ignores Dockerfile HEALTHCHECK and uses readinessProbe/livenessProbe from service config
 
-# Apply robust lazy initialization patch to prevent pybind11 errors
-# This replaces ALL platform references with get_platform() for proper lazy loading
-RUN python3 /app/patch_server_robust.py || echo "⚠️ Patch failed, continuing anyway"
-
-# Use safe startup wrapper to handle pybind11 errors gracefully
-CMD ["python3", "/app/start_server_safe.py"]
+# Start server directly (no patching needed - pybind11 bindings are fixed at compile time)
+CMD ["uvicorn", "web.api.server:app", "--host", "0.0.0.0", "--port", "8080"]
