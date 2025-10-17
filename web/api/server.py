@@ -234,16 +234,16 @@ class CppHybridBitcoinMiner:
         if CPP_BINDINGS_AVAILABLE:
             try:
                 # Initialize C++ HybridBitcoinMiner
-      print("HybridBitcoinMiner etape0 ")
-              self.cpp_miner = biomining_cpp.crypto.HybridBitcoinMiner()
-    print("HybridBitcoinMiner etape0.1 OK")
+                print("HybridBitcoinMiner etape0 ")
+                self.cpp_miner = biomining_cpp.crypto.HybridBitcoinMiner()
+                print("HybridBitcoinMiner etape0.1 OK")
                 self.cpp_config = biomining_cpp.crypto.MiningConfig()
-    print("HybridBitcoinMiner etape0.2 OK")
+                print("HybridBitcoinMiner etape0.2 OK")
                 self.cpp_metrics = biomining_cpp.crypto.HybridMiningMetrics()
-    print("HybridBitcoinMiner etape0.3 OK")
+                print("HybridBitcoinMiner etape0.3 OK")
                 self.cpp_learning_params = biomining_cpp.crypto.BiologicalLearningParams()
 
-    print("HybridBitcoinMiner etape1 OK")
+                print("HybridBitcoinMiner etape1 OK")
 
                 
                 # Initialize Bio-Entropy components
@@ -254,7 +254,7 @@ class CppHybridBitcoinMiner:
                     self.has_bio_entropy = False
                     logger.warning("⚠️ Bio-Entropy bindings not available")
 
-       print("HybridBitcoinMiner etape2 OK")
+                print("HybridBitcoinMiner etape2 OK")
  
                 # Configure C++ learning parameters
                 self.cpp_learning_params.adaptationRate = 0.001
