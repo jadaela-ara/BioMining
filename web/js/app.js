@@ -236,6 +236,15 @@ class HybridBitcoinMiningApp {
             case 'mining_update':
                 this.updateMiningStats(message.data);
                 break;
+            case 'bio_entropy_update':
+                this.updateBioEntropyStats(message.data);
+                break;
+            case 'bio_entropy_started':
+                this.onBioEntropyStarted(message.data);
+                break;
+            case 'bio_entropy_stopped':
+                this.onBioEntropyStopped(message.data);
+                break;
             case 'electrode_data':
                 this.updateElectrodeData(message.data);
                 break;
@@ -253,9 +262,6 @@ class HybridBitcoinMiningApp {
                 break;
             case 'success':
                 this.showNotification('success', message.message);
-                break;
-            case 'performance_metrics':
-                this.updatePerformanceMetrics();
                 break;
             case 'config_update_response':
                 this.handleConfigUpdateResponse(message.data);
@@ -504,25 +510,44 @@ class HybridBitcoinMiningApp {
     }
 
     /**
-     * Start mining operation
+     * Start mining operation (Bio-Entropy approach)
      */
     async startMining() {
         try {
-            console.log('⛏️ Starting mining process...');
+            console.log('🧬 Starting Bio-Entropy mining...');
             
-            // Gather configuration from form (or use defaults)
+            // Gather Bio-Entropy configuration from form
             const config = {
-                method: 'triple_system',
+                // Compute Mode
+                mode: document.querySelector('input[name="bioMode"]:checked')?.value || 'SimulatedNetwork',
+                
+                // Exploration Strategy
+                strategy: document.getElementById('entropyStrategy')?.value || 'Auto',
+                starting_points: parseInt(document.getElementById('startingPointsCount')?.value) || 1000,
+                window_size: parseInt(document.getElementById('windowSize')?.value) || 4194304,
+                max_voltage: parseFloat(document.getElementById('maxVoltage')?.value) || 3.0,
+                
+                // Feature Extraction
+                extract_timestamp: document.getElementById('extractTimestamp')?.checked ?? true,
+                extract_difficulty: document.getElementById('extractDifficulty')?.checked ?? true,
+                extract_prev_hash: document.getElementById('extractPrevHash')?.checked ?? true,
+                extract_merkle: document.getElementById('extractMerkle')?.checked ?? true,
+                extract_bytes: document.getElementById('extractBytes')?.checked ?? true,
+                
+                // Reinforcement Learning
+                enable_reinforcement: document.getElementById('enableReinforcement')?.checked ?? true,
+                reward_weight: parseFloat(document.getElementById('rewardWeight')?.value) || 1.0,
+                history_size: parseInt(document.getElementById('historySize')?.value) || 100,
+                
+                // Mining Parameters
                 difficulty: 4,
-                biological_weight: 0.3,
-                mea_weight: 0.2,
-                traditional_weight: 0.5,
-                threads: 4,
-                use_biological: true
+                threads: 4
             };
             
-            // Use HTTP POST request to backend API
-            const response = await fetch('/api/mining/start', {
+            console.log('📋 Bio-Entropy Config:', config);
+            
+            // Use NEW Bio-Entropy endpoint
+            const response = await fetch('/api/bio-entropy/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -533,28 +558,34 @@ class HybridBitcoinMiningApp {
             const result = await response.json();
             
             if (result.success) {
-                this.showNotification('success', 'Mining started successfully');
+                this.showNotification('success', '🧬 Bio-Entropy mining started successfully!');
                 this.updateMiningControls(true);
-                console.log('✅ Mining started successfully');
+                
+                // Update dashboard display
+                const modeDisplay = config.mode === 'RealMEA' ? 'MEA Réel' : 'Réseau Simulé';
+                document.getElementById('activeModeDisplay').textContent = modeDisplay;
+                document.getElementById('dashStrategy').textContent = config.strategy;
+                
+                console.log('✅ Bio-Entropy mining active:', result.stats);
             } else {
                 this.showNotification('error', 'Failed to start mining: ' + (result.message || 'Unknown error'));
                 console.error('❌ Mining start failed:', result);
             }
         } catch (error) {
-            console.error('❌ Error starting mining:', error);
+            console.error('❌ Error starting Bio-Entropy mining:', error);
             this.showNotification('error', 'Network error: ' + error.message);
         }
     }
 
     /**
-     * Stop mining operation
+     * Stop mining operation (Bio-Entropy)
      */
     async stopMining() {
         try {
-            console.log('🛑 Stopping mining process...');
+            console.log('🛑 Stopping Bio-Entropy mining...');
             
-            // Use HTTP POST request to backend API
-            const response = await fetch('/api/mining/stop', {
+            // Use NEW Bio-Entropy stop endpoint
+            const response = await fetch('/api/bio-entropy/stop', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -564,15 +595,15 @@ class HybridBitcoinMiningApp {
             const result = await response.json();
             
             if (result.success) {
-                this.showNotification('info', 'Mining stopped successfully');
+                this.showNotification('info', '🧬 Bio-Entropy mining stopped successfully');
                 this.updateMiningControls(false);
-                console.log('✅ Mining stopped successfully');
+                console.log('✅ Bio-Entropy mining stopped');
             } else {
                 this.showNotification('error', 'Failed to stop mining: ' + (result.message || 'Unknown error'));
                 console.error('❌ Mining stop failed:', result);
             }
         } catch (error) {
-            console.error('❌ Error stopping mining:', error);
+            console.error('❌ Error stopping Bio-Entropy mining:', error);
             this.showNotification('error', 'Network error: ' + error.message);
         }
     }
@@ -741,6 +772,81 @@ class HybridBitcoinMiningApp {
                 </div>
             `;
         }
+    }
+
+    /**
+     * Update Bio-Entropy statistics (NEW)
+     */
+    updateBioEntropyStats(data) {
+        console.log('🧬 Updating Bio-Entropy stats:', data);
+        
+        // Update Dashboard metrics
+        this.updateElement('dashConfidence', data.confidence ? data.confidence.toFixed(1) + '%' : '0%');
+        this.updateElement('dashStartingPoints', data.total_points ? data.total_points.toLocaleString() : '0');
+        this.updateElement('dashHashrate', data.hashrate ? this.formatHashrate(data.hashrate) : '0 H/s');
+        this.updateElement('dashStrategy', data.strategy || 'Auto');
+        
+        // Update Mining page detailed stats (if on mining page)
+        if (this.currentPanel === 'mining') {
+            // Entropy Seed Card
+            if (data.primary_seed) {
+                const seedHex = '0x' + data.primary_seed.toString(16).padStart(16, '0');
+                this.updateElement('primarySeed', seedHex);
+            }
+            this.updateElement('seedConfidence', data.confidence ? data.confidence.toFixed(1) + '%' : '0%');
+            this.updateElement('responseStrength', data.response_strength ? data.response_strength.toFixed(2) : '0.00');
+            
+            // Starting Points Card
+            this.updateElement('totalStartingPoints', data.total_points ? data.total_points.toLocaleString() : '0');
+            this.updateElement('activeStrategy', data.strategy || 'Auto');
+            this.updateElement('estimatedCoverage', data.expected_coverage ? data.expected_coverage.toFixed(2) + '%' : '0%');
+            
+            // Biological Response Card
+            this.updateElement('bioResponseTime', data.bio_response_time ? data.bio_response_time.toFixed(1) + ' ms' : '0 ms');
+            this.updateElement('signalQuality', data.signal_quality ? (data.signal_quality * 100).toFixed(1) + '%' : '0%');
+            this.updateElement('reinforcedPatterns', data.reinforced_patterns || 0);
+            
+            // Parallel Search Card
+            this.updateElement('activeThreads', data.active_threads || 0);
+            this.updateElement('windowPerPoint', data.window_size ? data.window_size.toLocaleString() + ' nonces' : '0');
+            this.updateElement('bioEntropyHashrate', data.hashrate ? this.formatHashrate(data.hashrate) : '0 H/s');
+        }
+    }
+
+    /**
+     * Handle Bio-Entropy mining started event
+     */
+    onBioEntropyStarted(data) {
+        console.log('🧬 Bio-Entropy mining started:', data);
+        
+        if (data.success && data.stats) {
+            this.updateBioEntropyStats(data.stats);
+            this.showNotification('success', '🧬 Bio-Entropy mining is now active!');
+        }
+    }
+
+    /**
+     * Handle Bio-Entropy mining stopped event
+     */
+    onBioEntropyStopped(data) {
+        console.log('🛑 Bio-Entropy mining stopped:', data);
+        this.showNotification('info', '🧬 Bio-Entropy mining has been stopped');
+    }
+
+    /**
+     * Format hashrate for display
+     */
+    formatHashrate(hashrate) {
+        if (hashrate >= 1e12) {
+            return (hashrate / 1e12).toFixed(2) + ' TH/s';
+        } else if (hashrate >= 1e9) {
+            return (hashrate / 1e9).toFixed(2) + ' GH/s';
+        } else if (hashrate >= 1e6) {
+            return (hashrate / 1e6).toFixed(2) + ' MH/s';
+        } else if (hashrate >= 1e3) {
+            return (hashrate / 1e3).toFixed(2) + ' KH/s';
+        }
+        return hashrate.toFixed(2) + ' H/s';
     }
 
     /**
@@ -1325,24 +1431,32 @@ class HybridBitcoinMiningApp {
     }
 
     /**
-     * Start mining process
+     * Start mining process (Bio-Entropy) - Duplicate implementation
      */
     async startMining() {
-        console.log('⛏️ Starting mining process...');
+        console.log('🧬 Starting Bio-Entropy mining... (duplicate method)');
         
-        // Configuration matching HybridMiningConfig in backend
+        // Gather Bio-Entropy configuration
         const config = {
-            method: 'triple_system',
+            mode: document.querySelector('input[name="bioMode"]:checked')?.value || 'SimulatedNetwork',
+            strategy: document.getElementById('entropyStrategy')?.value || 'Auto',
+            starting_points: parseInt(document.getElementById('startingPointsCount')?.value) || 1000,
+            window_size: parseInt(document.getElementById('windowSize')?.value) || 4194304,
+            max_voltage: parseFloat(document.getElementById('maxVoltage')?.value) || 3.0,
+            extract_timestamp: document.getElementById('extractTimestamp')?.checked ?? true,
+            extract_difficulty: document.getElementById('extractDifficulty')?.checked ?? true,
+            extract_prev_hash: document.getElementById('extractPrevHash')?.checked ?? true,
+            extract_merkle: document.getElementById('extractMerkle')?.checked ?? true,
+            extract_bytes: document.getElementById('extractBytes')?.checked ?? true,
+            enable_reinforcement: document.getElementById('enableReinforcement')?.checked ?? true,
+            reward_weight: parseFloat(document.getElementById('rewardWeight')?.value) || 1.0,
+            history_size: parseInt(document.getElementById('historySize')?.value) || 100,
             difficulty: 4,
-            biological_weight: 0.3,
-            mea_weight: 0.2,
-            traditional_weight: 0.5,
-            threads: 4,
-            use_biological: true
+            threads: 4
         };
         
         try {
-            const response = await fetch('/api/mining/start', {
+            const response = await fetch('/api/bio-entropy/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1353,27 +1467,27 @@ class HybridBitcoinMiningApp {
             const result = await response.json();
             
             if (result.success) {
-                this.showNotification('success', 'Mining started successfully');
+                this.showNotification('success', '🧬 Bio-Entropy mining started successfully');
                 this.updateMiningControls(true);
-                console.log('✅ Mining started successfully');
+                console.log('✅ Bio-Entropy mining started');
             } else {
                 this.showNotification('error', 'Failed to start mining: ' + (result.message || 'Unknown error'));
                 console.error('❌ Mining start failed:', result);
             }
         } catch (error) {
-            console.error('❌ Error starting mining:', error);
+            console.error('❌ Error starting Bio-Entropy mining:', error);
             this.showNotification('error', 'Network error: ' + error.message);
         }
     }
 
     /**
-     * Stop mining process
+     * Stop mining process (Bio-Entropy) - Duplicate implementation
      */
     async stopMining() {
-        console.log('🛑 Stopping mining process...');
+        console.log('🛑 Stopping Bio-Entropy mining... (duplicate method)');
         
         try {
-            const response = await fetch('/api/mining/stop', {
+            const response = await fetch('/api/bio-entropy/stop', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1383,15 +1497,15 @@ class HybridBitcoinMiningApp {
             const result = await response.json();
             
             if (result.success) {
-                this.showNotification('info', 'Mining stopped successfully');
+                this.showNotification('info', '🧬 Bio-Entropy mining stopped successfully');
                 this.updateMiningControls(false);
-                console.log('✅ Mining stopped successfully');
+                console.log('✅ Bio-Entropy mining stopped');
             } else {
                 this.showNotification('error', 'Failed to stop mining: ' + (result.message || 'Unknown error'));
                 console.error('❌ Mining stop failed:', result);
             }
         } catch (error) {
-            console.error('❌ Error stopping mining:', error);
+            console.error('❌ Error stopping Bio-Entropy mining:', error);
             this.showNotification('error', 'Network error: ' + error.message);
         }
     }
