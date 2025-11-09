@@ -506,34 +506,75 @@ class HybridBitcoinMiningApp {
     /**
      * Start mining operation
      */
-    startMining() {
-        this.sendWebSocketMessage({
-            type: 'start_mining',
-            method: 'triple_system' // Use all three systems
-        });
-        
-        // Update UI
-        document.getElementById('start-mining-btn').disabled = true;
-        document.getElementById('stop-mining-btn').disabled = false;
-        
-        this.showNotification('success', 'Mining started with triple system optimization');
-        console.log('⛏️ Mining started');
+    async startMining() {
+        try {
+            console.log('⛏️ Starting mining process...');
+            
+            // Gather configuration from form (or use defaults)
+            const config = {
+                method: 'triple_system',
+                difficulty: 4,
+                biological_weight: 0.3,
+                mea_weight: 0.2,
+                traditional_weight: 0.5,
+                threads: 4,
+                use_biological: true
+            };
+            
+            // Use HTTP POST request to backend API
+            const response = await fetch('/api/mining/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('success', 'Mining started successfully');
+                this.updateMiningControls(true);
+                console.log('✅ Mining started successfully');
+            } else {
+                this.showNotification('error', 'Failed to start mining: ' + (result.message || 'Unknown error'));
+                console.error('❌ Mining start failed:', result);
+            }
+        } catch (error) {
+            console.error('❌ Error starting mining:', error);
+            this.showNotification('error', 'Network error: ' + error.message);
+        }
     }
 
     /**
      * Stop mining operation
      */
-    stopMining() {
-        this.sendWebSocketMessage({
-            type: 'stop_mining'
-        });
-        
-        // Update UI
-        document.getElementById('start-mining-btn').disabled = false;
-        document.getElementById('stop-mining-btn').disabled = true;
-        
-        this.showNotification('info', 'Mining stopped');
-        console.log('🛑 Mining stopped');
+    async stopMining() {
+        try {
+            console.log('🛑 Stopping mining process...');
+            
+            // Use HTTP POST request to backend API
+            const response = await fetch('/api/mining/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('info', 'Mining stopped successfully');
+                this.updateMiningControls(false);
+                console.log('✅ Mining stopped successfully');
+            } else {
+                this.showNotification('error', 'Failed to stop mining: ' + (result.message || 'Unknown error'));
+                console.error('❌ Mining stop failed:', result);
+            }
+        } catch (error) {
+            console.error('❌ Error stopping mining:', error);
+            this.showNotification('error', 'Network error: ' + error.message);
+        }
     }
 
     /**
@@ -1289,11 +1330,15 @@ class HybridBitcoinMiningApp {
     async startMining() {
         console.log('⛏️ Starting mining process...');
         
+        // Configuration matching HybridMiningConfig in backend
         const config = {
             method: 'triple_system',
             difficulty: 4,
-            batch_size: 32,
-            max_attempts: 1000000
+            biological_weight: 0.3,
+            mea_weight: 0.2,
+            traditional_weight: 0.5,
+            threads: 4,
+            use_biological: true
         };
         
         try {
@@ -1310,12 +1355,14 @@ class HybridBitcoinMiningApp {
             if (result.success) {
                 this.showNotification('success', 'Mining started successfully');
                 this.updateMiningControls(true);
+                console.log('✅ Mining started successfully');
             } else {
-                this.showNotification('error', 'Failed to start mining');
+                this.showNotification('error', 'Failed to start mining: ' + (result.message || 'Unknown error'));
+                console.error('❌ Mining start failed:', result);
             }
         } catch (error) {
-            console.error('Error starting mining:', error);
-            this.showNotification('error', 'Network error');
+            console.error('❌ Error starting mining:', error);
+            this.showNotification('error', 'Network error: ' + error.message);
         }
     }
 
@@ -1336,14 +1383,16 @@ class HybridBitcoinMiningApp {
             const result = await response.json();
             
             if (result.success) {
-                this.showNotification('success', 'Mining stopped successfully');
+                this.showNotification('info', 'Mining stopped successfully');
                 this.updateMiningControls(false);
+                console.log('✅ Mining stopped successfully');
             } else {
-                this.showNotification('error', 'Failed to stop mining');
+                this.showNotification('error', 'Failed to stop mining: ' + (result.message || 'Unknown error'));
+                console.error('❌ Mining stop failed:', result);
             }
         } catch (error) {
-            console.error('Error stopping mining:', error);
-            this.showNotification('error', 'Network error');
+            console.error('❌ Error stopping mining:', error);
+            this.showNotification('error', 'Network error: ' + error.message);
         }
     }
 
