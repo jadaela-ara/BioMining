@@ -1167,6 +1167,25 @@ class BioMiningPlatform:
         self.training_config = {}
         self.mining_config = {}
         
+        # Bio-Entropy mining state
+        self.bio_entropy_mining_active = False
+        self.bio_entropy_config = {}
+        self.bio_entropy_stats = {
+            'mode': 'SimulatedNetwork',
+            'strategy': 'Auto',
+            'primary_seed': 0,
+            'confidence': 0.0,
+            'response_strength': 0.0,
+            'total_points': 0,
+            'window_size': 4194304,
+            'expected_coverage': 0.0,
+            'hashrate': 0.0,
+            'active_threads': 0,
+            'bio_response_time': 0.0,
+            'signal_quality': 0.0,
+            'reinforced_patterns': 0
+        }
+        
         logger.info("✅ BioMining Platform coordinator initialized")
     
     async def initialize_platform(self) -> bool:
@@ -1402,6 +1421,170 @@ class BioMiningPlatform:
                 logger.error(f"❌ Error in hybrid mining loop: {e}")
                 await asyncio.sleep(5)
     
+    async def start_bio_entropy_mining(self, config: Dict[str, Any]) -> bool:
+        """Start pure Bio-Entropy mining (NEW revolutionary approach)"""
+        try:
+            if self.bio_entropy_mining_active:
+                logger.warning("⚠️ Bio-Entropy mining already in progress")
+                return False
+            
+            logger.info("🧬 Starting Bio-Entropy Mining System")
+            logger.info(f"   Mode: {config.get('mode', 'SimulatedNetwork')}")
+            logger.info(f"   Strategy: {config.get('strategy', 'Auto')}")
+            logger.info(f"   Points: {config.get('starting_points', 1000)} × {config.get('window_size', 4194304)} nonces")
+            
+            # Store configuration
+            self.bio_entropy_config = config
+            
+            # Ensure systems are initialized
+            if not self.is_initialized:
+                if not await self.initialize_platform():
+                    return False
+            
+            # Step 1: Select compute engine based on mode
+            mode = config.get('mode', 'SimulatedNetwork')
+            if mode == 'SimulatedNetwork':
+                compute_engine = self.biological_network
+                logger.info("   🧠 Using BiologicalNetwork (simulated)")
+            else:  # RealMEA
+                compute_engine = self.mea_interface
+                logger.info("   🔬 Using RealMEA (hardware)")
+            
+            # Step 2: Generate test block header for feature extraction
+            block_header = self._generate_test_block_header()
+            
+            # Step 3: Extract features from block header
+            features = self.bio_entropy_generator.extract_features(
+                block_header,
+                config.get('difficulty', 4)
+            )
+            logger.info(f"   ✅ Features extracted: difficulty={features.get('difficulty_level', 4)}")
+            
+            # Step 4: Get biological response
+            if mode == 'SimulatedNetwork':
+                # Use biological network to get response pattern
+                block_data = block_header.encode('utf-8')
+                prediction = compute_engine.predict_optimal_nonce(block_data)
+                mea_response = [prediction.get('neural_activation', 0.5)] * 60
+                logger.info(f"   🧠 BiologicalNetwork response: activation={prediction.get('neural_activation', 0.5):.3f}")
+            else:
+                # Use real MEA hardware
+                electrode_data = compute_engine.get_electrode_data()
+                mea_response = [e.get('voltage', 0.0) for e in electrode_data[:60]]
+                logger.info(f"   🔬 RealMEA response: {len(electrode_data)} electrodes active")
+            
+            # Step 5: Generate entropy seed from biological response
+            entropy_seed = self.bio_entropy_generator.generate_entropy_seed(
+                mea_response,
+                features
+            )
+            logger.info(f"   🌱 Entropy seed generated: confidence={entropy_seed.get('confidence', 0.0):.2%}")
+            
+            # Step 6: Generate starting points using selected strategy
+            starting_points = self.bio_entropy_generator.generate_starting_points(
+                entropy_seed,
+                point_count=config.get('starting_points', 1000),
+                window_size=config.get('window_size', 4194304)
+            )
+            logger.info(f"   🎯 Starting points generated: {len(starting_points.get('nonce_starts', []))} points")
+            logger.info(f"   📊 Coverage: {starting_points.get('expected_coverage', 0.0):.2%}")
+            logger.info(f"   🧭 Strategy: {starting_points.get('strategy', 'Unknown')}")
+            
+            # Update Bio-Entropy statistics
+            self.bio_entropy_stats.update({
+                'mode': mode,
+                'strategy': starting_points.get('strategy', config.get('strategy', 'Auto')),
+                'primary_seed': entropy_seed.get('primary_seed', 0),
+                'confidence': entropy_seed.get('confidence', 0.0) * 100,
+                'response_strength': entropy_seed.get('response_strength', 0.0),
+                'total_points': len(starting_points.get('nonce_starts', [])),
+                'window_size': starting_points.get('window_size', 4194304),
+                'expected_coverage': starting_points.get('expected_coverage', 0.0) * 100,
+                'hashrate': 0.0,  # Will be updated by mining loop
+                'active_threads': config.get('threads', 4),
+                'bio_response_time': 0.0,
+                'signal_quality': 0.85,  # Default
+                'reinforced_patterns': 0
+            })
+            
+            # Step 7: Start Bio-Entropy mining monitoring loop
+            self.bio_entropy_mining_active = True
+            asyncio.create_task(self._bio_entropy_mining_loop(starting_points, config))
+            
+            logger.info("✅ Bio-Entropy mining started successfully!")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error starting Bio-Entropy mining: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    async def stop_bio_entropy_mining(self) -> bool:
+        """Stop Bio-Entropy mining"""
+        try:
+            if not self.bio_entropy_mining_active:
+                return True
+            
+            self.bio_entropy_mining_active = False
+            logger.info("🛑 Bio-Entropy mining stopped")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error stopping Bio-Entropy mining: {e}")
+            return False
+    
+    async def _bio_entropy_mining_loop(self, starting_points: Dict, config: Dict):
+        """Bio-Entropy mining monitoring loop with real-time updates"""
+        logger.info("🔄 Bio-Entropy monitoring loop started")
+        
+        while self.bio_entropy_mining_active:
+            try:
+                # Simulate hashrate calculation (in real implementation, this would be actual mining)
+                threads = config.get('threads', 4)
+                points_count = len(starting_points.get('nonce_starts', []))
+                window_size = starting_points.get('window_size', 4194304)
+                
+                # Estimate hashrate: threads × points × window / time_per_cycle
+                estimated_hashrate = threads * points_count * window_size / 10.0  # 10s per cycle
+                
+                # Update statistics with simulated values (replace with real mining metrics)
+                self.bio_entropy_stats['hashrate'] = estimated_hashrate
+                self.bio_entropy_stats['bio_response_time'] = random.uniform(50, 150)  # ms
+                self.bio_entropy_stats['signal_quality'] = random.uniform(0.75, 0.95)
+                self.bio_entropy_stats['reinforced_patterns'] += random.randint(0, 2)
+                
+                # Broadcast Bio-Entropy update to WebSocket clients
+                await websocket_manager.broadcast({
+                    'type': 'bio_entropy_update',
+                    'data': self.bio_entropy_stats
+                })
+                
+                await asyncio.sleep(1)  # Update every second
+                
+            except Exception as e:
+                logger.error(f"❌ Error in Bio-Entropy mining loop: {e}")
+                await asyncio.sleep(5)
+        
+        logger.info("🛑 Bio-Entropy monitoring loop stopped")
+    
+    def _generate_test_block_header(self) -> str:
+        """Generate a test Bitcoin block header for feature extraction"""
+        import hashlib
+        timestamp = int(time.time())
+        prev_hash = hashlib.sha256(str(timestamp).encode()).hexdigest()
+        merkle_root = hashlib.sha256(str(timestamp + 1).encode()).hexdigest()
+        
+        return f"{prev_hash}{merkle_root}{timestamp:08x}"
+    
+    def get_bio_entropy_stats(self) -> Dict[str, Any]:
+        """Get current Bio-Entropy statistics"""
+        return {
+            **self.bio_entropy_stats,
+            'active': self.bio_entropy_mining_active,
+            'config': self.bio_entropy_config
+        }
+    
     def get_platform_status(self) -> Dict[str, Any]:
         """Get comprehensive platform status"""
         return {
@@ -1463,6 +1646,49 @@ class BiologicalTrainingConfig(BaseModel):
     target_accuracy: float = 0.85
     learning_rate: float = 0.01
     bitcoin_patterns: bool = True
+
+class BioEntropyConfig(BaseModel):
+    """Configuration for pure Bio-Entropy mining approach"""
+    # Compute Mode
+    mode: str = "SimulatedNetwork"  # "SimulatedNetwork" or "RealMEA"
+    
+    # Exploration Strategy
+    strategy: str = "Auto"  # "Auto", "Uniform", "Fibonacci", "BioGuided"
+    starting_points: int = 1000
+    window_size: int = 4194304  # 4M nonces per point
+    max_voltage: float = 3.0
+    
+    # Feature Extraction
+    extract_timestamp: bool = True
+    extract_difficulty: bool = True
+    extract_prev_hash: bool = True
+    extract_merkle: bool = True
+    extract_bytes: bool = True
+    
+    # Reinforcement Learning
+    enable_reinforcement: bool = True
+    reward_weight: float = 1.0
+    history_size: int = 100
+    
+    # Mining Parameters
+    difficulty: int = 4
+    threads: int = 4
+
+class BioEntropyStats(BaseModel):
+    """Real-time statistics for Bio-Entropy mining"""
+    mode: str
+    strategy: str
+    primary_seed: int = 0
+    confidence: float = 0.0
+    response_strength: float = 0.0
+    total_points: int = 0
+    window_size: int = 0
+    expected_coverage: float = 0.0
+    hashrate: float = 0.0
+    active_threads: int = 0
+    bio_response_time: float = 0.0
+    signal_quality: float = 0.0
+    reinforced_patterns: int = 0
 
 class ElectrodeControl(BaseModel):
     electrode_id: int
@@ -1797,6 +2023,57 @@ async def stop_hybrid_mining():
         "success": success,
         "message": "Hybrid mining stopped" if success else "Failed to stop mining"
     })
+
+@app.post("/api/bio-entropy/start")
+async def start_bio_entropy_mining(config: BioEntropyConfig):
+    """Start pure Bio-Entropy mining (NEW revolutionary approach)"""
+    logger.info("🧬 API: Bio-Entropy mining start requested")
+    logger.info(f"   Config: mode={config.mode}, strategy={config.strategy}, points={config.starting_points}")
+    
+    success = await get_platform().start_bio_entropy_mining(config.dict())
+    
+    if success:
+        # Broadcast to all WebSocket clients
+        await websocket_manager.broadcast({
+            'type': 'bio_entropy_started',
+            'data': {
+                'success': True,
+                'config': config.dict(),
+                'stats': get_platform().get_bio_entropy_stats()
+            }
+        })
+    
+    return JSONResponse({
+        "success": success,
+        "message": "Bio-Entropy mining started successfully" if success else "Failed to start Bio-Entropy mining",
+        "stats": get_platform().get_bio_entropy_stats() if success else {}
+    })
+
+@app.post("/api/bio-entropy/stop")
+async def stop_bio_entropy_mining():
+    """Stop Bio-Entropy mining"""
+    logger.info("🛑 API: Bio-Entropy mining stop requested")
+    
+    success = await get_platform().stop_bio_entropy_mining()
+    
+    if success:
+        await websocket_manager.broadcast({
+            'type': 'bio_entropy_stopped',
+            'data': {
+                'success': True,
+                'stats': get_platform().get_bio_entropy_stats()
+            }
+        })
+    
+    return JSONResponse({
+        "success": success,
+        "message": "Bio-Entropy mining stopped successfully" if success else "Failed to stop Bio-Entropy mining"
+    })
+
+@app.get("/api/bio-entropy/stats")
+async def get_bio_entropy_stats():
+    """Get current Bio-Entropy mining statistics"""
+    return JSONResponse(get_platform().get_bio_entropy_stats())
 
 @app.post("/api/training/start")
 async def start_biological_training(config: BiologicalTrainingConfig):
