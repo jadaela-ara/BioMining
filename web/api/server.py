@@ -100,49 +100,76 @@ class CppBioEntropyGenerator:
         """Extract 60-dimensional features from block header"""
         try:
             if self.is_cpp_enabled:
-                features = self.cpp_generator.extractHeaderFeatures(block_header, difficulty)
+                # Validate format - C++ expects "version|prevHash|merkleRoot|timestamp|bits|nonce"
+                if '|' not in block_header:
+                    logger.warning("⚠️ Block header missing separators, using fallback")
+                    return self._extract_features_fallback(difficulty)
+                
+                # Cast difficulty to uint64_t (C++ expects uint64_t)
+                features = self.cpp_generator.extractHeaderFeatures(block_header, int(difficulty))
                 return {
                     'timestamp_norm': features.timestampNorm,
                     'difficulty_level': features.difficultyLevel,
                     'prev_hash_entropy': features.prevHashEntropy,
                     'prev_hash_leading_zeros': features.prevHashLeadingZeros,
                     'merkle_entropy': features.merkleEntropy,
-                    'prev_hash_bytes': features.prevHashBytes,
-                    'merkle_bytes': features.merkleBytes
+                    'prev_hash_bytes': list(features.prevHashBytes),  # QVector -> list
+                    'merkle_bytes': list(features.merkleBytes),  # QVector -> list
+                    'version_norm': features.versionNorm if hasattr(features, 'versionNorm') else 0.25,
+                    'difficulty_bits_norm': features.difficultyBitsNorm if hasattr(features, 'difficultyBitsNorm') else 0.5
                 }
             else:
-                # Fallback feature extraction
-                return {
-                    'timestamp_norm': random.uniform(0, 1),
-                    'difficulty_level': float(difficulty),
-                    'prev_hash_entropy': random.uniform(3.5, 4.0),
-                    'prev_hash_leading_zeros': difficulty * 0.5,
-                    'merkle_entropy': random.uniform(3.8, 4.2),
-                    'prev_hash_bytes': [random.uniform(0, 1) for _ in range(20)],
-                    'merkle_bytes': [random.uniform(0, 1) for _ in range(20)]
-                }
+                return self._extract_features_fallback(difficulty)
         except Exception as e:
             logger.error(f"❌ Error extracting features: {e}")
-            return {}
+            return self._extract_features_fallback(difficulty)
+    
+    def _extract_features_fallback(self, difficulty: int) -> Dict[str, Any]:
+        """Fallback feature extraction"""
+        return {
+            'timestamp_norm': random.uniform(0, 1),
+            'difficulty_level': float(difficulty),
+            'prev_hash_entropy': random.uniform(3.5, 4.0),
+            'prev_hash_leading_zeros': difficulty * 0.5,
+            'merkle_entropy': random.uniform(3.8, 4.2),
+            'prev_hash_bytes': [random.uniform(0, 1) for _ in range(20)],
+            'merkle_bytes': [random.uniform(0, 1) for _ in range(20)],
+            'version_norm': 0.25,
+            'difficulty_bits_norm': 0.5
+        }
     
     def generate_entropy_seed(self, mea_response: List[float], features: Dict[str, Any]) -> Dict[str, Any]:
         """Generate entropy seed from biological response"""
         try:
             if self.is_cpp_enabled:
-                # Convert to QVector
-                response_vector = mea_response
+                # Create and populate BlockHeaderFeatures object
                 features_obj = biomining_cpp.bio.BlockHeaderFeatures()
-                # Populate features...
+                features_obj.timestampNorm = features.get('timestamp_norm', 0.5)
+                features_obj.difficultyLevel = features.get('difficulty_level', 4.0)
+                features_obj.prevHashEntropy = features.get('prev_hash_entropy', 3.8)
+                features_obj.prevHashLeadingZeros = features.get('prev_hash_leading_zeros', 4.0)
+                features_obj.merkleEntropy = features.get('merkle_entropy', 4.0)
                 
-                seed = self.cpp_generator.generateEntropySeed(response_vector, features_obj)
+                # Convert lists to QVector format (pybind11 handles this automatically)
+                features_obj.prevHashBytes = features.get('prev_hash_bytes', [0.0] * 20)
+                features_obj.merkleBytes = features.get('merkle_bytes', [0.0] * 20)
+                
+                # Add optional fields if present
+                if hasattr(features_obj, 'versionNorm'):
+                    features_obj.versionNorm = features.get('version_norm', 0.25)
+                if hasattr(features_obj, 'difficultyBitsNorm'):
+                    features_obj.difficultyBitsNorm = features.get('difficulty_bits_norm', 0.5)
+                
+                # Call C++ with properly populated objects
+                seed = self.cpp_generator.generateEntropySeed(mea_response, features_obj)
                 self.total_seeds_generated += 1
                 
                 return {
                     'primary_seed': seed.primarySeed,
-                    'diverse_seeds': seed.diverseSeeds,
+                    'diverse_seeds': list(seed.diverseSeeds),  # QVector -> list
                     'confidence': seed.confidence,
                     'response_strength': seed.responseStrength,
-                    'raw_response': seed.rawResponse
+                    'raw_response': list(seed.rawResponse)  # QVector -> list
                 }
             else:
                 # Fallback entropy seed
@@ -657,8 +684,17 @@ class CppBiologicalNetwork:
         """Predict optimal nonce using trained biological network"""
         try:
             if self.is_cpp_enabled and self.is_initialized:
-                # Use C++ prediction with proper parameters
-                block_header = block_data.decode('utf-8', errors='ignore') if isinstance(block_data, bytes) else str(block_data)
+                # Decode and ensure proper format
+                if isinstance(block_data, bytes):
+                    block_header = block_data.decode('utf-8', errors='ignore')
+                else:
+                    block_header = str(block_data)
+                
+                # Validate format - C++ expects "version|prevHash|merkleRoot|timestamp|bits|nonce"
+                if '|' not in block_header:
+                    logger.warning("⚠️ Block header format invalid for C++, using fallback")
+                    return self._predict_fallback()
+                
                 difficulty = 4  # Default difficulty
                 current_signals = [0.0] * 60  # Default MEA signals
                 
@@ -672,18 +708,21 @@ class CppBiologicalNetwork:
                     'biological_certainty': prediction.confidence
                 }
             else:
-                # Fallback prediction
-                return {
-                    'predicted_nonce': random.randint(0, 0xFFFFFFFF),
-                    'confidence': random.uniform(0.6, 0.9),
-                    'neural_activation': random.uniform(0.4, 0.8),
-                    'pattern_match_score': random.uniform(0.5, 0.85),
-                    'biological_certainty': random.uniform(0.6, 0.9)
-                }
+                return self._predict_fallback()
                 
         except Exception as e:
             logger.error(f"❌ Error predicting optimal nonce: {e}")
-            return {}
+            return self._predict_fallback()
+    
+    def _predict_fallback(self) -> Dict[str, Any]:
+        """Fallback prediction"""
+        return {
+            'predicted_nonce': random.randint(0, 0xFFFFFFFF),
+            'confidence': random.uniform(0.6, 0.9),
+            'neural_activation': random.uniform(0.4, 0.8),
+            'pattern_match_score': random.uniform(0.5, 0.85),
+            'biological_certainty': random.uniform(0.6, 0.9)
+        }
     
     def get_network_state(self) -> Dict[str, Any]:
         """Get comprehensive network state"""
@@ -1589,13 +1628,17 @@ class BioMiningPlatform:
         logger.info("🛑 Bio-Entropy monitoring loop stopped")
     
     def _generate_test_block_header(self) -> str:
-        """Generate a test Bitcoin block header for feature extraction"""
+        """Generate a test Bitcoin block header in C++ expected format"""
         import hashlib
         timestamp = int(time.time())
         prev_hash = hashlib.sha256(str(timestamp).encode()).hexdigest()
         merkle_root = hashlib.sha256(str(timestamp + 1).encode()).hexdigest()
+        version = 1
+        bits = 0x1d00ffff  # Standard difficulty bits
+        nonce = 0
         
-        return f"{prev_hash}{merkle_root}{timestamp:08x}"
+        # C++ format: "version|prevHash|merkleRoot|timestamp|bits|nonce"
+        return f"{version}|{prev_hash}|{merkle_root}|{timestamp}|{bits}|{nonce}"
     
     def get_bio_entropy_stats(self) -> Dict[str, Any]:
         """Get current Bio-Entropy statistics"""
