@@ -67,186 +67,453 @@ logger = logging.getLogger(__name__)
 # C++ WRAPPER CLASSES - COMPLETE INTEGRATION
 # ================================================================
 
-class CppBioEntropyGenerator:
+class PurePythonBioEntropyGenerator:
     """
-    Wrapper for BioMining::Crypto::BioEntropyGenerator
-    Bio-entropy mining with intelligent nonce space exploration
+    Pure Python implementation of Bio-Entropy Generator
+    Same algorithms as C++ version but without binding complexity
     """
     
     def __init__(self):
-        logger.info("🧬 Initializing C++ BioEntropyGenerator")
-        
-        if CPP_BINDINGS_AVAILABLE:
-            try:
-                # Initialize C++ BioEntropyGenerator
-                self.cpp_generator = biomining_cpp.bio.BioEntropyGenerator()
-                self.is_cpp_enabled = True
-                logger.info("✅ C++ BioEntropyGenerator initialized")
-            except Exception as e:
-                logger.error(f"❌ C++ BioEntropyGenerator initialization failed: {e}")
-                self.is_cpp_enabled = False
-        else:
-            self.is_cpp_enabled = False
-            logger.info("⚠️ Using Python fallback entropy generator")
+        logger.info("🧬 Initializing Pure Python BioEntropyGenerator")
         
         # Statistics
         self.total_seeds_generated = 0
         self.successful_patterns = 0
         self.entropy_history = []
+        self.pattern_memory = []  # Store successful patterns
         
-        logger.info("🚀 BioEntropyGenerator wrapper initialized")
+        logger.info("✅ Pure Python BioEntropyGenerator initialized")
+    
+    def calculate_shannon_entropy(self, hex_string: str) -> float:
+        """Calculate true Shannon entropy of hex string"""
+        if not hex_string or len(hex_string) < 2:
+            return 0.0
+        
+        # Count byte frequencies
+        byte_counts = {}
+        for i in range(0, len(hex_string), 2):
+            if i + 2 <= len(hex_string):
+                byte = hex_string[i:i+2]
+                byte_counts[byte] = byte_counts.get(byte, 0) + 1
+        
+        # Calculate Shannon entropy
+        total = len(byte_counts)
+        if total == 0:
+            return 0.0
+        
+        entropy = 0.0
+        for count in byte_counts.values():
+            if count > 0:
+                p = count / total
+                entropy -= p * (math.log2(p) if p > 0 else 0)
+        
+        return entropy
+    
+    def count_leading_zeros(self, hex_string: str) -> int:
+        """Count leading zero characters in hex string"""
+        count = 0
+        for char in hex_string:
+            if char == '0':
+                count += 1
+            else:
+                break
+        return count
+    
+    def hex_to_normalized_bytes(self, hex_string: str, max_bytes: int = 20) -> List[float]:
+        """Convert hex string to normalized byte values [0,1]"""
+        bytes_list = []
+        
+        for i in range(0, min(len(hex_string), max_bytes * 2), 2):
+            if i + 2 <= len(hex_string):
+                byte_str = hex_string[i:i+2]
+                try:
+                    byte_value = int(byte_str, 16)
+                    normalized = byte_value / 255.0
+                    bytes_list.append(normalized)
+                except ValueError:
+                    bytes_list.append(0.0)
+        
+        # Pad to max_bytes if needed
+        while len(bytes_list) < max_bytes:
+            bytes_list.append(0.0)
+        
+        return bytes_list[:max_bytes]
     
     def extract_features(self, block_header: str, difficulty: int) -> Dict[str, Any]:
         """Extract 60-dimensional features from block header"""
         try:
-            if self.is_cpp_enabled:
-                # Validate format - C++ expects "version|prevHash|merkleRoot|timestamp|bits|nonce"
-                if '|' not in block_header:
-                    logger.warning("⚠️ Block header missing separators, using fallback")
-                    return self._extract_features_fallback(difficulty)
-                
-                # Cast difficulty to uint64_t (C++ expects uint64_t)
-                features = self.cpp_generator.extractHeaderFeatures(block_header, int(difficulty))
-                return {
-                    'timestamp_norm': features.timestampNorm,
-                    'difficulty_level': features.difficultyLevel,
-                    'prev_hash_entropy': features.prevHashEntropy,
-                    'prev_hash_leading_zeros': features.prevHashLeadingZeros,
-                    'merkle_entropy': features.merkleEntropy,
-                    'prev_hash_bytes': list(features.prevHashBytes),  # QVector -> list
-                    'merkle_bytes': list(features.merkleBytes),  # QVector -> list
-                    'version_norm': features.versionNorm if hasattr(features, 'versionNorm') else 0.25,
-                    'difficulty_bits_norm': features.difficultyBitsNorm if hasattr(features, 'difficultyBitsNorm') else 0.5
-                }
-            else:
+            # Parse block header: "version|prevHash|merkleRoot|timestamp|bits|nonce"
+            parts = block_header.split('|')
+            
+            if len(parts) < 5:
+                logger.warning(f"⚠️ Invalid block header format, parts={len(parts)}")
                 return self._extract_features_fallback(difficulty)
+            
+            version = int(parts[0]) if len(parts) > 0 else 1
+            prev_hash = parts[1] if len(parts) > 1 else ""
+            merkle_root = parts[2] if len(parts) > 2 else ""
+            timestamp = int(parts[3]) if len(parts) > 3 else int(time.time())
+            bits = int(parts[4]) if len(parts) > 4 else 0x1d00ffff
+            
+            # 1. Timestamp normalized [0, 1]
+            MIN_TIMESTAMP = 1230768000  # 2009-01-01
+            MAX_TIMESTAMP = 1893456000  # 2030-01-01
+            timestamp_norm = max(0.0, min(1.0, (timestamp - MIN_TIMESTAMP) / (MAX_TIMESTAMP - MIN_TIMESTAMP)))
+            
+            # 2. Difficulty level (log scale)
+            difficulty_level = math.log10(difficulty + 1)
+            
+            # 3. Entropy of previous hash
+            prev_hash_entropy = self.calculate_shannon_entropy(prev_hash)
+            
+            # 4. Leading zeros count
+            prev_hash_leading_zeros = self.count_leading_zeros(prev_hash)
+            
+            # 5. Entropy of merkle root
+            merkle_entropy = self.calculate_shannon_entropy(merkle_root)
+            
+            # 6. Bytes of previous hash (first 20)
+            prev_hash_bytes = self.hex_to_normalized_bytes(prev_hash, 20)
+            
+            # 7. Bytes of merkle root (first 20)
+            merkle_bytes = self.hex_to_normalized_bytes(merkle_root, 20)
+            
+            # 8. Version normalized
+            version_norm = version / 4.0  # Versions 1-4
+            
+            # 9. Difficulty bits normalized
+            difficulty_bits_norm = bits / 0xFFFFFFFF
+            
+            logger.debug(f"✅ Features extracted: entropy={prev_hash_entropy:.2f}, zeros={prev_hash_leading_zeros}, diff={difficulty_level:.2f}")
+            
+            return {
+                'timestamp_norm': timestamp_norm,
+                'difficulty_level': difficulty_level,
+                'prev_hash_entropy': prev_hash_entropy,
+                'prev_hash_leading_zeros': float(prev_hash_leading_zeros),
+                'merkle_entropy': merkle_entropy,
+                'prev_hash_bytes': prev_hash_bytes,
+                'merkle_bytes': merkle_bytes,
+                'version_norm': version_norm,
+                'difficulty_bits_norm': difficulty_bits_norm
+            }
+            
         except Exception as e:
             logger.error(f"❌ Error extracting features: {e}")
             return self._extract_features_fallback(difficulty)
     
     def _extract_features_fallback(self, difficulty: int) -> Dict[str, Any]:
-        """Fallback feature extraction"""
+        """Fallback with reasonable defaults"""
         return {
-            'timestamp_norm': random.uniform(0, 1),
+            'timestamp_norm': 0.5,
             'difficulty_level': float(difficulty),
-            'prev_hash_entropy': random.uniform(3.5, 4.0),
-            'prev_hash_leading_zeros': difficulty * 0.5,
-            'merkle_entropy': random.uniform(3.8, 4.2),
-            'prev_hash_bytes': [random.uniform(0, 1) for _ in range(20)],
-            'merkle_bytes': [random.uniform(0, 1) for _ in range(20)],
+            'prev_hash_entropy': 4.0,
+            'prev_hash_leading_zeros': float(difficulty * 0.5),
+            'merkle_entropy': 4.0,
+            'prev_hash_bytes': [0.5] * 20,
+            'merkle_bytes': [0.5] * 20,
             'version_norm': 0.25,
             'difficulty_bits_norm': 0.5
         }
     
+    def mix_entropy_components_sha256(self, mea_response: List[float], features: Dict[str, Any]) -> int:
+        """Mix entropy components using SHA-256 cryptographic hash"""
+        import hashlib
+        import struct
+        
+        hasher = hashlib.sha256()
+        
+        # Add MEA response values
+        for value in mea_response:
+            hasher.update(struct.pack('d', value))  # 64-bit double
+        
+        # Add key features
+        hasher.update(struct.pack('d', features.get('difficulty_level', 4.0)))
+        hasher.update(struct.pack('d', features.get('timestamp_norm', 0.5)))
+        hasher.update(struct.pack('d', features.get('prev_hash_entropy', 4.0)))
+        hasher.update(struct.pack('d', features.get('merkle_entropy', 4.0)))
+        
+        # Get digest and convert first 8 bytes to 64-bit integer
+        digest = hasher.digest()
+        seed = int.from_bytes(digest[:8], byteorder='little')
+        
+        return seed
+    
+    def generate_diverse_seeds(self, primary_seed: int, count: int = 10) -> List[int]:
+        """Generate diverse secondary seeds using Linear Congruential Generator"""
+        seeds = []
+        
+        for i in range(count):
+            # Mix primary seed with index
+            mixed = primary_seed ^ (i << 32)
+            # Linear congruential generator (same as C++)
+            mixed = (mixed * 0x5DEECE66D + 0xB) & ((1 << 64) - 1)
+            seed = (mixed >> 16) & 0xFFFFFFFF
+            seeds.append(seed)
+        
+        return seeds
+    
+    def calculate_response_confidence(self, mea_response: List[float]) -> float:
+        """Calculate confidence based on response variance and strength"""
+        if not mea_response or len(mea_response) == 0:
+            return 0.5
+        
+        # Calculate variance (higher variance = more information)
+        mean = sum(mea_response) / len(mea_response)
+        variance = sum((x - mean) ** 2 for x in mea_response) / len(mea_response)
+        
+        # Normalize variance to [0, 1]
+        # Assume typical variance range is [0, 0.5]
+        normalized_variance = min(1.0, variance / 0.5)
+        
+        # Calculate strength (absolute average)
+        strength = sum(abs(x) for x in mea_response) / len(mea_response)
+        normalized_strength = min(1.0, strength)
+        
+        # Confidence is combination of variance and strength
+        confidence = (normalized_variance * 0.6 + normalized_strength * 0.4)
+        
+        return max(0.0, min(1.0, confidence))
+    
     def generate_entropy_seed(self, mea_response: List[float], features: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate entropy seed from biological response"""
+        """Generate entropy seed from biological response - FULL C++ EQUIVALENT"""
         try:
-            if self.is_cpp_enabled:
-                # Create and populate BlockHeaderFeatures object
-                features_obj = biomining_cpp.bio.BlockHeaderFeatures()
-                features_obj.timestampNorm = features.get('timestamp_norm', 0.5)
-                features_obj.difficultyLevel = features.get('difficulty_level', 4.0)
-                features_obj.prevHashEntropy = features.get('prev_hash_entropy', 3.8)
-                features_obj.prevHashLeadingZeros = features.get('prev_hash_leading_zeros', 4.0)
-                features_obj.merkleEntropy = features.get('merkle_entropy', 4.0)
-                
-                # Convert lists to QVector format (pybind11 handles this automatically)
-                features_obj.prevHashBytes = features.get('prev_hash_bytes', [0.0] * 20)
-                features_obj.merkleBytes = features.get('merkle_bytes', [0.0] * 20)
-                
-                # Add optional fields if present
-                if hasattr(features_obj, 'versionNorm'):
-                    features_obj.versionNorm = features.get('version_norm', 0.25)
-                if hasattr(features_obj, 'difficultyBitsNorm'):
-                    features_obj.difficultyBitsNorm = features.get('difficulty_bits_norm', 0.5)
-                
-                # Call C++ with properly populated objects
-                seed = self.cpp_generator.generateEntropySeed(mea_response, features_obj)
-                self.total_seeds_generated += 1
-                
-                return {
-                    'primary_seed': seed.primarySeed,
-                    'diverse_seeds': list(seed.diverseSeeds),  # QVector -> list
-                    'confidence': seed.confidence,
-                    'response_strength': seed.responseStrength,
-                    'raw_response': list(seed.rawResponse)  # QVector -> list
-                }
-            else:
-                # Fallback entropy seed
-                primary_seed = random.randint(0, 2**64 - 1)
-                return {
-                    'primary_seed': primary_seed,
-                    'diverse_seeds': [random.randint(0, 2**32 - 1) for _ in range(10)],
-                    'confidence': random.uniform(0.6, 0.95),
-                    'response_strength': sum(abs(x) for x in mea_response) / len(mea_response),
-                    'raw_response': mea_response
-                }
+            start_time = time.time()
+            
+            # Mix entropy components using SHA-256
+            primary_seed = self.mix_entropy_components_sha256(mea_response, features)
+            
+            # Generate diverse secondary seeds
+            diverse_seeds = self.generate_diverse_seeds(primary_seed, 10)
+            
+            # Calculate confidence
+            confidence = self.calculate_response_confidence(mea_response)
+            
+            # Calculate response strength
+            response_strength = sum(abs(x) for x in mea_response) / len(mea_response) if mea_response else 0.0
+            
+            # Update statistics
+            self.total_seeds_generated += 1
+            
+            generation_time = (time.time() - start_time) * 1000  # ms
+            
+            logger.debug(f"🌱 Entropy seed generated: 0x{primary_seed:016x}, confidence={confidence:.2%}, strength={response_strength:.3f}")
+            
+            return {
+                'primary_seed': primary_seed,
+                'diverse_seeds': diverse_seeds,
+                'confidence': confidence,
+                'response_strength': response_strength,
+                'raw_response': mea_response,
+                'generation_time_ms': generation_time
+            }
+            
         except Exception as e:
             logger.error(f"❌ Error generating entropy seed: {e}")
-            return {}
+            return {
+                'primary_seed': 0,
+                'diverse_seeds': [],
+                'confidence': 0.0,
+                'response_strength': 0.0,
+                'raw_response': mea_response
+            }
     
-    def generate_starting_points(self, seed: Dict[str, Any], point_count: int = 1000, 
-                                 window_size: int = 4194304) -> Dict[str, Any]:
-        """Generate smart starting points from entropy seed"""
+    def strategy_uniform(self, seed: int, count: int) -> List[int]:
+        """Uniform distribution strategy - mathematically correct"""
+        points = []
+        
+        # Distribute uniformly in [0, 2^32) space
+        step = (1 << 32) // count
+        offset = seed % step
+        
+        for i in range(count):
+            point = (offset + i * step) & 0xFFFFFFFF
+            points.append(point)
+        
+        return points
+    
+    def strategy_fibonacci(self, seed: int, count: int) -> List[int]:
+        """Fibonacci (Golden Ratio) distribution strategy"""
+        points = []
+        
+        PHI = 1.618033988749895  # Golden ratio
+        offset = (seed % (1 << 32)) / (1 << 32)  # Normalize to [0,1]
+        
+        for i in range(count):
+            position = (offset + i / PHI) % 1.0
+            point = int(position * (1 << 32)) & 0xFFFFFFFF
+            points.append(point)
+        
+        return points
+    
+    def strategy_bio_guided(self, seed: int, response: List[float], count: int) -> List[int]:
+        """BioGuided strategy - detect peaks and create clusters"""
+        if not response or len(response) < 3:
+            # Fallback to Fibonacci if insufficient data
+            return self.strategy_fibonacci(seed, count)
+        
         try:
-            if self.is_cpp_enabled:
-                seed_obj = biomining_cpp.bio.BioEntropySeed()
-                seed_obj.primarySeed = seed['primary_seed']
-                seed_obj.confidence = seed['confidence']
+            # Calculate statistics
+            mean = sum(response) / len(response)
+            variance = sum((x - mean) ** 2 for x in response) / len(response)
+            std_dev = math.sqrt(variance) if variance > 0 else 0.1
+            
+            # Detect peaks (values above mean + std_dev)
+            threshold = mean + std_dev
+            peaks = []
+            for idx, value in enumerate(response):
+                if value > threshold:
+                    peaks.append((idx, value))
+            
+            if not peaks:
+                # No significant peaks, use Fibonacci
+                logger.debug("⚠️ No peaks detected, using Fibonacci strategy")
+                return self.strategy_fibonacci(seed, count)
+            
+            # Generate clusters around peaks
+            points = []
+            random.seed(seed)
+            points_per_peak = count // len(peaks)
+            remaining = count % len(peaks)
+            
+            for peak_idx, (idx, value) in enumerate(peaks):
+                # Calculate center position based on peak
+                center_position = ((value - mean) / (2 * std_dev)) % 1.0
+                center = int(center_position * (1 << 32)) & 0xFFFFFFFF
                 
-                points = self.cpp_generator.generateStartingPoints(seed_obj, point_count, window_size)
+                # Number of points for this peak
+                num_points = points_per_peak + (1 if peak_idx < remaining else 0)
                 
-                return {
-                    'nonce_starts': points.nonceStarts,
-                    'window_size': points.windowSize,
-                    'expected_coverage': points.expectedCoverage,
-                    'strategy': points.strategy
-                }
-            else:
-                # Fallback starting points
-                strategy = self._select_strategy(seed['confidence'])
-                nonce_starts = self._generate_points_fallback(seed['primary_seed'], point_count, strategy)
-                
-                return {
-                    'nonce_starts': nonce_starts,
-                    'window_size': window_size,
-                    'expected_coverage': (point_count * window_size) / (2**32),
-                    'strategy': strategy
-                }
+                # Generate cluster around center
+                cluster_width = (1 << 28)  # Cluster spread
+                for _ in range(num_points):
+                    offset = int(random.gauss(0, cluster_width))
+                    point = (center + offset) & 0xFFFFFFFF
+                    points.append(point)
+            
+            logger.debug(f"🎯 BioGuided: {len(peaks)} peaks detected, {len(points)} points generated")
+            
+            return points[:count]  # Ensure exact count
+            
         except Exception as e:
-            logger.error(f"❌ Error generating starting points: {e}")
-            return {}
+            logger.error(f"❌ Error in BioGuided strategy: {e}")
+            return self.strategy_fibonacci(seed, count)
     
-    def _select_strategy(self, confidence: float) -> str:
+    def select_strategy(self, confidence: float) -> str:
         """Select exploration strategy based on confidence"""
-        if confidence > 0.8:
+        if confidence > 0.7:
             return "BioGuided"
-        elif confidence > 0.5:
+        elif confidence > 0.4:
             return "Fibonacci"
         else:
             return "Uniform"
     
-    def _generate_points_fallback(self, seed: int, count: int, strategy: str) -> List[int]:
-        """Generate starting points using fallback strategy"""
-        random.seed(seed)
+    def generate_starting_points(self, seed_data: Dict[str, Any], point_count: int = 1000, 
+                                 window_size: int = 4194304) -> Dict[str, Any]:
+        """Generate smart starting points - FULL C++ EQUIVALENT"""
+        try:
+            primary_seed = seed_data.get('primary_seed', 0)
+            confidence = seed_data.get('confidence', 0.5)
+            raw_response = seed_data.get('raw_response', [])
+            
+            # Select strategy based on confidence
+            strategy = self.select_strategy(confidence)
+            
+            # Generate points using selected strategy
+            if strategy == "BioGuided":
+                nonce_starts = self.strategy_bio_guided(primary_seed, raw_response, point_count)
+            elif strategy == "Fibonacci":
+                nonce_starts = self.strategy_fibonacci(primary_seed, point_count)
+            else:  # Uniform
+                nonce_starts = self.strategy_uniform(primary_seed, point_count)
+            
+            # Calculate expected coverage
+            expected_coverage = (point_count * window_size) / (1 << 32)
+            
+            logger.info(f"🎯 Starting points: {len(nonce_starts)} points, strategy={strategy}, coverage={expected_coverage:.2%}")
+            
+            return {
+                'nonce_starts': nonce_starts,
+                'window_size': window_size,
+                'expected_coverage': expected_coverage,
+                'strategy': strategy
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error generating starting points: {e}")
+            return {
+                'nonce_starts': [],
+                'window_size': window_size,
+                'expected_coverage': 0.0,
+                'strategy': 'Error'
+            }
+    
+    def reinforce_successful_pattern(self, features: Dict[str, Any], 
+                                     mea_response: List[float], valid_nonce: int):
+        """Store successful pattern for future learning"""
+        pattern = {
+            'features': features,
+            'response': mea_response,
+            'nonce': valid_nonce,
+            'timestamp': time.time(),
+            'success_score': 1.0
+        }
         
-        if strategy == "Uniform":
-            step = (2**32) // count
-            return [i * step for i in range(count)]
-        elif strategy == "Fibonacci":
-            phi = 1.618033988749895
-            return [int((seed + i * phi * 1000000) % (2**32)) for i in range(count)]
-        else:  # BioGuided
-            return [random.randint(0, 2**32 - 1) for _ in range(count)]
+        self.pattern_memory.append(pattern)
+        
+        # Limit memory size to 100 patterns
+        if len(self.pattern_memory) > 100:
+            self.pattern_memory.pop(0)
+        
+        self.successful_patterns += 1
+        
+        logger.debug(f"✅ Pattern reinforced: nonce=0x{valid_nonce:08x}, memory size={len(self.pattern_memory)}")
     
     def get_stats(self) -> Dict[str, Any]:
         """Get entropy generator statistics"""
         return {
             'total_seeds_generated': self.total_seeds_generated,
             'successful_patterns': self.successful_patterns,
-            'success_rate': self.successful_patterns / max(self.total_seeds_generated, 1),
-            'cpp_enabled': self.is_cpp_enabled
+            'pattern_memory_size': len(self.pattern_memory),
+            'success_rate': self.successful_patterns / self.total_seeds_generated if self.total_seeds_generated > 0 else 0.0
         }
+
+
+class CppBioEntropyGenerator:
+    """
+    DEPRECATED: Wrapper for C++ BioEntropyGenerator (kept for compatibility)
+    Now defaults to Pure Python implementation
+    """
+    
+    def __init__(self):
+        logger.info("🧬 Initializing BioEntropyGenerator (Pure Python mode)")
+        
+        # Always use Pure Python implementation
+        self.python_impl = PurePythonBioEntropyGenerator()
+        logger.info("✅ Using Pure Python BioEntropyGenerator (no C++ bindings)")
+        logger.info("🚀 BioEntropyGenerator initialized")
+    
+    def extract_features(self, block_header: str, difficulty: int) -> Dict[str, Any]:
+        """Extract 60-dimensional features from block header"""
+        return self.python_impl.extract_features(block_header, difficulty)
+    
+    def generate_entropy_seed(self, mea_response: List[float], features: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate entropy seed from biological response"""
+        return self.python_impl.generate_entropy_seed(mea_response, features)
+    
+    def generate_starting_points(self, seed: Dict[str, Any], point_count: int = 1000, 
+                                 window_size: int = 4194304) -> Dict[str, Any]:
+        """Generate smart starting points from entropy seed"""
+        return self.python_impl.generate_starting_points(seed, point_count, window_size)
+    
+    def reinforce_successful_pattern(self, features: Dict[str, Any], 
+                                     mea_response: List[float], valid_nonce: int):
+        """Reinforce successful pattern"""
+        return self.python_impl.reinforce_successful_pattern(features, mea_response, valid_nonce)
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get entropy generator statistics"""
+        return self.python_impl.get_stats()
 
 
 class CppHybridBitcoinMiner:
