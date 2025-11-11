@@ -2331,27 +2331,58 @@ class BioMiningPlatform:
             )
             logger.info(f"   ✅ Features extracted: difficulty={features.get('difficulty_level', 4)}")
             
-            # Step 4: Get biological response
+            # Step 4: Generate stimulation pattern from block header (SHA-256)
+            logger.info("   🔬 Generating stimulation pattern from block header...")
+            stimulation_pattern = None
+            
+            if mode == 'RealMEA' and hasattr(compute_engine, 'generate_stimulation_pattern'):
+                # REAL MEA: Generate stimulation from block hash
+                stimulation_pattern = compute_engine.generate_stimulation_pattern(block_header)
+                logger.info(f"   ⚡ Stimulation pattern: {len(stimulation_pattern)} voltages [{stimulation_pattern.min():.2f}V, {stimulation_pattern.max():.2f}V]")
+            
+            # Step 5: Stimulate MEA and get neural response (SPIKES)
+            mea_response = None
+            spikes = []
+            
             if mode == 'SimulatedNetwork':
                 # Use biological network to get response pattern
                 block_data = block_header.encode('utf-8')
                 prediction = compute_engine.predict_optimal_nonce(block_data)
                 mea_response = [prediction.get('neural_activation', 0.5)] * 60
-                logger.info(f"   🧠 BiologicalNetwork response: activation={prediction.get('neural_activation', 0.5):.3f}")
-            else:
-                # Use real MEA hardware
-                electrode_data = compute_engine.get_electrode_data()
-                mea_response = [e.get('voltage', 0.0) for e in electrode_data[:60]]
-                logger.info(f"   🔬 RealMEA response: {len(electrode_data)} electrodes active")
+                logger.info(f"   🧠 BiologicalNetwork prediction: activation={prediction.get('neural_activation', 0.5):.3f}")
+                logger.info(f"   🧠 Predicted nonce from network: {prediction.get('predicted_nonce', 0):#010x}")
+                
+            elif mode == 'RealMEA':
+                # REAL MEA: Stimulate electrodes and capture spikes
+                if hasattr(compute_engine, 'stimulate_electrodes') and stimulation_pattern is not None:
+                    logger.info("   ⚡ Stimulating MEA with pattern...")
+                    spikes = compute_engine.stimulate_electrodes(stimulation_pattern, duration=50.0)
+                    logger.info(f"   🧠 Neural response: {len(spikes)} spikes generated from {compute_engine.electrode_count} electrodes")
+                    
+                    # Extract nonce from spike pattern
+                    if hasattr(compute_engine, 'extract_nonce_from_spikes'):
+                        predicted_nonce = compute_engine.extract_nonce_from_spikes(spikes)
+                        logger.info(f"   🎯 Nonce extracted from spikes: {predicted_nonce:#010x}")
+                    
+                    # Get electrode voltages for entropy generation
+                    mea_response = [spike[2] for spike in spikes[:60]]  # spike amplitudes
+                    if len(mea_response) < 60:
+                        mea_response += [0.0] * (60 - len(mea_response))
+                    logger.info(f"   📊 MEA response: {len(mea_response)} values (spike amplitudes)")
+                else:
+                    # Fallback: get electrode data
+                    electrode_data = compute_engine.get_electrode_data()
+                    mea_response = [e.get('voltage', 0.0) for e in electrode_data[:60]]
+                    logger.info(f"   🔬 RealMEA electrode data: {len(electrode_data)} electrodes active")
             
-            # Step 5: Generate entropy seed from biological response
+            # Step 6: Generate entropy seed from biological response (spikes or activations)
             entropy_seed = self.bio_entropy_generator.generate_entropy_seed(
                 mea_response,
                 features
             )
             logger.info(f"   🌱 Entropy seed generated: confidence={entropy_seed.get('confidence', 0.0):.2%}")
             
-            # Step 6: Generate starting points using selected strategy
+            # Step 7: Generate starting points using selected strategy (from entropy seed)
             starting_points = self.bio_entropy_generator.generate_starting_points(
                 entropy_seed,
                 point_count=config.get('starting_points', 1000),
@@ -2378,7 +2409,13 @@ class BioMiningPlatform:
                 'reinforced_patterns': 0
             })
             
-            # Step 7: Start Bio-Entropy mining monitoring loop
+            # Step 8: Store spike data for learning (if RealMEA mode)
+            if mode == 'RealMEA' and len(spikes) > 0:
+                self.bio_entropy_stats['last_spike_count'] = len(spikes)
+                self.bio_entropy_stats['last_spike_times'] = [s[1] for s in spikes[:10]]  # First 10 spike times
+                logger.info(f"   📈 Stored {len(spikes)} spikes for learning")
+            
+            # Step 9: Start Bio-Entropy mining monitoring loop (GPU mining would happen here)
             self.bio_entropy_mining_active = True
             asyncio.create_task(self._bio_entropy_mining_loop(starting_points, config))
             
