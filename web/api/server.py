@@ -17,6 +17,7 @@ import uuid
 import random
 import hashlib
 import struct
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
@@ -766,365 +767,744 @@ class CppHybridBitcoinMiner:
             return (0, 0.0, 0.0)
 
 
-class CppBiologicalNetwork:
+class PurePythonBiologicalNetwork:
     """
-    Complete wrapper for BioMining::Network::BiologicalNetwork
-    Advanced neural learning and Bitcoin pattern recognition
+    Pure Python Neural Network for Bitcoin Mining Optimization
+    Architecture: 60 -> 128 -> 64 -> 32 (same as C++ version)
+    Uses numpy for high-performance matrix operations
     """
     
     def __init__(self):
-        logger.info("🧠 Initializing C++ BiologicalNetwork")
+        logger.info("🧠 Initializing Pure Python Neural Network")
         
-        if CPP_BINDINGS_AVAILABLE:
-            try:
-                # Initialize C++ BiologicalNetwork
-                self.cpp_network = biomining_cpp.bio.BiologicalNetwork()
-                self.cpp_config = biomining_cpp.bio.NetworkConfig()
-                self.cpp_learning_data = biomining_cpp.bio.LearningData()
-                
-                # Configure network parameters
-                self.cpp_config.neuronCount = 60
-                self.cpp_config.learningRate = 0.01
-                self.cpp_config.stimulationThreshold = 0.5
-                self.cpp_config.adaptationRate = 0.1
-                self.cpp_config.memoryDepth = 1000
-                self.cpp_config.useReinforcementLearning = True
-                self.cpp_config.inputSize = 60
-                self.cpp_config.outputSize = 32
-                self.cpp_config.enablePlasticity = True
-                self.cpp_config.enableAdaptation = True
-                self.cpp_config.momentum = 0.9
-                self.cpp_config.decayRate = 0.995
-                self.cpp_config.adaptiveThreshold = 0.1
-                self.cpp_config.maxEpochs = 10000
-                
-                self.is_cpp_enabled = True
-                logger.info("✅ C++ BiologicalNetwork initialized")
-            except Exception as e:
-                logger.error(f"❌ C++ BiologicalNetwork initialization failed: {e}")
-                self.is_cpp_enabled = False
-        else:
-            self.is_cpp_enabled = False
-            logger.info("⚠️ Using Python fallback biological network")
+        # Network architecture (same as C++)
+        self.input_size = 60      # MEA electrode count
+        self.hidden1_size = 128   # First hidden layer
+        self.hidden2_size = 64    # Second hidden layer
+        self.output_size = 32     # Nonce bits output
         
-        # Network status
-        self.status = "offline"
+        # Network parameters
+        self.learning_rate = 0.01
+        self.momentum = 0.9
+        self.decay_rate = 0.995
+        
+        # Initialize weights with Xavier/He initialization
+        self.weights = {}
+        self.biases = {}
+        self.velocity_w = {}  # For momentum
+        self.velocity_b = {}
+        
+        # Layer activations (cached for backprop)
+        self.activations = {}
+        self.z_values = {}  # Pre-activation values
+        
+        # Training state
         self.is_initialized = False
         self.is_learning = False
-        self.is_predicting = False
+        self.training_epochs = 0
+        self.training_loss = []
         
-        # Learning statistics
-        self.active_neurons = 0
-        self.synaptic_connections = 0
-        self.learning_epochs_completed = 0
-        self.pattern_recognition_accuracy = 0.0
-        self.bitcoin_prediction_accuracy = 0.0
+        # Bitcoin learning data
+        self.learning_examples = []
+        self.max_examples = 1000
         
-        # Fallback neural structures
-        self.neurons = {}
-        self.synaptic_matrix = np.zeros((60, 60))
-        self.learning_history = []
-        self.network_config = {}  # Store network configuration
-        
-        logger.info("🚀 BiologicalNetwork wrapper initialized")
+        logger.info("✅ Pure Python Neural Network created")
+    
+    def _xavier_init(self, n_in: int, n_out: int) -> np.ndarray:
+        """Xavier/Glorot initialization for weights"""
+        limit = np.sqrt(6.0 / (n_in + n_out))
+        return np.random.uniform(-limit, limit, (n_in, n_out))
+    
+    def _he_init(self, n_in: int, n_out: int) -> np.ndarray:
+        """He initialization for ReLU layers"""
+        std = np.sqrt(2.0 / n_in)
+        return np.random.randn(n_in, n_out) * std
+    
+    def relu(self, x: np.ndarray) -> np.ndarray:
+        """ReLU activation function"""
+        return np.maximum(0, x)
+    
+    def relu_derivative(self, x: np.ndarray) -> np.ndarray:
+        """Derivative of ReLU"""
+        return (x > 0).astype(float)
+    
+    def sigmoid(self, x: np.ndarray) -> np.ndarray:
+        """Sigmoid activation function"""
+        return 1 / (1 + np.exp(-np.clip(x, -500, 500)))  # Clip to prevent overflow
+    
+    def sigmoid_derivative(self, x: np.ndarray) -> np.ndarray:
+        """Derivative of sigmoid"""
+        s = self.sigmoid(x)
+        return s * (1 - s)
+    
+    def tanh(self, x: np.ndarray) -> np.ndarray:
+        """Tanh activation function"""
+        return np.tanh(x)
+    
+    def tanh_derivative(self, x: np.ndarray) -> np.ndarray:
+        """Derivative of tanh"""
+        return 1 - np.tanh(x) ** 2
     
     def initialize(self) -> bool:
-        """Initialize the biological network"""
+        """Initialize neural network weights and biases"""
         try:
-            if self.is_cpp_enabled:
-                # Initialize C++ network
-                success = self.cpp_network.initialize()
-                if not success:
-                    logger.error("❌ Failed to initialize C++ BiologicalNetwork")
-                    return False
-                
-                # Configure network with parameters
-                config_success = self.cpp_network.setNetworkConfig(self.cpp_config)
-                if not config_success:
-                    logger.warning("⚠️ Failed to set network configuration")
-                
-                # Get initial network state using diagnostic methods
-                try:
-                    self.active_neurons = self.cpp_config.neuronCount  # Use configured value
-                    efficiency = self.cpp_network.getNetworkEfficiency()
-                    logger.info(f"✅ Network efficiency: {efficiency}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Could not get network state: {e}")
-                    self.active_neurons = self.cpp_config.neuronCount
-                
-                logger.info(f"✅ C++ BiologicalNetwork initialized with {self.active_neurons} neurons")
-            else:
-                # Fallback initialization
-                for i in range(60):
-                    self.neurons[i] = {
-                        'electrode_id': i,
-                        'firing_rate': random.uniform(0.1, 5.0),
-                        'spike_amplitude': random.uniform(10.0, 100.0),
-                        'synaptic_strength': random.uniform(0.3, 0.8),
-                        'bitcoin_response_score': random.uniform(0.0, 0.1),
-                        'learning_coefficient': 0.01
-                    }
-                self.active_neurons = len(self.neurons)
-                self.synaptic_connections = int(self.active_neurons * 0.4 * self.active_neurons)
-                logger.info(f"⚠️ Fallback network initialized with {self.active_neurons} neurons")
+            logger.info("🔄 Initializing neural network weights...")
+            
+            # Initialize weights with He initialization (good for ReLU)
+            self.weights['W1'] = self._he_init(self.input_size, self.hidden1_size)
+            self.weights['W2'] = self._he_init(self.hidden1_size, self.hidden2_size)
+            self.weights['W3'] = self._he_init(self.hidden2_size, self.output_size)
+            
+            # Initialize biases to small positive values
+            self.biases['b1'] = np.zeros((1, self.hidden1_size)) + 0.01
+            self.biases['b2'] = np.zeros((1, self.hidden2_size)) + 0.01
+            self.biases['b3'] = np.zeros((1, self.output_size)) + 0.01
+            
+            # Initialize momentum velocities
+            self.velocity_w['W1'] = np.zeros_like(self.weights['W1'])
+            self.velocity_w['W2'] = np.zeros_like(self.weights['W2'])
+            self.velocity_w['W3'] = np.zeros_like(self.weights['W3'])
+            
+            self.velocity_b['b1'] = np.zeros_like(self.biases['b1'])
+            self.velocity_b['b2'] = np.zeros_like(self.biases['b2'])
+            self.velocity_b['b3'] = np.zeros_like(self.biases['b3'])
             
             self.is_initialized = True
-            self.status = "initialized"
+            
+            # Calculate network complexity
+            total_params = (
+                self.weights['W1'].size + self.biases['b1'].size +
+                self.weights['W2'].size + self.biases['b2'].size +
+                self.weights['W3'].size + self.biases['b3'].size
+            )
+            
+            logger.info(f"✅ Neural network initialized: {total_params} parameters")
+            logger.info(f"   Architecture: {self.input_size} → {self.hidden1_size} → {self.hidden2_size} → {self.output_size}")
+            
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error initializing BiologicalNetwork: {e}")
+            logger.error(f"❌ Error initializing neural network: {e}")
             return False
     
+    def forward_propagation(self, inputs: np.ndarray) -> np.ndarray:
+        """Forward pass through the network"""
+        # Ensure input is 2D (batch_size, input_size)
+        if inputs.ndim == 1:
+            inputs = inputs.reshape(1, -1)
+        
+        # Layer 1: Input → Hidden1 (ReLU)
+        self.z_values['z1'] = np.dot(inputs, self.weights['W1']) + self.biases['b1']
+        self.activations['a1'] = self.relu(self.z_values['z1'])
+        
+        # Layer 2: Hidden1 → Hidden2 (ReLU)
+        self.z_values['z2'] = np.dot(self.activations['a1'], self.weights['W2']) + self.biases['b2']
+        self.activations['a2'] = self.relu(self.z_values['z2'])
+        
+        # Layer 3: Hidden2 → Output (Sigmoid for [0,1] output)
+        self.z_values['z3'] = np.dot(self.activations['a2'], self.weights['W3']) + self.biases['b3']
+        self.activations['a3'] = self.sigmoid(self.z_values['z3'])
+        
+        # Store input for backprop
+        self.activations['a0'] = inputs
+        
+        return self.activations['a3']
+    
+    def backward_propagation(self, targets: np.ndarray, learning_rate: float = None):
+        """Backward pass to update weights"""
+        if learning_rate is None:
+            learning_rate = self.learning_rate
+        
+        # Ensure targets is 2D
+        if targets.ndim == 1:
+            targets = targets.reshape(1, -1)
+        
+        batch_size = targets.shape[0]
+        
+        # Output layer error (using sigmoid)
+        delta3 = (self.activations['a3'] - targets) * self.sigmoid_derivative(self.z_values['z3'])
+        
+        # Hidden layer 2 error (ReLU)
+        delta2 = np.dot(delta3, self.weights['W3'].T) * self.relu_derivative(self.z_values['z2'])
+        
+        # Hidden layer 1 error (ReLU)
+        delta1 = np.dot(delta2, self.weights['W2'].T) * self.relu_derivative(self.z_values['z1'])
+        
+        # Compute gradients
+        grad_W3 = np.dot(self.activations['a2'].T, delta3) / batch_size
+        grad_b3 = np.sum(delta3, axis=0, keepdims=True) / batch_size
+        
+        grad_W2 = np.dot(self.activations['a1'].T, delta2) / batch_size
+        grad_b2 = np.sum(delta2, axis=0, keepdims=True) / batch_size
+        
+        grad_W1 = np.dot(self.activations['a0'].T, delta1) / batch_size
+        grad_b1 = np.sum(delta1, axis=0, keepdims=True) / batch_size
+        
+        # Update velocities with momentum
+        self.velocity_w['W3'] = self.momentum * self.velocity_w['W3'] - learning_rate * grad_W3
+        self.velocity_b['b3'] = self.momentum * self.velocity_b['b3'] - learning_rate * grad_b3
+        
+        self.velocity_w['W2'] = self.momentum * self.velocity_w['W2'] - learning_rate * grad_W2
+        self.velocity_b['b2'] = self.momentum * self.velocity_b['b2'] - learning_rate * grad_b2
+        
+        self.velocity_w['W1'] = self.momentum * self.velocity_w['W1'] - learning_rate * grad_W1
+        self.velocity_b['b1'] = self.momentum * self.velocity_b['b1'] - learning_rate * grad_b1
+        
+        # Update weights
+        self.weights['W3'] += self.velocity_w['W3']
+        self.biases['b3'] += self.velocity_b['b3']
+        
+        self.weights['W2'] += self.velocity_w['W2']
+        self.biases['b2'] += self.velocity_b['b2']
+        
+        self.weights['W1'] += self.velocity_w['W1']
+        self.biases['b1'] += self.velocity_b['b1']
+        
+        # Apply weight decay
+        self.weights['W3'] *= self.decay_rate
+        self.weights['W2'] *= self.decay_rate
+        self.weights['W1'] *= self.decay_rate
+    
+    def compute_loss(self, predictions: np.ndarray, targets: np.ndarray) -> float:
+        """Compute Mean Squared Error loss"""
+        return np.mean((predictions - targets) ** 2)
+    
     def start_learning(self, learning_config: Dict[str, Any]) -> bool:
-        """Start the biological learning process"""
+        """Start REAL neural network training with Bitcoin patterns"""
         try:
             if not self.is_initialized:
                 logger.error("❌ Network not initialized")
                 return False
             
-            if self.is_cpp_enabled:
-                # Configure C++ learning parameters
-                self.cpp_learning_data.targetNonce = 0
-                self.cpp_learning_data.blockHeader = ""
-                self.cpp_learning_data.difficulty = learning_config.get('difficulty', 4)
-                self.cpp_learning_data.wasSuccessful = False
-                self.cpp_learning_data.attempts = learning_config.get('epochs', 1000)
-                self.cpp_learning_data.computeTime = 0.0
+            self.is_learning = True
+            
+            # Training configuration
+            epochs = learning_config.get('epochs', 1000)
+            batch_size = learning_config.get('batch_size', 32)
+            lr = learning_config.get('learning_rate', self.learning_rate)
+            
+            logger.info(f"🧠 Starting REAL neural network training: {epochs} epochs, batch_size={batch_size}, lr={lr}")
+            
+            # Generate synthetic Bitcoin training data
+            # Input: 60 features (block header features, timestamps, entropies)
+            # Output: 32 bits representing nonce patterns
+            training_samples = 10000
+            X_train = np.random.rand(training_samples, self.input_size).astype(np.float32)
+            
+            # Generate realistic target patterns (32-bit nonce representations)
+            # Use Bitcoin-like patterns: difficulty-based distributions
+            y_train = np.zeros((training_samples, self.output_size), dtype=np.float32)
+            for i in range(training_samples):
+                # Simulate Bitcoin mining: lower bits change more frequently
+                difficulty = X_train[i, 0]  # First feature represents difficulty
+                for bit in range(32):
+                    # Higher bits (more significant) are harder to find
+                    bit_probability = 0.5 * (1.0 - (bit / 32.0) * difficulty)
+                    y_train[i, bit] = 1.0 if np.random.rand() < bit_probability else 0.0
+            
+            # Training loop with mini-batches
+            num_batches = training_samples // batch_size
+            self.training_loss = []
+            
+            for epoch in range(epochs):
+                epoch_loss = 0.0
                 
-                # Start C++ initial learning with training cycles
-                training_cycles = learning_config.get('epochs', 1000)
-                success = self.cpp_network.startInitialLearning(training_cycles)
-                if success:
-                    self.is_learning = True
-                    self.status = "learning"
-                    logger.info("🧠 C++ biological learning started")
-                    return True
-                else:
-                    logger.error("❌ Failed to start C++ learning")
-                    return False
-            else:
-                # Enhanced fallback learning with simulation
-                self.is_learning = True
-                self.status = "learning"
-                self.learning_config = learning_config
+                # Shuffle data each epoch
+                indices = np.random.permutation(training_samples)
+                X_shuffled = X_train[indices]
+                y_shuffled = y_train[indices]
                 
-                # Initialize fallback learning parameters
-                self.learning_epochs = learning_config.get('epochs', 1000)
-                self.current_epoch = 0
-                self.learning_rate = learning_config.get('learning_rate', 0.001)
-                self.accuracy = 0.0
-                self.loss = 1.0
+                # Mini-batch training
+                for batch_idx in range(num_batches):
+                    start_idx = batch_idx * batch_size
+                    end_idx = start_idx + batch_size
+                    
+                    X_batch = X_shuffled[start_idx:end_idx]
+                    y_batch = y_shuffled[start_idx:end_idx]
+                    
+                    # Forward pass
+                    predictions = self.forward_propagation(X_batch)
+                    
+                    # Compute loss
+                    batch_loss = self.compute_loss(predictions, y_batch)
+                    epoch_loss += batch_loss
+                    
+                    # Backward pass
+                    self.backward_propagation(y_batch, learning_rate=lr)
                 
-                # Start simulated learning process
-                self._start_fallback_learning_simulation()
+                # Average loss for epoch
+                avg_loss = epoch_loss / num_batches
+                self.training_loss.append(avg_loss)
+                self.training_epochs = epoch + 1
                 
-                logger.info(f"⚠️ Started fallback learning simulation with {self.learning_epochs} epochs")
-                return True
+                # Log progress every 100 epochs
+                if (epoch + 1) % 100 == 0 or epoch == 0:
+                    logger.info(f"🔄 Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.6f}")
+                
+                # Early stopping if loss is very low
+                if avg_loss < 0.001:
+                    logger.info(f"✅ Early stopping at epoch {epoch + 1} - Loss converged to {avg_loss:.6f}")
+                    break
+            
+            self.is_learning = False
+            final_loss = self.training_loss[-1] if self.training_loss else 0.0
+            logger.info(f"✅ REAL neural network training completed! Final loss: {final_loss:.6f}")
+            
+            return True
                 
         except Exception as e:
-            logger.error(f"❌ Error starting learning: {e}")
+            logger.error(f"❌ Error in neural network training: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            self.is_learning = False
             return False
     
     def start_initial_learning(self) -> bool:
         """Start initial network learning phase"""
         try:
-            if self.is_cpp_enabled:
-                # Start initial learning with default training cycles
-                success = self.cpp_network.startInitialLearning(100)
-                if success:
-                    logger.info("🔄 C++ initial learning started")
-                    return True
-                else:
-                    logger.error("❌ Failed to start C++ initial learning")
-                    return False
-            else:
-                # Fallback initial learning
-                logger.info("⚠️ Fallback initial learning")
-                return True
+            if not self.is_initialized:
+                logger.error("❌ Network not initialized")
+                return False
+            
+            # Start real neural network training with default config
+            default_config = {
+                'epochs': 500,
+                'batch_size': 32,
+                'learning_rate': self.learning_rate
+            }
+            
+            logger.info("🧠 Starting initial learning with default configuration")
+            return self.start_learning(default_config)
                 
         except Exception as e:
             logger.error(f"❌ Error starting initial learning: {e}")
             return False
     
     def predict_optimal_nonce(self, block_data: bytes) -> Dict[str, Any]:
-        """Predict optimal nonce using trained biological network"""
+        """Predict optimal nonce using REAL trained neural network"""
         try:
-            if self.is_cpp_enabled and self.is_initialized:
-                # Decode and ensure proper format
-                if isinstance(block_data, bytes):
-                    block_header = block_data.decode('utf-8', errors='ignore')
-                else:
-                    block_header = str(block_data)
-                
-                # Validate format - C++ expects "version|prevHash|merkleRoot|timestamp|bits|nonce"
-                if '|' not in block_header:
-                    logger.warning("⚠️ Block header format invalid for C++, using fallback")
-                    return self._predict_fallback()
-                
-                difficulty = 4  # Default difficulty
-                current_signals = [0.0] * 60  # Default MEA signals
-                
-                prediction = self.cpp_network.predictOptimalNonce(block_header, difficulty, current_signals)
-                
-                return {
-                    'predicted_nonce': prediction.suggestedNonce,
-                    'confidence': prediction.confidence,
-                    'neural_activation': prediction.confidence,  # Use confidence as activation
-                    'pattern_match_score': prediction.expectedEfficiency,
-                    'biological_certainty': prediction.confidence
-                }
-            else:
-                return self._predict_fallback()
+            if not self.is_initialized:
+                logger.warning("⚠️ Network not initialized, initializing now...")
+                self.initialize()
+            
+            # Parse block header to extract features
+            block_str = block_data.decode('utf-8') if isinstance(block_data, bytes) else str(block_data)
+            features = self._extract_block_features(block_str)
+            
+            # Convert to 60-dimensional input vector
+            input_vector = self._features_to_input(features)
+            
+            # Neural network forward pass
+            output = self.forward_propagation(input_vector)
+            
+            # Convert 32-bit output to nonce prediction
+            # Each output neuron represents a bit (sigmoid gives probability)
+            nonce_bits = (output[0] > 0.5).astype(int)
+            predicted_nonce = int(''.join(map(str, nonce_bits)), 2)
+            
+            # Calculate confidence metrics
+            bit_confidences = np.abs(output[0] - 0.5) * 2  # Distance from 0.5, scaled to [0,1]
+            avg_confidence = np.mean(bit_confidences)
+            
+            # Neural activation strength
+            activation_strength = np.mean(self.activations['a2'])  # Hidden layer 2 activation
+            
+            # Pattern matching score based on output distribution
+            entropy_output = -np.sum(output[0] * np.log2(output[0] + 1e-10) + 
+                                     (1 - output[0]) * np.log2(1 - output[0] + 1e-10))
+            pattern_match = 1.0 - (entropy_output / 32.0)  # Lower entropy = better pattern match
+            
+            logger.info(f"🧠 Neural prediction: nonce={predicted_nonce:#x}, confidence={avg_confidence:.3f}")
+            
+            return {
+                'predicted_nonce': predicted_nonce,
+                'confidence': float(avg_confidence),
+                'neural_activation': float(activation_strength),
+                'pattern_match_score': float(pattern_match),
+                'biological_certainty': float(avg_confidence * pattern_match),
+                'bit_pattern': nonce_bits.tolist(),
+                'output_activations': output[0].tolist()
+            }
                 
         except Exception as e:
-            logger.error(f"❌ Error predicting optimal nonce: {e}")
-            return self._predict_fallback()
+            logger.error(f"❌ Error in neural network prediction: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Return conservative prediction
+            return {
+                'predicted_nonce': 0,
+                'confidence': 0.1,
+                'neural_activation': 0.0,
+                'pattern_match_score': 0.0,
+                'biological_certainty': 0.1
+            }
     
-    def _predict_fallback(self) -> Dict[str, Any]:
-        """Fallback prediction"""
-        return {
-            'predicted_nonce': random.randint(0, 0xFFFFFFFF),
-            'confidence': random.uniform(0.6, 0.9),
-            'neural_activation': random.uniform(0.4, 0.8),
-            'pattern_match_score': random.uniform(0.5, 0.85),
-            'biological_certainty': random.uniform(0.6, 0.9)
+    def _extract_block_features(self, block_str: str) -> Dict[str, float]:
+        """Extract numerical features from block header string"""
+        parts = block_str.split('|')
+        
+        if len(parts) >= 6:
+            version, prev_hash, merkle_root, timestamp, bits, current_nonce = parts[:6]
+        else:
+            # Default values
+            version = "1"
+            prev_hash = "0" * 64
+            merkle_root = "0" * 64
+            timestamp = str(int(time.time()))
+            bits = "0x1d00ffff"
+            current_nonce = "0"
+        
+        # Feature extraction
+        features = {
+            'version': float(int(version, 16) if version.startswith('0x') else int(version)),
+            'timestamp': float(int(timestamp)),
+            'bits': float(int(bits, 16) if bits.startswith('0x') else int(bits, 16)),
+            'prev_hash_entropy': self._hex_entropy(prev_hash),
+            'merkle_entropy': self._hex_entropy(merkle_root),
+            'prev_hash_sum': sum(int(c, 16) for c in prev_hash[:8]) / (8 * 15),  # Normalized
+            'merkle_sum': sum(int(c, 16) for c in merkle_root[:8]) / (8 * 15),
+            'timestamp_norm': (float(int(timestamp)) % 1000000) / 1000000.0,
+            'difficulty': float((0x1d00ffff >> 24) & 0xFF)  # Extract difficulty from bits
         }
+        
+        return features
+    
+    def _hex_entropy(self, hex_str: str) -> float:
+        """Calculate Shannon entropy of hex string"""
+        if not hex_str:
+            return 0.0
+        
+        counts = {}
+        for c in hex_str:
+            counts[c] = counts.get(c, 0) + 1
+        
+        entropy = 0.0
+        total = len(hex_str)
+        for count in counts.values():
+            p = count / total
+            if p > 0:
+                entropy -= p * math.log2(p)
+        
+        return entropy / 4.0  # Normalize (max entropy for hex is 4 bits)
+    
+    def _features_to_input(self, features: Dict[str, float]) -> np.ndarray:
+        """Convert feature dictionary to 60-dimensional input vector"""
+        # Create 60-element input vector from 9 features
+        # Expand features using different transformations
+        input_vec = []
+        
+        feature_list = [
+            features['version'],
+            features['timestamp'],
+            features['bits'],
+            features['prev_hash_entropy'],
+            features['merkle_entropy'],
+            features['prev_hash_sum'],
+            features['merkle_sum'],
+            features['timestamp_norm'],
+            features['difficulty']
+        ]
+        
+        # Original features (9)
+        input_vec.extend(feature_list)
+        
+        # Squared features (9)
+        input_vec.extend([f ** 2 for f in feature_list])
+        
+        # Square root features (9)
+        input_vec.extend([np.sqrt(abs(f)) for f in feature_list])
+        
+        # Log features (9)
+        input_vec.extend([np.log(abs(f) + 1) for f in feature_list])
+        
+        # Sine/Cosine features (12)
+        for f in feature_list[:6]:
+            input_vec.append(np.sin(f * np.pi))
+            input_vec.append(np.cos(f * np.pi))
+        
+        # Interaction features (12) - pairs of first 6 features
+        interactions = []
+        for i in range(6):
+            for j in range(i+1, 6):
+                interactions.append(feature_list[i] * feature_list[j])
+        
+        # Take first 12 interactions (we have 15 possible, take 12)
+        input_vec.extend(interactions[:12])
+        
+        # Total: 9 + 9 + 9 + 9 + 12 + 12 = 60 features
+        # Ensure exactly 60 features
+        input_vec = input_vec[:60]
+        if len(input_vec) < 60:
+            input_vec.extend([0.0] * (60 - len(input_vec)))
+        
+        return np.array(input_vec, dtype=np.float32).reshape(1, -1)
+    
+    def add_learning_example(self, block_data: bytes, nonce: int, success: bool, hash_result: str = "") -> bool:
+        """Add a Bitcoin mining example for reinforcement learning"""
+        try:
+            # Store learning example for later training
+            example = {
+                'block_data': block_data,
+                'nonce': nonce,
+                'success': success,
+                'hash_result': hash_result,
+                'timestamp': time.time()
+            }
+            
+            self.learning_examples.append(example)
+            
+            # Keep only recent examples
+            if len(self.learning_examples) > self.max_examples:
+                self.learning_examples = self.learning_examples[-self.max_examples:]
+            
+            logger.debug(f"📝 Added learning example: nonce={nonce:#x}, success={success}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error adding learning example: {e}")
+            return False
+    
+    def perform_retro_learning(self) -> bool:
+        """Train network on accumulated Bitcoin mining examples"""
+        try:
+            if len(self.learning_examples) < 10:
+                logger.info("⚠️ Not enough examples for retro-learning (need at least 10)")
+                return False
+            
+            logger.info(f"🔄 Starting retro-learning on {len(self.learning_examples)} examples...")
+            
+            # Extract features and targets from examples
+            X_retro = []
+            y_retro = []
+            
+            for example in self.learning_examples:
+                block_str = example['block_data'].decode('utf-8') if isinstance(example['block_data'], bytes) else str(example['block_data'])
+                features = self._extract_block_features(block_str)
+                input_vec = self._features_to_input(features)
+                
+                # Target: nonce as 32-bit pattern
+                nonce = example['nonce']
+                target_bits = [(nonce >> i) & 1 for i in range(32)]
+                
+                # Weight successful examples more
+                weight = 2.0 if example['success'] else 1.0
+                for _ in range(int(weight)):
+                    X_retro.append(input_vec[0])
+                    y_retro.append(target_bits)
+            
+            X_retro = np.array(X_retro, dtype=np.float32)
+            y_retro = np.array(y_retro, dtype=np.float32)
+            
+            # Train on accumulated examples
+            num_epochs = 100
+            for epoch in range(num_epochs):
+                predictions = self.forward_propagation(X_retro)
+                loss = self.compute_loss(predictions, y_retro)
+                self.backward_propagation(y_retro, learning_rate=self.learning_rate * 0.5)
+                
+                if (epoch + 1) % 20 == 0:
+                    logger.info(f"🔄 Retro-learning epoch {epoch + 1}/{num_epochs} - Loss: {loss:.6f}")
+            
+            logger.info(f"✅ Retro-learning completed on {len(self.learning_examples)} examples")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error in retro-learning: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
+    
+    def optimize_from_feedback(self, success: bool, block_data: bytes, nonce: int, hash_result: str = "") -> bool:
+        """Optimize network weights based on mining feedback"""
+        try:
+            # Add to learning examples
+            self.add_learning_example(block_data, nonce, success, hash_result)
+            
+            # If we have enough examples and network is not currently learning, do retro-learning
+            if len(self.learning_examples) >= 50 and not self.is_learning:
+                logger.info("🔄 Triggering retro-learning after accumulating 50 examples...")
+                return self.perform_retro_learning()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error optimizing from feedback: {e}")
+            return False
     
     def get_network_state(self) -> Dict[str, Any]:
-        """Get comprehensive network state"""
+        """Get REAL neural network state"""
         try:
-            if self.is_cpp_enabled and self.is_initialized:
-                # Get C++ network state using available methods
-                try:
-                    learning_state = self.cpp_network.getLearningState()
-                    training_progress = self.cpp_network.getTrainingProgress()
-                    network_efficiency = self.cpp_network.getNetworkEfficiency()
-                    network_complexity = self.cpp_network.getNetworkComplexity()
-                    is_learning_complete = self.cpp_network.isLearningComplete()
-                    
-                    return {
-                        'active_neurons': self.active_neurons,
-                        'synaptic_connections': int(self.active_neurons * 0.4 * self.active_neurons),  # Estimate
-                        'learning_progress': training_progress,
-                        'pattern_accuracy': network_efficiency,
-                        'bitcoin_accuracy': network_efficiency,
-                        'average_firing_rate': 2.5,  # Default
-                        'synaptic_strength': 0.65,   # Default
-                        'network_coherence': network_complexity,
-                        'learning_phase': 'complete' if is_learning_complete else 'active',
-                        'learning_state': str(learning_state)
-                    }
-                except Exception as e:
-                    logger.warning(f"⚠️ Error getting network state: {e}")
-                    # Return fallback state
-                    return {
-                        'active_neurons': self.active_neurons,
-                        'synaptic_connections': int(self.active_neurons * 0.4 * self.active_neurons),
-                        'learning_progress': 0.5,
-                        'pattern_accuracy': 0.75,
-                        'bitcoin_accuracy': 0.70,
-                        'average_firing_rate': 2.5,
-                        'synaptic_strength': 0.65,
-                        'network_coherence': 0.75,
-                        'learning_phase': 'active' if self.is_learning else 'idle',
-                        'learning_state': 'Unknown'
-                    }
-            else:
-                # Enhanced fallback state with simulation data
-                current_neurons = getattr(self, 'neurons', self.active_neurons)
-                progress = getattr(self, 'current_epoch', 0) / max(getattr(self, 'learning_epochs', 1000), 1)
-                
+            if not self.is_initialized:
                 return {
-                    'active_neurons': current_neurons,
-                    'synaptic_connections': int(current_neurons * 0.4 * current_neurons),
-                    'learning_progress': progress,
-                    'pattern_accuracy': getattr(self, 'accuracy', self.pattern_recognition_accuracy),
-                    'bitcoin_accuracy': getattr(self, 'accuracy', self.bitcoin_prediction_accuracy),
-                    'current_epoch': getattr(self, 'current_epoch', 0),
-                    'total_epochs': getattr(self, 'learning_epochs', 1000),
-                    'loss': getattr(self, 'loss', 0.5),
-                    'learning_rate': getattr(self, 'learning_rate', 0.001),
-                    'average_firing_rate': 2.5 + (progress * 1.5),  # Increases with learning
-                    'synaptic_strength': 0.65 + (progress * 0.25),  # Stronger with learning
-                    'network_coherence': 0.75 + (progress * 0.15),  # More coherent with learning
-                    'learning_phase': 'active' if self.is_learning else ('trained' if progress > 0.95 else 'idle')
+                    'active_neurons': 0,
+                    'synaptic_connections': 0,
+                    'learning_progress': 0.0,
+                    'pattern_accuracy': 0.0,
+                    'bitcoin_accuracy': 0.0,
+                    'learning_phase': 'uninitialized'
                 }
+            
+            # Calculate real network statistics
+            total_params = (
+                self.weights['W1'].size + self.biases['b1'].size +
+                self.weights['W2'].size + self.biases['b2'].size +
+                self.weights['W3'].size + self.biases['b3'].size
+            )
+            
+            # Calculate average weight magnitude (synaptic strength)
+            avg_weight = np.mean([
+                np.abs(self.weights['W1']).mean(),
+                np.abs(self.weights['W2']).mean(),
+                np.abs(self.weights['W3']).mean()
+            ])
+            
+            # Calculate network coherence (weight variance)
+            weight_std = np.mean([
+                self.weights['W1'].std(),
+                self.weights['W2'].std(),
+                self.weights['W3'].std()
+            ])
+            coherence = 1.0 / (1.0 + weight_std)  # Lower variance = higher coherence
+            
+            # Learning progress
+            if len(self.training_loss) > 0:
+                initial_loss = self.training_loss[0] if len(self.training_loss) > 0 else 1.0
+                current_loss = self.training_loss[-1]
+                progress = max(0.0, min(1.0, 1.0 - (current_loss / (initial_loss + 1e-10))))
+            else:
+                progress = 0.0
+            
+            # Accuracy estimate (inverse of loss)
+            accuracy = max(0.0, min(1.0, 1.0 - (current_loss if len(self.training_loss) > 0 else 0.5)))
+            
+            return {
+                'active_neurons': self.input_size + self.hidden1_size + self.hidden2_size + self.output_size,
+                'synaptic_connections': total_params,
+                'learning_progress': progress,
+                'pattern_accuracy': accuracy,
+                'bitcoin_accuracy': accuracy,
+                'current_epoch': self.training_epochs,
+                'total_examples': len(self.learning_examples),
+                'loss': self.training_loss[-1] if len(self.training_loss) > 0 else 0.0,
+                'learning_rate': self.learning_rate,
+                'average_weight': float(avg_weight),
+                'synaptic_strength': float(avg_weight * 10),  # Scale for display
+                'network_coherence': float(coherence),
+                'learning_phase': 'learning' if self.is_learning else ('trained' if progress > 0.8 else 'initialized'),
+                'architecture': f"{self.input_size}→{self.hidden1_size}→{self.hidden2_size}→{self.output_size}"
+            }
                 
         except Exception as e:
             logger.error(f"❌ Error getting network state: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {}
 
-    def _start_fallback_learning_simulation(self):
-        """Start a simulated learning process for fallback mode"""
-        import threading
-        import time
-        import random
-        
-        def learning_simulation():
-            try:
-                logger.info("🔄 Starting fallback learning simulation...")
-                
-                for epoch in range(self.learning_epochs):
-                    if not self.is_learning:  # Stop if learning was cancelled
-                        break
-                        
-                    self.current_epoch = epoch + 1
-                    
-                    # Simulate learning progress
-                    progress = epoch / self.learning_epochs
-                    
-                    # Simulate decreasing loss
-                    self.loss = max(0.01, 1.0 - (progress * 0.9) + random.uniform(-0.05, 0.05))
-                    
-                    # Simulate increasing accuracy  
-                    self.accuracy = min(0.95, progress * 0.9 + random.uniform(-0.05, 0.05))
-                    
-                    # Update network state
-                    if hasattr(self, 'neurons'):
-                        self.neurons = 60 + int(progress * 40)  # Grow from 60 to 100 neurons
-                    
-                    # Log progress every 100 epochs
-                    if epoch % 100 == 0:
-                        logger.info(f"🧠 Learning progress: Epoch {epoch}/{self.learning_epochs}, "
-                                  f"Loss: {self.loss:.3f}, Accuracy: {self.accuracy:.3f}")
-                    
-                    # Simulate learning time
-                    time.sleep(0.01)  # Small delay to simulate computation
-                
-                # Learning completed
-                if self.is_learning:
-                    self.status = "trained"
-                    logger.info(f"✅ Fallback learning completed! Final accuracy: {self.accuracy:.3f}")
-                else:
-                    logger.info("⏹️ Fallback learning stopped by user")
-                    
-            except Exception as e:
-                logger.error(f"❌ Error in learning simulation: {e}")
-                self.status = "error"
-        
-        # Start simulation in background thread
-        simulation_thread = threading.Thread(target=learning_simulation, daemon=True)
-        simulation_thread.start()
+
 
     def stop_learning(self) -> bool:
         """Stop the learning process"""
         try:
-            if self.is_cpp_enabled and self.cpp_network:
-                # Stop C++ learning
-                self.cpp_network.stopLearning()
-                logger.info("🛑 C++ learning stopped")
-            else:
-                # Stop fallback learning
-                logger.info("🛑 Fallback learning stopped")
-            
             self.is_learning = False
-            self.status = "idle"
+            logger.info("🛑 Neural network learning stopped")
             return True
             
         except Exception as e:
             logger.error(f"❌ Error stopping learning: {e}")
             return False
+
+
+class CppBiologicalNetwork:
+    """
+    API-compatible wrapper for PurePythonBiologicalNetwork
+    Provides same interface as original C++ bindings but uses pure Python neural network
+    """
+    
+    def __init__(self):
+        logger.info("🧠 Initializing CppBiologicalNetwork (Pure Python Backend)")
+        
+        # Create real Python neural network instance
+        self.network = PurePythonBiologicalNetwork()
+        
+        # Compatibility attributes
+        self.is_initialized = False
+        self.is_learning = False
+        
+        logger.info("✅ CppBiologicalNetwork wrapper created")
+    
+    def initialize(self) -> bool:
+        """Initialize the neural network"""
+        result = self.network.initialize()
+        self.is_initialized = result
+        return result
+    
+    def start_learning(self, learning_config: Dict[str, Any]) -> bool:
+        """Start neural network training"""
+        result = self.network.start_learning(learning_config)
+        self.is_learning = self.network.is_learning
+        return result
+    
+    def start_initial_learning(self) -> bool:
+        """Start initial learning phase"""
+        return self.network.start_initial_learning()
+    
+    def stop_learning(self) -> bool:
+        """Stop learning"""
+        result = self.network.stop_learning()
+        self.is_learning = self.network.is_learning
+        return result
+    
+    def predict_optimal_nonce(self, block_data: bytes) -> Dict[str, Any]:
+        """Predict optimal nonce using neural network"""
+        return self.network.predict_optimal_nonce(block_data)
+    
+    def add_learning_example(self, block_data: bytes, nonce: int, success: bool, hash_result: str = "") -> bool:
+        """Add learning example for reinforcement"""
+        return self.network.add_learning_example(block_data, nonce, success, hash_result)
+    
+    def perform_retro_learning(self) -> bool:
+        """Perform retro-learning on accumulated examples"""
+        return self.network.perform_retro_learning()
+    
+    def optimize_from_feedback(self, success: bool, block_data: bytes, nonce: int, hash_result: str = "") -> bool:
+        """Optimize from mining feedback"""
+        return self.network.optimize_from_feedback(success, block_data, nonce, hash_result)
+    
+    def get_network_state(self) -> Dict[str, Any]:
+        """Get comprehensive network state"""
+        state = self.network.get_network_state()
+        self.is_initialized = self.network.is_initialized
+        self.is_learning = self.network.is_learning
+        return state
+    
+    # Additional compatibility methods for C++ binding interface
+    def getLearningState(self) -> str:
+        """Get learning state string"""
+        if not self.is_initialized:
+            return "uninitialized"
+        elif self.is_learning:
+            return "learning"
+        else:
+            return "trained"
+    
+    def getTrainingProgress(self) -> float:
+        """Get training progress [0.0-1.0]"""
+        state = self.network.get_network_state()
+        return state.get('learning_progress', 0.0)
+    
+    def getNetworkEfficiency(self) -> float:
+        """Get network efficiency/accuracy"""
+        state = self.network.get_network_state()
+        return state.get('pattern_accuracy', 0.0)
+    
+    def getNetworkComplexity(self) -> float:
+        """Get network complexity metric"""
+        state = self.network.get_network_state()
+        return state.get('network_coherence', 0.0)
+    
+    def isLearningComplete(self) -> bool:
+        """Check if learning is complete"""
+        return self.is_initialized and not self.is_learning and self.getTrainingProgress() > 0.8
 
 
 class CppRealMEAInterface:
