@@ -1189,40 +1189,60 @@ class BioMiningPlatform:
         logger.info("✅ BioMining Platform coordinator initialized")
     
     async def initialize_platform(self) -> bool:
-        """Initialize all C++ systems"""
+        """Initialize platform systems (flexible for Bio-Entropy)"""
         try:
-            logger.info("🔄 Initializing all platform systems...")
+            logger.info("🔄 Initializing platform systems...")
             
-            # Initialize hybrid miner
-            if not self.hybrid_miner.initialize():
-                logger.error("❌ Failed to initialize hybrid miner")
-                return False
-            self.systems_status['hybrid_miner']['initialized'] = True
-            self.systems_status['hybrid_miner']['status'] = 'initialized'
+            # Initialize biological network (needed for SimulatedNetwork mode)
+            try:
+                if self.biological_network.initialize():
+                    self.systems_status['biological_network']['initialized'] = True
+                    self.systems_status['biological_network']['status'] = 'initialized'
+                    self.systems_status['biological_network']['neurons'] = self.biological_network.active_neurons
+                    logger.info("✅ BiologicalNetwork initialized successfully")
+                else:
+                    logger.warning("⚠️ BiologicalNetwork initialization failed, using fallback")
+                    self.systems_status['biological_network']['status'] = 'fallback'
+            except Exception as e:
+                logger.warning(f"⚠️ BiologicalNetwork error: {e}, using fallback")
+                self.systems_status['biological_network']['status'] = 'fallback'
             
-            # Initialize biological network
-            if not self.biological_network.initialize():
-                logger.error("❌ Failed to initialize biological network")
-                return False
-            self.systems_status['biological_network']['initialized'] = True
-            self.systems_status['biological_network']['status'] = 'initialized'
-            self.systems_status['biological_network']['neurons'] = self.biological_network.active_neurons
+            # Initialize MEA interface (needed for RealMEA mode)
+            try:
+                if self.mea_interface.initialize():
+                    self.systems_status['mea_interface']['initialized'] = True
+                    self.systems_status['mea_interface']['status'] = 'initialized'
+                    self.systems_status['mea_interface']['connected'] = self.mea_interface.is_connected
+                    self.systems_status['mea_interface']['active_electrodes'] = len(self.mea_interface.active_electrodes)
+                    logger.info("✅ MEA interface initialized successfully")
+                else:
+                    logger.warning("⚠️ MEA interface initialization failed, using fallback")
+                    self.systems_status['mea_interface']['status'] = 'fallback'
+            except Exception as e:
+                logger.warning(f"⚠️ MEA interface error: {e}, using fallback")
+                self.systems_status['mea_interface']['status'] = 'fallback'
             
-            # Initialize MEA interface
-            if not self.mea_interface.initialize():
-                logger.error("❌ Failed to initialize MEA interface")
-                return False
-            self.systems_status['mea_interface']['initialized'] = True
-            self.systems_status['mea_interface']['status'] = 'initialized'
-            self.systems_status['mea_interface']['connected'] = self.mea_interface.is_connected
-            self.systems_status['mea_interface']['active_electrodes'] = len(self.mea_interface.active_electrodes)
+            # Hybrid miner is OPTIONAL for Bio-Entropy (not needed)
+            try:
+                if self.hybrid_miner.initialize():
+                    self.systems_status['hybrid_miner']['initialized'] = True
+                    self.systems_status['hybrid_miner']['status'] = 'initialized'
+                    logger.info("✅ Hybrid miner initialized (optional)")
+                else:
+                    logger.warning("⚠️ Hybrid miner initialization failed (not needed for Bio-Entropy)")
+                    self.systems_status['hybrid_miner']['status'] = 'unavailable'
+            except Exception as e:
+                logger.warning(f"⚠️ Hybrid miner not available (not needed for Bio-Entropy): {e}")
+                self.systems_status['hybrid_miner']['status'] = 'unavailable'
             
+            # Mark as initialized even if some systems failed
+            # Bio-Entropy can work with fallback implementations
             self.is_initialized = True
-            logger.info("✅ All platform systems initialized successfully")
+            logger.info("✅ Platform initialized (Bio-Entropy ready)")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error initializing platform: {e}")
+            logger.error(f"❌ Critical error initializing platform: {e}")
             return False
     
     async def start_system(self, system_name: str) -> bool:
