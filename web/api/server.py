@@ -3901,6 +3901,195 @@ async def shutdown_event():
 
 
 # ================================================================
+# BITCOIN REAL DATA VALIDATION API
+# ================================================================
+
+# Import validation module
+try:
+    from bitcoin_real_data_validator import (
+        BitcoinBlockchainFetcher,
+        BioEntropyValidator,
+        BlockchainAPI
+    )
+    VALIDATION_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Bitcoin validation module not available: {e}")
+    VALIDATION_AVAILABLE = False
+
+# Global validator instance
+_validator_instance = None
+
+def get_validator():
+    """Get or create validator instance"""
+    global _validator_instance
+    if _validator_instance is None and VALIDATION_AVAILABLE:
+        _validator_instance = BioEntropyValidator(get_platform())
+    return _validator_instance
+
+
+@app.get("/api/bitcoin-validation/status")
+async def get_validation_status():
+    """Check if Bitcoin validation is available"""
+    return JSONResponse({
+        "available": VALIDATION_AVAILABLE,
+        "apis_supported": ["blockchain.info", "blockchair.com"],
+        "message": "Bitcoin validation ready" if VALIDATION_AVAILABLE else "Validation module not available"
+    })
+
+
+@app.post("/api/bitcoin-validation/validate-block")
+async def validate_single_block(request: Dict[str, Any]):
+    """
+    Validate Bio-Entropy predictions against a single real Bitcoin block
+    
+    Request body:
+    {
+        "block_height": 870000,
+        "api": "blockchain.info" (optional)
+    }
+    """
+    if not VALIDATION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Bitcoin validation not available")
+    
+    try:
+        block_height = request.get("block_height")
+        if not block_height:
+            raise HTTPException(status_code=400, detail="block_height is required")
+        
+        validator = get_validator()
+        if not validator:
+            raise HTTPException(status_code=500, detail="Failed to initialize validator")
+        
+        # Run validation
+        logger.info(f"🔍 Starting validation for block {block_height}")
+        result = validator.validate_against_real_block(block_height)
+        
+        if result:
+            return JSONResponse({
+                "success": True,
+                "result": result.to_dict()
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": "Validation failed"
+            }, status_code=500)
+            
+    except Exception as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/bitcoin-validation/validate-multiple")
+async def validate_multiple_blocks(request: Dict[str, Any]):
+    """
+    Validate Bio-Entropy predictions against multiple real Bitcoin blocks
+    
+    Request body:
+    {
+        "start_height": 870000,
+        "count": 10,
+        "api": "blockchain.info" (optional)
+    }
+    """
+    if not VALIDATION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Bitcoin validation not available")
+    
+    try:
+        start_height = request.get("start_height")
+        count = request.get("count", 10)
+        
+        if not start_height:
+            raise HTTPException(status_code=400, detail="start_height is required")
+        
+        if count > 100:
+            raise HTTPException(status_code=400, detail="Maximum 100 blocks per request")
+        
+        validator = get_validator()
+        if not validator:
+            raise HTTPException(status_code=500, detail="Failed to initialize validator")
+        
+        # Run validation
+        logger.info(f"🔍 Starting validation for {count} blocks from {start_height}")
+        results = validator.validate_multiple_blocks(start_height, count)
+        
+        if results:
+            return JSONResponse({
+                "success": True,
+                "count": len(results),
+                "results": [r.to_dict() for r in results]
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": "Validation failed"
+            }, status_code=500)
+            
+    except Exception as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bitcoin-validation/report")
+async def get_validation_report():
+    """
+    Get comprehensive validation report with statistics
+    """
+    if not VALIDATION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Bitcoin validation not available")
+    
+    try:
+        validator = get_validator()
+        if not validator:
+            raise HTTPException(status_code=500, detail="Failed to initialize validator")
+        
+        report = validator.generate_validation_report()
+        return JSONResponse(report)
+        
+    except Exception as e:
+        logger.error(f"Report generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/bitcoin-validation/fetch-block")
+async def fetch_bitcoin_block(request: Dict[str, Any]):
+    """
+    Fetch real Bitcoin block data without validation
+    
+    Request body:
+    {
+        "block_height": 870000,
+        "api": "blockchain.info" (optional)
+    }
+    """
+    if not VALIDATION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Bitcoin validation not available")
+    
+    try:
+        block_height = request.get("block_height")
+        if not block_height:
+            raise HTTPException(status_code=400, detail="block_height is required")
+        
+        fetcher = BitcoinBlockchainFetcher()
+        block = fetcher.fetch_block_by_height(block_height)
+        
+        if block:
+            return JSONResponse({
+                "success": True,
+                "block": block.to_dict()
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": f"Failed to fetch block {block_height}"
+            }, status_code=404)
+            
+    except Exception as e:
+        logger.error(f"Block fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ================================================================
 # MAIN ENTRY POINT
 # ================================================================
 
