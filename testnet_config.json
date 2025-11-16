@@ -1,0 +1,73 @@
+{
+  "_comment": "Bitcoin Testnet Mining Configuration",
+  "_description": "Configuration for mining on Bitcoin Testnet with bio-entropy enhancement",
+  
+  "network": "testnet",
+  
+  "pools": [
+    {
+      "name": "Bitcoin.com Testnet",
+      "host": "testnet-pool.bitcoin.com",
+      "port": 3333,
+      "worker_name": "YOUR_TESTNET_ADDRESS.worker1",
+      "password": "x",
+      "priority": 10,
+      "backup": false,
+      "_note": "Replace YOUR_TESTNET_ADDRESS with your actual testnet wallet address"
+    },
+    {
+      "name": "CKPool Solo Testnet",
+      "host": "solo.ckpool.org",
+      "port": 13333,
+      "worker_name": "YOUR_TESTNET_ADDRESS.worker2",
+      "password": "x",
+      "priority": 5,
+      "backup": true,
+      "_note": "Backup pool for failover"
+    }
+  ],
+  
+  "mining": {
+    "threads": 1,
+    "scan_depth": 1000000,
+    "use_bio_entropy": true,
+    "bio_entropy_weight": 0.3,
+    "neural_predictions_per_job": 5,
+    "_note_threads": "Number of CPU cores to use (1 = single core)",
+    "_note_scan_depth": "Number of nonces to try per starting point",
+    "_note_bio_entropy_weight": "Weight of biological entropy in mining (0.0-1.0)"
+  },
+  
+  "connection": {
+    "reconnect_delay": 5,
+    "max_reconnect_attempts": 5,
+    "failover_enabled": true,
+    "keepalive_interval": 60,
+    "_note_reconnect_delay": "Seconds to wait before reconnecting after disconnect",
+    "_note_failover": "Automatically switch to backup pool on failures"
+  },
+  
+  "statistics": {
+    "enable_logging": true,
+    "log_interval": 60,
+    "save_to_file": true,
+    "stats_file": "mining_stats.json",
+    "_note_log_interval": "Seconds between statistics updates"
+  },
+  
+  "testnet_info": {
+    "_info": "Bitcoin Testnet is for testing only - coins have no value",
+    "_difficulty": "Much lower than mainnet (~1 vs 70 trillion)",
+    "_block_time": "Average 10 minutes like mainnet",
+    "_expected_results": "You should find shares regularly and potentially blocks!",
+    "_get_testnet_wallet": "https://testnet-faucet.mempool.co/"
+  },
+  
+  "advanced": {
+    "difficulty_target": "auto",
+    "share_difficulty": 1,
+    "extranonce2_size": 4,
+    "submit_timeout": 30,
+    "_note_difficulty_target": "auto = use pool difficulty, or specify custom value"
+  }
+}
