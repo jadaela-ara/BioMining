@@ -287,8 +287,29 @@ class BioEntropyValidator:
         )
         logger.info(f"✅ Extracted {len(features)} features from block header")
         
-        # Generate MEA response (stimulation pattern)
+        # Get compute engine to test both Biological Network AND MEA
         compute_engine = self.platform.get_compute_engine()
+        
+        # STEP 3a: Test Biological Neural Network prediction
+        neural_prediction = None
+        if hasattr(compute_engine, 'predict_optimal_nonce'):
+            try:
+                # Use the biological neural network to predict nonce
+                block_data = block_header_str.encode()
+                prediction_result = compute_engine.predict_optimal_nonce(block_data)
+                
+                if isinstance(prediction_result, dict):
+                    neural_prediction = prediction_result.get('predicted_nonce', 0)
+                    neural_confidence = prediction_result.get('confidence', 0.0)
+                    logger.info(f"🧠 Biological Neural Network prediction: {neural_prediction:#010x}")
+                    logger.info(f"   Neural confidence: {neural_confidence:.2%}")
+                else:
+                    neural_prediction = prediction_result
+                    logger.info(f"🧠 Biological Neural Network prediction: {neural_prediction:#010x}")
+            except Exception as e:
+                logger.warning(f"⚠️  Neural network prediction failed: {e}")
+        
+        # STEP 3b: Generate MEA response (stimulation pattern)
         if hasattr(compute_engine, 'generate_stimulation_pattern'):
             stim_pattern = compute_engine.generate_stimulation_pattern(block_header_str)
             logger.info(f"⚡ Generated stimulation pattern: {len(stim_pattern)} voltages")
@@ -322,17 +343,32 @@ class BioEntropyValidator:
             entropy_seed,
             point_count=1000
         )
-        logger.info(f"🎯 Generated {len(starting_points)} starting points")
+        logger.info(f"🎯 Generated {len(starting_points)} starting points from entropy seed")
+        
+        # Add neural network prediction as an additional starting point if available
+        if neural_prediction is not None and 0 <= neural_prediction <= 0xFFFFFFFF:
+            starting_points.append(neural_prediction)
+            logger.info(f"🧠 Added neural network prediction as starting point: {neural_prediction:#010x}")
         
         # 4. Find closest prediction to actual nonce
         best_distance = float('inf')
         best_starting_point = 0
+        best_method = "entropy_seed"  # Track which method gave best result
         
         for point in starting_points:
             distance = abs(point - real_block.nonce)
             if distance < best_distance:
                 best_distance = distance
                 best_starting_point = point
+                # Check if this was the neural network prediction
+                if neural_prediction is not None and point == neural_prediction:
+                    best_method = "neural_network"
+        
+        # Also check neural network prediction separately for comparison
+        neural_distance = None
+        if neural_prediction is not None:
+            neural_distance = abs(neural_prediction - real_block.nonce)
+            logger.info(f"🧠 Neural network distance: {neural_distance:,} ({(neural_distance/0xFFFFFFFF)*100:.4f}%)")
         
         # Calculate metrics
         nonce_space_size = 0xFFFFFFFF  # 2^32
@@ -343,7 +379,11 @@ class BioEntropyValidator:
         
         logger.info(f"📊 Validation Results:")
         logger.info(f"   Best starting point: {best_starting_point:#010x}")
+        logger.info(f"   Best method: {best_method}")
         logger.info(f"   Distance to real nonce: {best_distance:,} ({distance_percent:.4f}%)")
+        if neural_distance is not None:
+            comparison = "better" if neural_distance < best_distance else "worse" if neural_distance > best_distance else "same"
+            logger.info(f"   Neural vs Best: {comparison}")
         logger.info(f"   Success: {'✅ YES' if success else '❌ NO'}")
         
         # 5. Create validation result
