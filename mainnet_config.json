@@ -1,0 +1,112 @@
+{
+  "_comment": "Bitcoin Mainnet Mining Configuration",
+  "_warning": "⚠️ MAINNET MINING WITH CPU IS NOT PROFITABLE - Use for testing only",
+  "_description": "Configuration for mining on Bitcoin Mainnet with bio-entropy enhancement",
+  
+  "network": "mainnet",
+  
+  "pools": [
+    {
+      "name": "Slush Pool",
+      "host": "stratum.slushpool.com",
+      "port": 3333,
+      "worker_name": "USERNAME.worker1",
+      "password": "x",
+      "priority": 10,
+      "backup": false,
+      "_note": "Replace USERNAME with your Slush Pool username",
+      "_signup": "https://slushpool.com/"
+    },
+    {
+      "name": "F2Pool",
+      "host": "stratum.f2pool.com",
+      "port": 3333,
+      "worker_name": "USERNAME.worker1",
+      "password": "x",
+      "priority": 9,
+      "backup": false,
+      "_note": "Replace USERNAME with your F2Pool username",
+      "_signup": "https://www.f2pool.com/"
+    },
+    {
+      "name": "AntPool",
+      "host": "stratum.antpool.com",
+      "port": 3333,
+      "worker_name": "USERNAME.worker1",
+      "password": "x",
+      "priority": 8,
+      "backup": true,
+      "_note": "Replace USERNAME with your AntPool username",
+      "_signup": "https://www.antpool.com/"
+    }
+  ],
+  
+  "mining": {
+    "threads": 1,
+    "scan_depth": 1000000,
+    "use_bio_entropy": true,
+    "bio_entropy_weight": 0.3,
+    "neural_predictions_per_job": 5,
+    "_note_threads": "Even with multiple cores, CPU mining is not profitable",
+    "_note_profitability": "Estimated earnings: ~0.00000001 BTC/day (~€0.0004) with 100 H/s"
+  },
+  
+  "connection": {
+    "reconnect_delay": 5,
+    "max_reconnect_attempts": 10,
+    "failover_enabled": true,
+    "keepalive_interval": 60
+  },
+  
+  "statistics": {
+    "enable_logging": true,
+    "log_interval": 300,
+    "save_to_file": true,
+    "stats_file": "mainnet_mining_stats.json"
+  },
+  
+  "mainnet_info": {
+    "_warning": "⚠️ IMPORTANT WARNINGS",
+    "_difficulty": "Current difficulty: ~70 trillion",
+    "_hashrate_needed": "Profitable mining requires: 100+ TH/s (ASIC miners)",
+    "_your_hashrate": "Expected CPU hashrate: 100-1000 H/s",
+    "_profitability": "CPU mining is NOT PROFITABLE - electricity costs exceed earnings",
+    "_recommendation": "Use TESTNET for experimentation, buy ASIC miners for real mining",
+    "_cost": "ASIC miner (Antminer S19 Pro): ~€2,500 for 110 TH/s"
+  },
+  
+  "pool_recommendations": {
+    "_slushpool": {
+      "name": "Slush Pool",
+      "fees": "2%",
+      "min_payout": "0.001 BTC",
+      "pros": "Oldest pool, excellent support, detailed statistics",
+      "cons": "Slightly higher fees",
+      "best_for": "Beginners"
+    },
+    "_f2pool": {
+      "name": "F2Pool",
+      "fees": "2.5%",
+      "min_payout": "0.005 BTC",
+      "pros": "Large pool, stable",
+      "cons": "Higher minimum payout",
+      "best_for": "Consistent mining"
+    },
+    "_antpool": {
+      "name": "AntPool",
+      "fees": "1-4% (payment method dependent)",
+      "min_payout": "0.001 BTC",
+      "pros": "Low fees with some payment methods",
+      "cons": "More complex fee structure",
+      "best_for": "Experienced miners"
+    }
+  },
+  
+  "advanced": {
+    "difficulty_target": "auto",
+    "share_difficulty": "auto",
+    "extranonce2_size": 4,
+    "submit_timeout": 30,
+    "enable_stratum_extensions": true
+  }
+}
