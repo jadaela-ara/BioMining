@@ -174,6 +174,16 @@ class WebSocketHandler {
                 this.handleTrainingProgress(message.data);
                 break;
                 
+            // Training complete
+            case 'training_complete':
+                this.handleTrainingComplete(message.data);
+                break;
+                
+            // Training error
+            case 'training_error':
+                this.handleTrainingError(message.data);
+                break;
+                
             // Biological network activity
             case 'biological_activity':
                 this.handleBiologicalActivity(message.data);
@@ -608,6 +618,26 @@ class WebSocketHandler {
             lastPongTime: this.lastPongTime,
             isConnected: this.isConnected()
         };
+    }
+    
+    /**
+     * Handle training complete event
+     */
+    handleTrainingComplete(data) {
+        console.log('🎉 Training complete:', data);
+        if (window.trainingManager) {
+            window.trainingManager.handleTrainingComplete(data);
+        }
+    }
+    
+    /**
+     * Handle training error event
+     */
+    handleTrainingError(data) {
+        console.error('❌ Training error:', data);
+        if (window.trainingManager) {
+            window.trainingManager.handleTrainingError(data);
+        }
     }
 }
 

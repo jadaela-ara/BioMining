@@ -3978,6 +3978,233 @@ async def shutdown_event():
 
 
 # ================================================================
+# HISTORICAL BITCOIN TRAINING API
+# ================================================================
+
+# Import training module
+try:
+    from historical_bitcoin_trainer import HistoricalBitcoinTrainer
+    TRAINING_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Historical training module not available: {e}")
+    TRAINING_AVAILABLE = False
+
+# Global trainer instance and state
+_trainer_instance = None
+_training_active = False
+_current_training_session = None
+
+
+def get_trainer():
+    """Get or create trainer instance"""
+    global _trainer_instance
+    if _trainer_instance is None and TRAINING_AVAILABLE:
+        platform = get_platform()
+        _trainer_instance = HistoricalBitcoinTrainer(
+            neural_network=platform.biological_network,
+            mea_interface=platform.mea_interface,
+            bio_entropy_generator=platform.bio_entropy_generator
+        )
+    return _trainer_instance
+
+
+@app.get("/api/training/status")
+async def get_training_status():
+    """Get historical training status"""
+    global _training_active, _current_training_session
+    
+    return JSONResponse({
+        "available": TRAINING_AVAILABLE,
+        "training_active": _training_active,
+        "current_session": _current_training_session.to_dict() if _current_training_session else None,
+        "message": "Historical training ready" if TRAINING_AVAILABLE else "Training module not available"
+    })
+
+
+@app.post("/api/training/start")
+async def start_training(request: Dict[str, Any]):
+    """
+    Start historical Bitcoin training
+    
+    Request body:
+    {
+        "start_height": 869900,
+        "count": 100,
+        "validate_every": 10,
+        "validation_count": 5
+    }
+    """
+    global _training_active, _current_training_session
+    
+    if not TRAINING_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Training module not available")
+    
+    if _training_active:
+        raise HTTPException(status_code=409, detail="Training already in progress")
+    
+    try:
+        start_height = request.get("start_height", 869900)
+        count = request.get("count", 100)
+        validate_every = request.get("validate_every", 10)
+        validation_count = request.get("validation_count", 5)
+        
+        if count > 1000:
+            raise HTTPException(status_code=400, detail="Maximum 1000 blocks per training session")
+        
+        trainer = get_trainer()
+        if not trainer:
+            raise HTTPException(status_code=500, detail="Failed to initialize trainer")
+        
+        # Start training in background
+        _training_active = True
+        
+        async def training_task():
+            global _training_active, _current_training_session
+            try:
+                logger.info(f"🎓 Starting historical training: {start_height} + {count} blocks")
+                
+                # Run training (this is blocking, but in async task it won't block server)
+                import asyncio
+                loop = asyncio.get_event_loop()
+                session = await loop.run_in_executor(
+                    None,
+                    trainer.train_on_historical_blocks,
+                    start_height,
+                    count,
+                    validate_every,
+                    validation_count
+                )
+                
+                _current_training_session = session
+                
+                # Save session
+                filename = f"training_session_{start_height}_{count}.json"
+                trainer.save_session(session, filename)
+                
+                # Broadcast completion
+                await websocket_manager.broadcast({
+                    'type': 'training_complete',
+                    'data': {
+                        'session_id': session.session_id,
+                        'improvement_percent': session.improvement_percent,
+                        'success_rate_after': session.success_rate_after,
+                        'filename': filename
+                    }
+                })
+                
+                logger.info(f"✅ Training complete! Improvement: {session.improvement_percent:+.1f}%")
+                
+            except Exception as e:
+                logger.error(f"❌ Training error: {e}")
+                await websocket_manager.broadcast({
+                    'type': 'training_error',
+                    'data': {'error': str(e)}
+                })
+            finally:
+                _training_active = False
+        
+        # Launch training task
+        asyncio.create_task(training_task())
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Training started",
+            "config": {
+                "start_height": start_height,
+                "count": count,
+                "validate_every": validate_every,
+                "validation_count": validation_count
+            }
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Training start error: {e}")
+        _training_active = False
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/training/stop")
+async def stop_training():
+    """Stop ongoing training"""
+    global _training_active
+    
+    if not _training_active:
+        return JSONResponse({"success": True, "message": "No training in progress"})
+    
+    # Note: Actual stopping would require more complex implementation
+    # For now, we just mark it as inactive
+    _training_active = False
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Training stop requested (will complete current block)"
+    })
+
+
+@app.get("/api/training/history")
+async def get_training_history():
+    """Get training history"""
+    if not TRAINING_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Training module not available")
+    
+    trainer = get_trainer()
+    if not trainer:
+        raise HTTPException(status_code=500, detail="Failed to initialize trainer")
+    
+    return JSONResponse({
+        "training_history": [r.to_dict() for r in trainer.training_history[-100:]],  # Last 100
+        "validation_history": [r.to_dict() for r in trainer.validation_history[-100:]]  # Last 100
+    })
+
+
+@app.get("/api/training/sessions")
+async def list_training_sessions():
+    """List available training session files"""
+    import glob
+    import os
+    
+    session_files = glob.glob("training_session_*.json")
+    sessions = []
+    
+    for filename in sorted(session_files, reverse=True)[:20]:  # Last 20 sessions
+        try:
+            stat = os.stat(filename)
+            sessions.append({
+                "filename": filename,
+                "size": stat.st_size,
+                "modified": stat.st_mtime
+            })
+        except Exception as e:
+            logger.warning(f"Error reading session file {filename}: {e}")
+    
+    return JSONResponse({"sessions": sessions})
+
+
+@app.get("/api/training/session/{filename}")
+async def get_training_session(filename: str):
+    """Get specific training session data"""
+    import os
+    
+    if not filename.startswith("training_session_") or not filename.endswith(".json"):
+        raise HTTPException(status_code=400, detail="Invalid session filename")
+    
+    if not os.path.exists(filename):
+        raise HTTPException(status_code=404, detail="Session file not found")
+    
+    try:
+        trainer = get_trainer()
+        if not trainer:
+            raise HTTPException(status_code=500, detail="Failed to initialize trainer")
+        
+        session_data = trainer.load_session(filename)
+        return JSONResponse(session_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ================================================================
 # BITCOIN REAL DATA VALIDATION API
 # ================================================================
 
