@@ -33,6 +33,9 @@
                 <button class="nav-btn" data-page="mining">
                     <i class="fas fa-dna"></i> Mining
                 </button>
+                <button class="nav-btn" data-page="training">
+                    <i class="fas fa-graduation-cap"></i> Training
+                </button>
             </nav>
             
             <div class="system-status">
@@ -583,6 +586,192 @@
                 </div>
             </div>
         </section>
+
+        <!-- ========================================
+             TRAINING PAGE - Historical Bitcoin Training
+             ======================================== -->
+        <section id="training-page" class="page">
+            <div class="training-container">
+                <h1><i class="fas fa-graduation-cap"></i> Historical Bitcoin Training</h1>
+                <p class="page-description">
+                    Train the Bio-Entropy Mining components (Neural Network + MEA) on real historical Bitcoin blocks
+                    to improve prediction accuracy.
+                </p>
+                
+                <!-- Training Configuration -->
+                <div class="panel training-config-panel">
+                    <h2>⚙️ Training Configuration</h2>
+                    <div class="config-layout">
+                        <div class="form-group">
+                            <label for="trainingStartHeight">
+                                <i class="fas fa-arrow-up"></i> Start Block Height
+                            </label>
+                            <input type="number" id="trainingStartHeight" class="form-control" 
+                                   value="869900" min="1" max="900000">
+                            <small class="form-help">First block to train on</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="trainingBlockCount">
+                                <i class="fas fa-hashtag"></i> Number of Blocks
+                            </label>
+                            <input type="number" id="trainingBlockCount" class="form-control" 
+                                   value="100" min="10" max="1000">
+                            <small class="form-help">Total blocks to train on (max 1000)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="trainingValidateEvery">
+                                <i class="fas fa-check-double"></i> Validate Every
+                            </label>
+                            <input type="number" id="trainingValidateEvery" class="form-control" 
+                                   value="10" min="5" max="100">
+                            <small class="form-help">Validate every N blocks</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="trainingValidationCount">
+                                <i class="fas fa-list-ol"></i> Validation Blocks
+                            </label>
+                            <input type="number" id="trainingValidationCount" class="form-control" 
+                                   value="5" min="1" max="20">
+                            <small class="form-help">Blocks to validate on</small>
+                        </div>
+                    </div>
+                    
+                    <div class="training-actions">
+                        <button class="btn-start-training btn-primary" id="startTraining">
+                            <i class="fas fa-play-circle"></i> Start Training
+                        </button>
+                        <button class="btn-stop-training btn-danger" id="stopTraining" disabled>
+                            <i class="fas fa-stop-circle"></i> Stop Training
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Training Status -->
+                <div class="panel training-status-panel">
+                    <h2>📊 Training Status</h2>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div class="status-icon"><i class="fas fa-info-circle"></i></div>
+                            <div class="status-content">
+                                <span class="status-label">Status</span>
+                                <span class="status-value" id="trainingStatus">Idle</span>
+                            </div>
+                        </div>
+                        
+                        <div class="status-item">
+                            <div class="status-icon"><i class="fas fa-cube"></i></div>
+                            <div class="status-content">
+                                <span class="status-label">Blocks Trained</span>
+                                <span class="status-value" id="blocksTrained">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="status-item">
+                            <div class="status-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="status-content">
+                                <span class="status-label">Current Loss</span>
+                                <span class="status-value" id="currentLoss">0.000000</span>
+                            </div>
+                        </div>
+                        
+                        <div class="status-item">
+                            <div class="status-icon"><i class="fas fa-percentage"></i></div>
+                            <div class="status-content">
+                                <span class="status-label">Improvement</span>
+                                <span class="status-value" id="improvementPercent">+0.0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Training Progress -->
+                <div class="panel training-progress-panel">
+                    <h2>⏳ Training Progress</h2>
+                    <div class="progress-container">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="trainingProgressBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" id="trainingProgressText">0 / 0 blocks</div>
+                    </div>
+                    
+                    <div class="training-log">
+                        <h3>Training Log</h3>
+                        <div class="log-container" id="trainingLog">
+                            <p class="log-entry">Ready to start training...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Training Results -->
+                <div class="panel training-results-panel">
+                    <h2>📈 Training Results</h2>
+                    <div class="results-comparison">
+                        <div class="comparison-column">
+                            <h3>Before Training</h3>
+                            <div class="metric-row">
+                                <span class="metric-label">Avg Distance:</span>
+                                <span class="metric-value" id="beforeDistance">--</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Success Rate:</span>
+                                <span class="metric-value" id="beforeSuccessRate">--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="comparison-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                        
+                        <div class="comparison-column">
+                            <h3>After Training</h3>
+                            <div class="metric-row">
+                                <span class="metric-label">Avg Distance:</span>
+                                <span class="metric-value" id="afterDistance">--</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Success Rate:</span>
+                                <span class="metric-value" id="afterSuccessRate">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="improvement-summary">
+                        <div class="improvement-item">
+                            <span class="improvement-label">Overall Improvement:</span>
+                            <span class="improvement-value highlight" id="overallImprovement">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Training History -->
+                <div class="panel training-history-panel">
+                    <h2>📚 Training Sessions</h2>
+                    <div class="history-table-container">
+                        <table class="history-table" id="trainingHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Session ID</th>
+                                    <th>Start Block</th>
+                                    <th>Blocks Trained</th>
+                                    <th>Improvement</th>
+                                    <th>Success Rate</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" class="no-data">No training sessions yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Footer -->
@@ -602,6 +791,7 @@
 
     <!-- JavaScript Files -->
     <script src="js/charts.js"></script>
+    <script src="js/training.js"></script>
     <script src="js/app.js"></script>
     <script src="js/websocket-handler.js"></script>
 </body>
