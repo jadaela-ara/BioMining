@@ -2331,49 +2331,87 @@ class BioMiningPlatform:
             )
             logger.info(f"   ✅ Features extracted: difficulty={features.get('difficulty_level', 4)}")
             
-            # Step 4: Generate stimulation pattern from block header (SHA-256)
-            logger.info("   🔬 Generating stimulation pattern from block header...")
-            stimulation_pattern = None
+            # Step 4a: ALWAYS use Biological Neural Network for prediction
+            logger.info("   🧠 Step 4a: Biological Neural Network Prediction")
+            neural_prediction = None
+            neural_confidence = 0.0
+            neural_activation = 0.5
             
-            if mode == 'RealMEA' and hasattr(compute_engine, 'generate_stimulation_pattern'):
-                # REAL MEA: Generate stimulation from block hash
-                stimulation_pattern = compute_engine.generate_stimulation_pattern(block_header)
-                logger.info(f"   ⚡ Stimulation pattern: {len(stimulation_pattern)} voltages [{stimulation_pattern.min():.2f}V, {stimulation_pattern.max():.2f}V]")
+            if hasattr(self.biological_network, 'predict_optimal_nonce'):
+                try:
+                    block_data = block_header.encode('utf-8')
+                    prediction = self.biological_network.predict_optimal_nonce(block_data)
+                    
+                    if isinstance(prediction, dict):
+                        neural_prediction = prediction.get('predicted_nonce', 0)
+                        neural_confidence = prediction.get('confidence', 0.0)
+                        neural_activation = prediction.get('neural_activation', 0.5)
+                    else:
+                        neural_prediction = prediction
+                        neural_activation = 0.5
+                    
+                    logger.info(f"   🧠 Neural Network prediction: {neural_prediction:#010x}")
+                    logger.info(f"   🧠 Neural confidence: {neural_confidence:.2%}")
+                    logger.info(f"   🧠 Neural activation: {neural_activation:.3f}")
+                except Exception as e:
+                    logger.warning(f"   ⚠️  Neural network prediction failed: {e}")
+            else:
+                logger.warning("   ⚠️  Biological network predict_optimal_nonce() not available")
             
-            # Step 5: Stimulate MEA and get neural response (SPIKES)
+            # Step 4b: Generate MEA response based on mode (for entropy generation)
+            logger.info(f"   🔬 Step 4b: MEA Response Generation (mode: {mode})")
             mea_response = None
             spikes = []
+            mea_predicted_nonce = None
+            stimulation_pattern = None
             
             if mode == 'SimulatedNetwork':
-                # Use biological network to get response pattern
-                block_data = block_header.encode('utf-8')
-                prediction = compute_engine.predict_optimal_nonce(block_data)
-                mea_response = [prediction.get('neural_activation', 0.5)] * 60
-                logger.info(f"   🧠 BiologicalNetwork prediction: activation={prediction.get('neural_activation', 0.5):.3f}")
-                logger.info(f"   🧠 Predicted nonce from network: {prediction.get('predicted_nonce', 0):#010x}")
+                # Simulated mode: Use neural activation as MEA response
+                mea_response = [neural_activation] * 60
+                logger.info(f"   📊 Simulated MEA response from neural activation: {neural_activation:.3f}")
+                logger.info(f"   📊 MEA response vector: 60 values (all {neural_activation:.3f})")
                 
             elif mode == 'RealMEA':
-                # REAL MEA: Stimulate electrodes and capture spikes
-                if hasattr(compute_engine, 'stimulate_electrodes') and stimulation_pattern is not None:
-                    logger.info("   ⚡ Stimulating MEA with pattern...")
-                    spikes = compute_engine.stimulate_electrodes(stimulation_pattern, duration=50.0)
-                    logger.info(f"   🧠 Neural response: {len(spikes)} spikes generated from {compute_engine.electrode_count} electrodes")
+                # Real MEA mode: Stimulate physical MEA
+                logger.info("   🔬 Real MEA mode: Generating stimulation pattern...")
+                
+                if hasattr(compute_engine, 'generate_stimulation_pattern'):
+                    stimulation_pattern = compute_engine.generate_stimulation_pattern(block_header)
+                    logger.info(f"   ⚡ Stimulation pattern: {len(stimulation_pattern)} voltages [{stimulation_pattern.min():.2f}V, {stimulation_pattern.max():.2f}V]")
                     
-                    # Extract nonce from spike pattern
-                    if hasattr(compute_engine, 'extract_nonce_from_spikes'):
-                        predicted_nonce = compute_engine.extract_nonce_from_spikes(spikes)
-                        logger.info(f"   🎯 Nonce extracted from spikes: {predicted_nonce:#010x}")
-                    
-                    # Get electrode voltages for entropy generation
-                    mea_response = [spike[2] for spike in spikes[:60]]  # spike amplitudes
-                    if len(mea_response) < 60:
-                        mea_response += [0.0] * (60 - len(mea_response))
-                    logger.info(f"   📊 MEA response: {len(mea_response)} values (spike amplitudes)")
+                    # Stimulate electrodes and capture spikes
+                    if hasattr(compute_engine, 'stimulate_electrodes'):
+                        logger.info("   ⚡ Stimulating MEA electrodes...")
+                        spikes = compute_engine.stimulate_electrodes(stimulation_pattern, duration=50.0)
+                        logger.info(f"   🧠 MEA neural response: {len(spikes)} spikes from {compute_engine.electrode_count} electrodes")
+                        
+                        # Extract nonce from MEA spike pattern
+                        if hasattr(compute_engine, 'extract_nonce_from_spikes') and len(spikes) > 0:
+                            mea_predicted_nonce = compute_engine.extract_nonce_from_spikes(spikes)
+                            logger.info(f"   🔬 MEA predicted nonce: {mea_predicted_nonce:#010x}")
+                        
+                        # Use spike amplitudes for entropy generation
+                        mea_response = [spike[2] for spike in spikes[:60]]  # spike amplitudes
+                        if len(mea_response) < 60:
+                            mea_response += [0.0] * (60 - len(mea_response))
+                        logger.info(f"   📊 MEA response: {len(mea_response)} values (spike amplitudes)")
+                    else:
+                        logger.warning("   ⚠️  MEA stimulate_electrodes() not available")
+                        mea_response = [0.0] * 60
                 else:
+                    logger.warning("   ⚠️  MEA generate_stimulation_pattern() not available")
                     # Fallback: get electrode data
-                    electrode_data = compute_engine.get_electrode_data()
-                    mea_response = [e.get('voltage', 0.0) for e in electrode_data[:60]]
-                    logger.info(f"   🔬 RealMEA electrode data: {len(electrode_data)} electrodes active")
+                    if hasattr(compute_engine, 'get_electrode_data'):
+                        electrode_data = compute_engine.get_electrode_data()
+                        mea_response = [e.get('voltage', 0.0) for e in electrode_data[:60]]
+                        logger.info(f"   🔬 Fallback: Using electrode data from {len(electrode_data)} electrodes")
+                    else:
+                        mea_response = [0.0] * 60
+            
+            # Ensure we have a valid MEA response
+            if mea_response is None:
+                logger.warning("   ⚠️  No MEA response generated, using defaults")
+                mea_response = [0.0] * 60
             
             # Step 6: Generate entropy seed from biological response (spikes or activations)
             entropy_seed = self.bio_entropy_generator.generate_entropy_seed(
@@ -2388,9 +2426,25 @@ class BioMiningPlatform:
                 point_count=config.get('starting_points', 1000),
                 window_size=config.get('window_size', 4194304)
             )
-            logger.info(f"   🎯 Starting points generated: {len(starting_points.get('nonce_starts', []))} points")
+            
+            base_point_count = len(starting_points.get('nonce_starts', []))
+            logger.info(f"   🎯 Entropy-based starting points: {base_point_count} points")
             logger.info(f"   📊 Coverage: {starting_points.get('expected_coverage', 0.0):.2%}")
             logger.info(f"   🧭 Strategy: {starting_points.get('strategy', 'Unknown')}")
+            
+            # Step 7b: Add Neural Network prediction as additional starting point
+            if neural_prediction is not None and 0 <= neural_prediction <= 0xFFFFFFFF:
+                starting_points['nonce_starts'].append(neural_prediction)
+                logger.info(f"   🧠 Added neural prediction to starting points: {neural_prediction:#010x}")
+                logger.info(f"   🎯 Total starting points: {len(starting_points.get('nonce_starts', []))} ({base_point_count} entropy + 1 neural)")
+            else:
+                logger.info(f"   🎯 Total starting points: {base_point_count} (entropy only)")
+            
+            # Step 7c: Add MEA prediction if available (RealMEA mode)
+            if mea_predicted_nonce is not None and 0 <= mea_predicted_nonce <= 0xFFFFFFFF:
+                starting_points['nonce_starts'].append(mea_predicted_nonce)
+                logger.info(f"   🔬 Added MEA prediction to starting points: {mea_predicted_nonce:#010x}")
+                logger.info(f"   🎯 Total starting points: {len(starting_points.get('nonce_starts', []))} (entropy + neural + MEA)")
             
             # Update Bio-Entropy statistics
             self.bio_entropy_stats.update({
@@ -2406,20 +2460,43 @@ class BioMiningPlatform:
                 'active_threads': config.get('threads', 4),
                 'bio_response_time': 0.0,
                 'signal_quality': 0.85,  # Default
-                'reinforced_patterns': 0
+                'reinforced_patterns': 0,
+                # Neural Network predictions
+                'neural_prediction': neural_prediction if neural_prediction is not None else 0,
+                'neural_confidence': neural_confidence * 100 if neural_confidence else 0.0,
+                'neural_activation': neural_activation,
+                # MEA predictions (if available)
+                'mea_prediction': mea_predicted_nonce if mea_predicted_nonce is not None else 0,
+                'mea_spike_count': len(spikes) if spikes else 0,
+                # Prediction sources
+                'prediction_sources': {
+                    'neural_network': neural_prediction is not None,
+                    'mea_interface': mea_predicted_nonce is not None,
+                    'entropy_seed': True
+                }
             })
             
             # Step 8: Store spike data for learning (if RealMEA mode)
             if mode == 'RealMEA' and len(spikes) > 0:
                 self.bio_entropy_stats['last_spike_count'] = len(spikes)
                 self.bio_entropy_stats['last_spike_times'] = [s[1] for s in spikes[:10]]  # First 10 spike times
-                logger.info(f"   📈 Stored {len(spikes)} spikes for learning")
+                logger.info(f"   📈 Stored {len(spikes)} spikes for Hebbian learning")
             
             # Step 9: Start Bio-Entropy mining monitoring loop (GPU mining would happen here)
             self.bio_entropy_mining_active = True
             asyncio.create_task(self._bio_entropy_mining_loop(starting_points, config))
             
+            # Final summary
             logger.info("✅ Bio-Entropy mining started successfully!")
+            logger.info(f"   📊 Summary:")
+            logger.info(f"      Mode: {mode}")
+            logger.info(f"      Total starting points: {len(starting_points.get('nonce_starts', []))}")
+            if neural_prediction is not None:
+                logger.info(f"      🧠 Neural Network: {neural_prediction:#010x} (confidence: {neural_confidence:.2%})")
+            if mea_predicted_nonce is not None:
+                logger.info(f"      🔬 MEA Interface: {mea_predicted_nonce:#010x} ({len(spikes)} spikes)")
+            logger.info(f"      🌱 Entropy-based: {base_point_count} points")
+            
             return True
             
         except Exception as e:
