@@ -1,14 +1,15 @@
 # ================================================================
-# HYBRID BITCOIN MINING PLATFORM - WEB INTERFACE DOCKERFILE
-# Production-ready containerization for Triple System Web Interface
+# BIOMINING PLATFORM - PURE PYTHON WEB INTERFACE DOCKERFILE
+# Production-ready containerization for Pure Python Platform
+# With Real Bitcoin Mining Support (Testnet/Mainnet)
 # ================================================================
 
 FROM python:3.11-slim
 
 # Metadata
-LABEL org.opencontainers.image.title="Hybrid Bitcoin Mining Web Interface"
-LABEL org.opencontainers.image.description="Revolutionary web interface for biological neuron Bitcoin mining"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.title="BioMining Platform - Pure Python"
+LABEL org.opencontainers.image.description="Pure Python platform with Real Bitcoin Mining, Bio-Entropy, and Historical Training"
+LABEL org.opencontainers.image.version="2.0.0"
 LABEL org.opencontainers.image.vendor="BioMining Platform"
 
 # Environment variables
@@ -34,7 +35,7 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy requirements first for better Docker layer caching
-COPY requirements-minimal.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -45,8 +46,7 @@ COPY . .
 
 # Create necessary directories and set permissions
 RUN mkdir -p uploads logs web/static && \
-    chown -R appuser:appuser /app && \
-    chmod +x web/start_web_interface.sh
+    chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
