@@ -160,7 +160,9 @@ class PurePythonBioEntropyGenerator:
             prev_hash = parts[1] if len(parts) > 1 else ""
             merkle_root = parts[2] if len(parts) > 2 else ""
             timestamp = int(parts[3]) if len(parts) > 3 else int(time.time())
-            bits = int(parts[4]) if len(parts) > 4 else 0x1d00ffff
+            # bits can be hex string, parse accordingly
+            bits_str = parts[4] if len(parts) > 4 else "1d00ffff"
+            bits = int(bits_str, 16) if isinstance(bits_str, str) and all(c in '0123456789abcdefABCDEF' for c in bits_str) else int(bits_str) if bits_str else 0x1d00ffff
             
             # 1. Timestamp normalized [0, 1]
             MIN_TIMESTAMP = 1230768000  # 2009-01-01
@@ -1337,6 +1339,40 @@ class PurePythonBiologicalNetwork:
             logger.error(f"❌ Error optimizing from feedback: {e}")
             return False
     
+    def train_on_block(self, block_header: str, actual_nonce: int, difficulty: int) -> float:
+        """Train neural network on a single block"""
+        try:
+            if not self.is_initialized:
+                logger.warning("⚠️ Network not initialized, initializing now...")
+                self.initialize()
+            
+            # Extract features from block header
+            features = self._extract_block_features(block_header)
+            input_vec = self._features_to_input(features)
+            
+            # Target: actual nonce as 32-bit binary pattern
+            target_bits = np.array([(actual_nonce >> i) & 1 for i in range(32)], dtype=np.float32).reshape(1, -1)
+            
+            # Forward pass
+            output = self.forward_propagation(input_vec)
+            
+            # Calculate loss
+            loss = np.mean((output - target_bits) ** 2)
+            
+            # Backward pass to update weights
+            self.backward_propagation(target_bits, learning_rate=self.learning_rate)
+            
+            # Store loss
+            self.training_loss.append(loss)
+            
+            return float(loss)
+            
+        except Exception as e:
+            logger.error(f"❌ Error training on block: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return 1.0  # Return high loss on error
+    
     def get_network_state(self) -> Dict[str, Any]:
         """Get REAL neural network state"""
         try:
@@ -1511,6 +1547,18 @@ class CppBiologicalNetwork:
     def isLearningComplete(self) -> bool:
         """Check if learning is complete"""
         return self.is_initialized and not self.is_learning and self.getTrainingProgress() > 0.8
+    
+    def forward_propagation(self, inputs):
+        """Forward propagation through neural network (delegate to internal network)"""
+        return self.network.forward_propagation(inputs)
+    
+    def backward_propagation(self, targets, learning_rate=None):
+        """Backward propagation to update weights (delegate to internal network)"""
+        return self.network.backward_propagation(targets, learning_rate)
+    
+    def train_on_block(self, block_header: str, actual_nonce: int, difficulty: int) -> float:
+        """Train network on a block (delegate to internal network)"""
+        return self.network.train_on_block(block_header, actual_nonce, difficulty)
 
 
 class PurePythonRealMEAInterface:
