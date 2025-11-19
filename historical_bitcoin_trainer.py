@@ -88,7 +88,7 @@ class TrainingSession:
 class HistoricalBitcoinTrainer:
     """Train Bio-Entropy Mining components on historical Bitcoin blocks"""
     
-    def __init__(self, neural_network, mea_interface, bio_entropy_generator):
+    def __init__(self, neural_network, mea_interface, bio_entropy_generator, progress_callback=None):
         """
         Initialize trainer
         
@@ -96,11 +96,13 @@ class HistoricalBitcoinTrainer:
             neural_network: Neural network instance (PurePythonBiologicalNetwork)
             mea_interface: MEA interface instance (PurePythonRealMEAInterface)
             bio_entropy_generator: Bio-entropy generator instance
+            progress_callback: Optional callback function(blocks_trained, avg_loss) for progress updates
         """
         self.neural_network = neural_network
         self.mea = mea_interface
         self.bio_entropy_generator = bio_entropy_generator
         self.blockchain_fetcher = BitcoinBlockchainFetcher()
+        self.progress_callback = progress_callback
         
         self.training_history: List[TrainingResult] = []
         self.validation_history: List[ValidationResult] = []
@@ -362,6 +364,11 @@ class HistoricalBitcoinTrainer:
             logger.info(f"   ✅ Neural loss: {neural_loss:.6f}")
             logger.info(f"   ✅ MEA training: {'success' if mea_success else 'failed'}")
             logger.info(f"   ⏱️  Training time: {training_time:.2f}s")
+            
+            # Call progress callback if provided
+            if self.progress_callback:
+                avg_loss = total_neural_loss / len(training_results)
+                self.progress_callback(len(training_results), avg_loss)
             
             # Periodic validation
             if (i + 1) % validate_every == 0:

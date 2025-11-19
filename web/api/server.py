@@ -4533,15 +4533,35 @@ _training_active = False
 _current_training_session = None
 
 
+def training_progress_callback(blocks_trained: int, avg_loss: float):
+    """Callback to update current training session progress"""
+    global _current_training_session
+    if _current_training_session and isinstance(_current_training_session, dict):
+        _current_training_session['blocks_trained'] = blocks_trained
+        _current_training_session['avg_neural_loss'] = avg_loss
+
+
 def get_trainer():
     """Get or create trainer instance"""
     global _trainer_instance
     if _trainer_instance is None and TRAINING_AVAILABLE:
         platform = get_platform()
+        
+        # CRITICAL: Ensure network is initialized before creating trainer
+        if platform.biological_network and not platform.biological_network.is_initialized:
+            logger.info("🔄 Initializing biological network for training...")
+            platform.biological_network.initialize()
+            logger.info("✅ Biological network initialized")
+        
+        if not platform.biological_network or not platform.biological_network.is_initialized:
+            logger.error("❌ Cannot create trainer: Network not initialized")
+            return None
+        
         _trainer_instance = HistoricalBitcoinTrainer(
             neural_network=platform.biological_network,
             mea_interface=platform.mea_interface,
-            bio_entropy_generator=platform.bio_entropy_generator
+            bio_entropy_generator=platform.bio_entropy_generator,
+            progress_callback=training_progress_callback
         )
     return _trainer_instance
 
@@ -4551,10 +4571,18 @@ async def get_historical_training_status():
     """Get historical training status"""
     global _training_active, _current_training_session
     
+    # Handle both dict and TrainingSession object
+    current_session_data = None
+    if _current_training_session:
+        if isinstance(_current_training_session, dict):
+            current_session_data = _current_training_session
+        elif hasattr(_current_training_session, 'to_dict'):
+            current_session_data = _current_training_session.to_dict()
+    
     return JSONResponse({
         "available": TRAINING_AVAILABLE,
         "training_active": _training_active,
-        "current_session": _current_training_session.to_dict() if _current_training_session else None,
+        "current_session": current_session_data,
         "message": "Historical training ready" if TRAINING_AVAILABLE else "Training module not available"
     })
 
@@ -4601,6 +4629,28 @@ async def start_historical_training(request: Dict[str, Any]):
             try:
                 logger.info(f"🎓 Starting historical training: {start_height} + {count} blocks")
                 
+                # Create initial session object to track progress
+                import time
+                session_id = f"training_{start_height}_{count}_{int(time.time())}"
+                from datetime import datetime
+                
+                # Initialize current session with partial data for status polling
+                _current_training_session = {
+                    'session_id': session_id,
+                    'start_time': datetime.now().isoformat(),
+                    'end_time': None,
+                    'blocks_trained': 0,
+                    'blocks_validated': 0,
+                    'avg_neural_loss': 0.0,
+                    'avg_neural_distance_before': None,
+                    'avg_neural_distance_after': None,
+                    'improvement_percent': None,
+                    'success_rate_before': None,
+                    'success_rate_after': None,
+                    'training_results': [],
+                    'validation_results': []
+                }
+                
                 # Run training (this is blocking, but in async task it won't block server)
                 import asyncio
                 loop = asyncio.get_event_loop()
@@ -4613,6 +4663,7 @@ async def start_historical_training(request: Dict[str, Any]):
                     validation_count
                 )
                 
+                # Update with complete session data
                 _current_training_session = session
                 
                 # Save session
