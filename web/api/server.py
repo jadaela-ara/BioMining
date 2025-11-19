@@ -2803,12 +2803,30 @@ def get_platform():
                     print("📦 Initializing DummyPlatform with Pure Python components...")
                     
                     try:
+                        # Create components
                         self.bio_entropy_generator = PurePythonBioEntropyGenerator()
                         self.biological_network = PurePythonBiologicalNetwork()
-                        self.mea_interface = PurePythonRealMEAInterface()
-                        print("✅ Pure Python components initialized")
+                        
+                        # MEA interface needs config
+                        mea_config = {
+                            'num_electrodes': 60,
+                            'sampling_rate': 25000.0,
+                            'gain': 1000.0,
+                            'low_cutoff': 300.0,
+                            'high_cutoff': 3000.0
+                        }
+                        self.mea_interface = PurePythonRealMEAInterface(mea_config)
+                        
+                        # IMPORTANT: Initialize the components!
+                        print("🔄 Calling initialize() on components...")
+                        self.biological_network.initialize()
+                        self.mea_interface.initialize()
+                        
+                        print("✅ Pure Python components created and initialized")
                     except Exception as init_error:
                         print(f"⚠️ Error initializing Pure Python components: {init_error}")
+                        import traceback
+                        traceback.print_exc()
                         # Provide None fallbacks
                         self.bio_entropy_generator = None
                         self.biological_network = None
