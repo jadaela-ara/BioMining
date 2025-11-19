@@ -115,8 +115,22 @@ class BioMiningApp {
 
     /**
      * Initialize WebSocket connection for real-time communication
+     * NOTE: WebSocket is optional - the app works without it using REST APIs
      */
     initializeWebSocket() {
+        // WebSocket disabled for now - not required for Pure Python platform
+        // The app uses REST API endpoints instead:
+        // - /api/bio-entropy/start
+        // - /api/bio-entropy/stop
+        // - /api/bio-entropy/status
+        // - /api/training/historical/start
+        // - /api/training/historical/status
+        
+        console.log('ℹ️ WebSocket disabled - using REST API endpoints');
+        this.updateConnectionStatus('rest-api');
+        
+        // Uncomment below to enable WebSocket when backend supports it:
+        /*
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/bio-mining`;
 
@@ -149,6 +163,7 @@ class BioMiningApp {
             console.error('❌ Failed to initialize WebSocket:', error);
             this.updateConnectionStatus('error');
         }
+        */
     }
 
     /**
@@ -709,6 +724,10 @@ class BioMiningApp {
                 case 'error':
                     statusDot.classList.add('error');
                     statusText.textContent = 'Error';
+                    break;
+                case 'rest-api':
+                    statusDot.classList.add('connected'); // Show as connected (using REST)
+                    statusText.textContent = 'REST API';
                     break;
                 default:
                     statusText.textContent = 'Unknown';
