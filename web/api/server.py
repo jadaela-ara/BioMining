@@ -26,6 +26,15 @@ import numpy as np
 # Add parent directories to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
+# Import real Bitcoin mining components
+try:
+    from real_bitcoin_miner import BitcoinMiner, MiningConfig
+    from stratum_client import StratumClient
+    REAL_MINING_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Real Bitcoin mining modules not available: {e}")
+    REAL_MINING_AVAILABLE = False
+
 # FastAPI and dependencies
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
@@ -3064,6 +3073,441 @@ async def get_bio_entropy_stats():
     """Get current Bio-Entropy mining statistics"""
     return JSONResponse(get_platform().get_bio_entropy_stats())
 
+# ================================================================
+# REAL BITCOIN MINING ENDPOINTS
+# ================================================================
+
+# Global real mining state
+_real_miner_instance: Optional[BitcoinMiner] = None
+_real_mining_active: bool = False
+_real_mining_task: Optional[asyncio.Task] = None
+_real_mining_stats: Dict[str, Any] = {
+    "hashrate": 0,
+    "pool_connected": False,
+    "pool_name": "",
+    "current_difficulty": 0,
+    "jobs_received": 0,
+    "shares_found": 0,
+    "shares_accepted": 0,
+    "shares_rejected": 0,
+    "blocks_found": 0,
+    "bio_nonces_used": 0,
+    "acceptance_rate": 0.0,
+    "session_duration": 0,
+    "network": "",
+    "worker_name": ""
+}
+
+@app.post("/api/real-mining/start")
+async def start_real_mining(request: Dict[str, Any]):
+    """
+    Start real Bitcoin mining (Testnet or Mainnet)
+    
+    Request body:
+    {
+        "network": "testnet" | "mainnet",
+        "pool": "bitcoin.com" | "solo" | "custom",
+        "custom_pool": {"host": "...", "port": 3333},
+        "worker_name": "address.worker1",
+        "scan_depth": 1000000,
+        "neural_predictions": 5,
+        "bio_weight": 0.3
+    }
+    """
+    global _real_miner_instance, _real_mining_active, _real_mining_task, _real_mining_stats
+    
+    if not REAL_MINING_AVAILABLE:
+        return JSONResponse({
+            "success": False,
+            "message": "Real Bitcoin mining modules not available"
+        }, status_code=500)
+    
+    if _real_mining_active:
+        return JSONResponse({
+            "success": False,
+            "message": "Mining is already active"
+        }, status_code=400)
+    
+    try:
+        # Parse configuration
+        network = request.get("network", "testnet")
+        pool_name = request.get("pool", "bitcoin.com")
+        worker_name = request.get("worker_name", "")
+        scan_depth = request.get("scan_depth", 1000000)
+        neural_predictions = request.get("neural_predictions", 5)
+        bio_weight = request.get("bio_weight", 0.3)
+        
+        # Load pool configuration
+        if pool_name == "custom":
+            custom_pool = request.get("custom_pool", {})
+            pool_host = custom_pool.get("host", "")
+            pool_port = custom_pool.get("port", 3333)
+            pool_display_name = f"{pool_host}:{pool_port}"
+        else:
+            # Load from predefined configs
+            config_file = f"{network}_config.json"
+            config_path = Path(__file__).parent.parent.parent / config_file
+            
+            if not config_path.exists():
+                return JSONResponse({
+                    "success": False,
+                    "message": f"Configuration file {config_file} not found"
+                }, status_code=500)
+            
+            with open(config_path, 'r') as f:
+                pool_config = json.load(f)
+            
+            # Find the pool
+            pool_info = None
+            for pool in pool_config.get("pools", []):
+                if pool_name in pool.get("name", "").lower():
+                    pool_info = pool
+                    break
+            
+            if not pool_info:
+                return JSONResponse({
+                    "success": False,
+                    "message": f"Pool {pool_name} not found in {network} configuration"
+                }, status_code=400)
+            
+            pool_host = pool_info["host"]
+            pool_port = pool_info["port"]
+            pool_display_name = pool_info["name"]
+            
+            # Use worker name if provided, otherwise use from config
+            if not worker_name:
+                worker_name = pool_info.get("worker_name", "")
+        
+        if not worker_name:
+            return JSONResponse({
+                "success": False,
+                "message": "Worker name (wallet address) is required"
+            }, status_code=400)
+        
+        logger.info(f"🚀 Starting real Bitcoin mining...")
+        logger.info(f"   Network: {network}")
+        logger.info(f"   Pool: {pool_display_name}")
+        logger.info(f"   Worker: {worker_name}")
+        logger.info(f"   Scan depth: {scan_depth:,}")
+        logger.info(f"   Bio-entropy weight: {bio_weight}")
+        
+        # Create mining configuration
+        mining_config = MiningConfig(
+            network=network,
+            pool_host=pool_host,
+            pool_port=pool_port,
+            worker_name=worker_name,
+            password="x",
+            threads=1,
+            scan_depth=scan_depth,
+            use_bio_entropy=True,
+            bio_entropy_weight=bio_weight,
+            neural_predictions=neural_predictions
+        )
+        
+        # Create miner instance
+        _real_miner_instance = BitcoinMiner(mining_config)
+        
+        # Update stats
+        _real_mining_stats.update({
+            "network": network,
+            "pool_name": pool_display_name,
+            "worker_name": worker_name,
+            "pool_connected": False,
+            "jobs_received": 0,
+            "shares_found": 0,
+            "shares_accepted": 0,
+            "shares_rejected": 0,
+            "blocks_found": 0,
+            "bio_nonces_used": 0,
+            "session_duration": 0
+        })
+        
+        # Start mining in background task
+        _real_mining_active = True
+        _real_mining_task = asyncio.create_task(_run_real_mining())
+        
+        # Broadcast to WebSocket clients
+        await websocket_manager.broadcast({
+            'type': 'real_mining_started',
+            'data': {
+                'network': network,
+                'pool': pool_display_name,
+                'worker': worker_name
+            }
+        })
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"Real Bitcoin mining started on {network}",
+            "stats": _real_mining_stats
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to start real mining: {e}", exc_info=True)
+        _real_mining_active = False
+        return JSONResponse({
+            "success": False,
+            "message": f"Failed to start mining: {str(e)}"
+        }, status_code=500)
+
+async def _run_real_mining():
+    """Background task to run real mining"""
+    global _real_miner_instance, _real_mining_active, _real_mining_stats
+    
+    try:
+        # Set up callbacks for mining events
+        def on_job_received(job):
+            _real_mining_stats["jobs_received"] += 1
+            asyncio.create_task(websocket_manager.broadcast({
+                'type': 'real_mining_job',
+                'data': {
+                    'job_id': job.job_id[:8],
+                    'difficulty': job.difficulty
+                }
+            }))
+        
+        def on_share_found(accepted: bool):
+            _real_mining_stats["shares_found"] += 1
+            if accepted:
+                _real_mining_stats["shares_accepted"] += 1
+            else:
+                _real_mining_stats["shares_rejected"] += 1
+            
+            # Calculate acceptance rate
+            total = _real_mining_stats["shares_found"]
+            if total > 0:
+                _real_mining_stats["acceptance_rate"] = (
+                    _real_mining_stats["shares_accepted"] / total * 100
+                )
+            
+            asyncio.create_task(websocket_manager.broadcast({
+                'type': 'real_mining_share',
+                'data': {
+                    'accepted': accepted,
+                    'total': _real_mining_stats["shares_found"],
+                    'accepted_count': _real_mining_stats["shares_accepted"],
+                    'rejected_count': _real_mining_stats["shares_rejected"]
+                }
+            }))
+        
+        def on_block_found():
+            _real_mining_stats["blocks_found"] += 1
+            asyncio.create_task(websocket_manager.broadcast({
+                'type': 'real_mining_block',
+                'data': {
+                    'blocks_found': _real_mining_stats["blocks_found"]
+                }
+            }))
+        
+        # Attach callbacks
+        if _real_miner_instance:
+            _real_miner_instance.stratum.on_job = on_job_received
+        
+        # Mark pool as connected once we start
+        _real_mining_stats["pool_connected"] = True
+        
+        # Start mining (this will block until stopped)
+        await _real_miner_instance.start()
+        
+    except Exception as e:
+        logger.error(f"❌ Real mining error: {e}", exc_info=True)
+        _real_mining_stats["pool_connected"] = False
+    finally:
+        _real_mining_active = False
+        _real_mining_stats["pool_connected"] = False
+
+@app.post("/api/real-mining/stop")
+async def stop_real_mining():
+    """Stop real Bitcoin mining"""
+    global _real_miner_instance, _real_mining_active, _real_mining_task, _real_mining_stats
+    
+    if not _real_mining_active:
+        return JSONResponse({
+            "success": False,
+            "message": "Mining is not active"
+        }, status_code=400)
+    
+    try:
+        logger.info("🛑 Stopping real Bitcoin mining...")
+        
+        # Stop the miner
+        if _real_miner_instance:
+            await _real_miner_instance.stop()
+        
+        # Cancel background task
+        if _real_mining_task and not _real_mining_task.done():
+            _real_mining_task.cancel()
+            try:
+                await _real_mining_task
+            except asyncio.CancelledError:
+                pass
+        
+        _real_mining_active = False
+        _real_mining_stats["pool_connected"] = False
+        
+        # Get final stats
+        final_stats = _real_mining_stats.copy()
+        
+        # Broadcast to WebSocket clients
+        await websocket_manager.broadcast({
+            'type': 'real_mining_stopped',
+            'data': final_stats
+        })
+        
+        logger.info("✅ Real Bitcoin mining stopped")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Real Bitcoin mining stopped",
+            "final_stats": final_stats
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to stop real mining: {e}", exc_info=True)
+        return JSONResponse({
+            "success": False,
+            "message": f"Failed to stop mining: {str(e)}"
+        }, status_code=500)
+
+@app.get("/api/real-mining/stats")
+async def get_real_mining_stats():
+    """Get current real Bitcoin mining statistics"""
+    global _real_miner_instance, _real_mining_stats
+    
+    # Update stats from miner if available
+    if _real_miner_instance and _real_mining_active:
+        try:
+            miner_stats = _real_miner_instance.stats
+            _real_mining_stats.update({
+                "hashrate": miner_stats.get("current_hashrate", 0),
+                "bio_nonces_used": miner_stats.get("bio_entropy_used", 0),
+                "session_duration": int(time.time() - miner_stats.get("start_time", time.time()))
+            })
+            
+            # Get Stratum statistics if available
+            if _real_miner_instance.stratum:
+                stratum_stats = _real_miner_instance.stratum.get_statistics()
+                _real_mining_stats.update({
+                    "shares_accepted": stratum_stats.get("shares_accepted", 0),
+                    "shares_rejected": stratum_stats.get("shares_rejected", 0),
+                    "current_difficulty": stratum_stats.get("current_difficulty", 0)
+                })
+                
+                # Update acceptance rate
+                total = _real_mining_stats["shares_found"]
+                if total > 0:
+                    _real_mining_stats["acceptance_rate"] = stratum_stats.get("acceptance_rate", 0)
+        except Exception as e:
+            logger.error(f"Error updating mining stats: {e}")
+    
+    return JSONResponse({
+        "success": True,
+        "active": _real_mining_active,
+        "stats": _real_mining_stats
+    })
+
+@app.post("/api/real-mining/test-connection")
+async def test_pool_connection(request: Dict[str, Any]):
+    """Test connection to a mining pool"""
+    
+    if not REAL_MINING_AVAILABLE:
+        return JSONResponse({
+            "success": False,
+            "message": "Real Bitcoin mining modules not available"
+        }, status_code=500)
+    
+    try:
+        network = request.get("network", "testnet")
+        pool_name = request.get("pool", "bitcoin.com")
+        worker_name = request.get("worker_name", "test.worker")
+        
+        # Load pool configuration
+        if pool_name == "custom":
+            custom_pool = request.get("custom_pool", {})
+            pool_host = custom_pool.get("host", "")
+            pool_port = custom_pool.get("port", 3333)
+        else:
+            config_file = f"{network}_config.json"
+            config_path = Path(__file__).parent.parent.parent / config_file
+            
+            if not config_path.exists():
+                return JSONResponse({
+                    "success": False,
+                    "message": f"Configuration file {config_file} not found"
+                }, status_code=500)
+            
+            with open(config_path, 'r') as f:
+                pool_config = json.load(f)
+            
+            pool_info = None
+            for pool in pool_config.get("pools", []):
+                if pool_name in pool.get("name", "").lower():
+                    pool_info = pool
+                    break
+            
+            if not pool_info:
+                return JSONResponse({
+                    "success": False,
+                    "message": f"Pool {pool_name} not found"
+                }, status_code=400)
+            
+            pool_host = pool_info["host"]
+            pool_port = pool_info["port"]
+        
+        logger.info(f"🔌 Testing connection to {pool_host}:{pool_port}...")
+        
+        # Create test Stratum client
+        test_client = StratumClient(
+            host=pool_host,
+            port=pool_port,
+            worker_name=worker_name,
+            password="x"
+        )
+        
+        # Measure connection time
+        start_time = time.time()
+        connected = await asyncio.wait_for(
+            test_client.connect(),
+            timeout=10.0
+        )
+        latency_ms = (time.time() - start_time) * 1000
+        
+        # Disconnect
+        await test_client.disconnect()
+        
+        if connected:
+            logger.info(f"✅ Connection successful! Latency: {latency_ms:.0f}ms")
+            return JSONResponse({
+                "success": True,
+                "message": "Connection successful",
+                "latency_ms": round(latency_ms, 2),
+                "pool": f"{pool_host}:{pool_port}"
+            })
+        else:
+            logger.error(f"❌ Connection failed to {pool_host}:{pool_port}")
+            return JSONResponse({
+                "success": False,
+                "message": "Failed to connect to pool",
+                "pool": f"{pool_host}:{pool_port}"
+            }, status_code=500)
+            
+    except asyncio.TimeoutError:
+        return JSONResponse({
+            "success": False,
+            "message": "Connection timeout (10s)"
+        }, status_code=500)
+    except Exception as e:
+        logger.error(f"❌ Connection test error: {e}", exc_info=True)
+        return JSONResponse({
+            "success": False,
+            "message": f"Connection test failed: {str(e)}"
+        }, status_code=500)
+
+# ================================================================
+# END REAL BITCOIN MINING ENDPOINTS
+# ================================================================
+
 @app.post("/api/training/start")
 async def start_biological_training(config: BiologicalTrainingConfig):
     """Start biological network training"""
@@ -4008,8 +4452,8 @@ def get_trainer():
     return _trainer_instance
 
 
-@app.get("/api/training/status")
-async def get_training_status():
+@app.get("/api/training/historical/status")
+async def get_historical_training_status():
     """Get historical training status"""
     global _training_active, _current_training_session
     
@@ -4021,8 +4465,8 @@ async def get_training_status():
     })
 
 
-@app.post("/api/training/start")
-async def start_training(request: Dict[str, Any]):
+@app.post("/api/training/historical/start")
+async def start_historical_training(request: Dict[str, Any]):
     """
     Start historical Bitcoin training
     
@@ -4125,9 +4569,9 @@ async def start_training(request: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/training/stop")
-async def stop_training():
-    """Stop ongoing training"""
+@app.post("/api/training/historical/stop")
+async def stop_historical_training():
+    """Stop ongoing historical training"""
     global _training_active
     
     if not _training_active:
@@ -4143,9 +4587,9 @@ async def stop_training():
     })
 
 
-@app.get("/api/training/history")
-async def get_training_history():
-    """Get training history"""
+@app.get("/api/training/historical/history")
+async def get_historical_training_history():
+    """Get historical training history"""
     if not TRAINING_AVAILABLE:
         raise HTTPException(status_code=503, detail="Training module not available")
     
@@ -4159,9 +4603,9 @@ async def get_training_history():
     })
 
 
-@app.get("/api/training/sessions")
-async def list_training_sessions():
-    """List available training session files"""
+@app.get("/api/training/historical/sessions")
+async def list_historical_training_sessions():
+    """List available historical training session files"""
     import glob
     import os
     
@@ -4182,9 +4626,9 @@ async def list_training_sessions():
     return JSONResponse({"sessions": sessions})
 
 
-@app.get("/api/training/session/{filename}")
-async def get_training_session(filename: str):
-    """Get specific training session data"""
+@app.get("/api/training/historical/session/{filename}")
+async def get_historical_training_session(filename: str):
+    """Get specific historical training session data"""
     import os
     
     if not filename.startswith("training_session_") or not filename.endswith(".json"):

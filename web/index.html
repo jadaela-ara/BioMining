@@ -584,6 +584,241 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- ========================================
+                     REAL BITCOIN MINING SECTION
+                     ======================================== -->
+                <div class="panel real-mining-panel">
+                    <div class="panel-header">
+                        <h2>⛏️ Real Bitcoin Mining (Testnet/Pools)</h2>
+                        <div class="header-badge" id="realMiningBadge">
+                            <span class="badge-dot inactive"></span>
+                            <span class="badge-text">Inactif</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Mining Configuration -->
+                    <div class="real-mining-config">
+                        <div class="config-section">
+                            <h3><i class="fas fa-network-wired"></i> Configuration Réseau</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="miningNetwork">
+                                        <i class="fas fa-globe"></i> Réseau
+                                    </label>
+                                    <select id="miningNetwork" class="form-control">
+                                        <option value="testnet" selected>Bitcoin Testnet (Recommandé)</option>
+                                        <option value="mainnet">Bitcoin Mainnet (Non Rentable)</option>
+                                    </select>
+                                    <small class="form-hint">
+                                        Testnet: Difficulté faible, trouvez des blocs!<br>
+                                        Mainnet: ⚠️ CPU mining pas rentable (~€0.0004/jour)
+                                    </small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="miningPool">
+                                        <i class="fas fa-swimming-pool"></i> Pool
+                                    </label>
+                                    <select id="miningPool" class="form-control">
+                                        <option value="bitcoin.com">Bitcoin.com Testnet</option>
+                                        <option value="solo">CKPool Solo Testnet</option>
+                                        <option value="custom">Pool Personnalisé</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom Pool Config (hidden by default) -->
+                            <div id="customPoolConfig" class="custom-pool-config" style="display: none;">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="poolHost">Host</label>
+                                        <input type="text" id="poolHost" class="form-control" 
+                                               placeholder="pool.example.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="poolPort">Port</label>
+                                        <input type="number" id="poolPort" class="form-control" 
+                                               value="3333" placeholder="3333">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="workerName">
+                                    <i class="fas fa-user-hard-hat"></i> Worker Name
+                                </label>
+                                <input type="text" id="workerName" class="form-control" 
+                                       placeholder="your_address.worker1">
+                                <small class="form-hint">
+                                    Format: <code>wallet_address.worker_name</code><br>
+                                    Testnet: Obtenez une adresse sur 
+                                    <a href="https://testnet-faucet.mempool.co/" target="_blank">testnet-faucet.mempool.co</a>
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="config-section">
+                            <h3><i class="fas fa-sliders-h"></i> Paramètres de Mining</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="scanDepth">
+                                        <i class="fas fa-search"></i> Scan Depth
+                                    </label>
+                                    <input type="number" id="scanDepth" class="form-control" 
+                                           value="1000000" min="10000" max="100000000">
+                                    <small class="form-hint">Nonces à essayer par job</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="neuralPredictions">
+                                        <i class="fas fa-brain"></i> Neural Predictions
+                                    </label>
+                                    <input type="number" id="neuralPredictions" class="form-control" 
+                                           value="5" min="1" max="20">
+                                    <small class="form-hint">Prédictions bio-entropy par job</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="bioWeight">
+                                        <i class="fas fa-dna"></i> Bio-Entropy Weight
+                                    </label>
+                                    <input type="range" id="bioWeight" min="0" max="1" step="0.1" value="0.3">
+                                    <span class="range-value" id="bioWeightValue">0.3</span>
+                                    <small class="form-hint">Influence de l'entropie biologique (0-1)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="useBioEntropy" checked>
+                                        Activer Bio-Entropy Enhancement
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="real-mining-actions">
+                            <button class="btn-primary" id="startRealMining">
+                                <i class="fas fa-play-circle"></i> Démarrer Mining Réel
+                            </button>
+                            <button class="btn-danger" id="stopRealMining" disabled>
+                                <i class="fas fa-stop-circle"></i> Arrêter Mining
+                            </button>
+                            <button class="btn-secondary" id="testConnection">
+                                <i class="fas fa-plug"></i> Tester Connexion
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mining Statistics -->
+                    <div class="real-mining-stats">
+                        <h3><i class="fas fa-chart-line"></i> Statistiques en Temps Réel</h3>
+                        <div class="stats-grid-real">
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-tachometer-alt"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Hashrate</span>
+                                    <span class="stat-value-real" id="realHashrate">0 H/s</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-server"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Pool Status</span>
+                                    <span class="stat-value-real" id="poolStatus">Déconnecté</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-mountain"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Difficulté</span>
+                                    <span class="stat-value-real" id="poolDifficulty">0.00</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-briefcase"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Jobs Reçus</span>
+                                    <span class="stat-value-real" id="jobsReceived">0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-gem"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Shares Trouvés</span>
+                                    <span class="stat-value-real highlight" id="sharesFound">0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-check-circle"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Shares Acceptés</span>
+                                    <span class="stat-value-real success" id="sharesAccepted">0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-times-circle"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Shares Rejetés</span>
+                                    <span class="stat-value-real error" id="sharesRejected">0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-percentage"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Taux Acceptation</span>
+                                    <span class="stat-value-real" id="acceptanceRate">0%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-cube"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Blocs Trouvés</span>
+                                    <span class="stat-value-real gold" id="realBlocksFound">0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card-real">
+                                <div class="stat-icon-real"><i class="fas fa-dna"></i></div>
+                                <div class="stat-content-real">
+                                    <span class="stat-label-real">Bio-Entropy Nonces</span>
+                                    <span class="stat-value-real" id="bioNoncesUsed">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mining Log -->
+                    <div class="real-mining-log">
+                        <h3><i class="fas fa-terminal"></i> Journal de Mining</h3>
+                        <div class="log-container" id="realMiningLog">
+                            <p class="log-entry log-info">📋 En attente de démarrage du mining...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Info Panel -->
+                    <div class="real-mining-info">
+                        <div class="info-box info-warning">
+                            <h4><i class="fas fa-info-circle"></i> Information Importante</h4>
+                            <ul>
+                                <li><strong>Testnet</strong>: Difficulté ~1M fois plus basse que mainnet. Vous trouverez des shares et potentiellement des blocs!</li>
+                                <li><strong>Mainnet</strong>: ⚠️ Mining CPU n'est PAS rentable (€0.0004/jour). Utilisez uniquement pour tests.</li>
+                                <li><strong>Bio-Entropy</strong>: Améliore les prédictions de nonce grâce au réseau neuronal biologique.</li>
+                                <li><strong>First Share</strong>: Attendez 15-30 minutes sur testnet pour votre premier share.</li>
+                                <li><strong>Vérification</strong>: Vérifiez vos blocs sur <a href="https://mempool.space/testnet" target="_blank">mempool.space/testnet</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -792,6 +1027,7 @@
     <!-- JavaScript Files -->
     <script src="js/charts.js"></script>
     <script src="js/training.js"></script>
+    <script src="js/real-mining.js"></script>
     <script src="js/app.js"></script>
     <script src="js/websocket-handler.js"></script>
 </body>

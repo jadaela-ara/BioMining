@@ -72,7 +72,7 @@ class TrainingManager {
         try {
             this.addLog(`🎓 Starting training on ${config.count} blocks from height ${config.start_height}...`);
             
-            const response = await fetch('/api/training/start', {
+            const response = await fetch('/api/training/historical/start', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(config)
@@ -101,7 +101,7 @@ class TrainingManager {
     
     async stopTraining() {
         try {
-            const response = await fetch('/api/training/stop', {method: 'POST'});
+            const response = await fetch('/api/training/historical/stop', {method: 'POST'});
             const data = await response.json();
             
             if (data.success) {
@@ -189,7 +189,7 @@ class TrainingManager {
     
     async loadTrainingSessions() {
         try {
-            const response = await fetch('/api/training/sessions');
+            const response = await fetch('/api/training/historical/sessions');
             const data = await response.json();
             
             if (data.sessions && data.sessions.length > 0) {
