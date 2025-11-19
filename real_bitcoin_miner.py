@@ -24,13 +24,9 @@ sys.path.append(str(Path(__file__).parent))
 
 from stratum_client import StratumClient, StratumJob
 
-# Import bio-entropy components if available
-try:
-    from web.api.server import PurePythonBioEntropyGenerator
-    BIO_ENTROPY_AVAILABLE = True
-except ImportError:
-    BIO_ENTROPY_AVAILABLE = False
-    print("⚠️ Bio-entropy module not available, using standard mining")
+# Bio-entropy will be imported lazily to avoid circular imports
+BIO_ENTROPY_AVAILABLE = False
+PurePythonBioEntropyGenerator = None
 
 # Configure logging
 logging.basicConfig(
@@ -80,12 +76,16 @@ class BitcoinMiner:
         # Stratum client
         self.stratum: Optional[StratumClient] = None
         
-        # Bio-entropy generator
+        # Bio-entropy generator (lazy import to avoid circular dependency)
         self.bio_entropy = None
-        if config.use_bio_entropy and BIO_ENTROPY_AVAILABLE:
+        if config.use_bio_entropy:
             try:
+                # Lazy import to avoid circular dependency with server.py
+                from web.api.server import PurePythonBioEntropyGenerator
                 self.bio_entropy = PurePythonBioEntropyGenerator()
                 logger.info("✅ Bio-entropy generator initialized")
+            except ImportError as e:
+                logger.warning(f"⚠️ Bio-entropy module not available: {e}")
             except Exception as e:
                 logger.warning(f"⚠️ Bio-entropy init failed: {e}")
         
