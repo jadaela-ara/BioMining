@@ -90,12 +90,58 @@ class TrainingManager {
                 
                 // Reset progress
                 this.updateProgress(0, config.count);
+                
+                // Start polling for status updates
+                this.startStatusPolling();
             } else {
                 this.addLog('❌ Failed to start training: ' + (data.error || 'Unknown error'), 'error');
             }
         } catch (error) {
             this.addLog('❌ Error starting training: ' + error.message, 'error');
             console.error('Training start error:', error);
+        }
+    }
+    
+    startStatusPolling() {
+        // Poll status every 2 seconds during training
+        if (this.statusPollInterval) {
+            clearInterval(this.statusPollInterval);
+        }
+        
+        this.statusPollInterval = setInterval(async () => {
+            try {
+                const response = await fetch('/api/training/historical/status');
+                const data = await response.json();
+                
+                if (data.training_active && data.current_session) {
+                    // Update display with current session data
+                    const session = data.current_session;
+                    
+                    if (session.blocks_trained !== undefined) {
+                        this.blocksTrainedText.textContent = session.blocks_trained;
+                    }
+                    
+                    if (session.avg_neural_loss !== undefined) {
+                        this.currentLossText.textContent = session.avg_neural_loss.toFixed(6);
+                    }
+                } else if (!data.training_active && this.trainingActive) {
+                    // Training completed
+                    this.stopStatusPolling();
+                    
+                    if (data.current_session) {
+                        this.handleTrainingComplete(data.current_session);
+                    }
+                }
+            } catch (error) {
+                console.error('Status polling error:', error);
+            }
+        }, 2000);
+    }
+    
+    stopStatusPolling() {
+        if (this.statusPollInterval) {
+            clearInterval(this.statusPollInterval);
+            this.statusPollInterval = null;
         }
     }
     
@@ -111,6 +157,9 @@ class TrainingManager {
                 this.statusText.textContent = 'Stopped';
                 this.statusText.className = 'status-value stopped';
                 this.addLog('🛑 Training stopped');
+                
+                // Stop polling
+                this.stopStatusPolling();
             }
         } catch (error) {
             this.addLog('❌ Error stopping training: ' + error.message, 'error');
@@ -140,12 +189,14 @@ class TrainingManager {
     handleTrainingUpdate(data) {
         // Update from WebSocket
         if (data.block_height) {
-            this.addLog(`📦 Block ${data.block_height}: loss=${data.neural_loss?.toFixed(6) || 'N/A'}`);
+            const loss = data.neural_loss !== undefined ? data.neural_loss.toFixed(6) : 'N/A';
+            this.addLog(`📦 Block ${data.block_height}: loss=${loss}`);
         }
         
         if (data.validation_result) {
             const result = data.validation_result;
-            this.addLog(`📊 Validation: distance=${result.neural_distance_percent?.toFixed(2)}% ${result.success ? '✅' : '❌'}`);
+            const distance = result.neural_distance_percent !== undefined ? result.neural_distance_percent.toFixed(2) : 'N/A';
+            this.addLog(`📊 Validation: distance=${distance}% ${result.success ? '✅' : '❌'}`);
         }
         
         if (data.progress) {
@@ -165,8 +216,13 @@ class TrainingManager {
         this.statusText.className = 'status-value complete';
         
         this.addLog('🎉 Training complete!', 'success');
-        this.addLog(`   Improvement: ${data.improvement_percent?.toFixed(1)}%`);
-        this.addLog(`   Success rate: ${(data.success_rate_after * 100).toFixed(1)}%`);
+        
+        // Safe display with default values
+        const improvement = data.improvement_percent !== undefined ? data.improvement_percent.toFixed(1) : 'N/A';
+        const successRate = data.success_rate_after !== undefined ? (data.success_rate_after * 100).toFixed(1) : 'N/A';
+        
+        this.addLog(`   Improvement: ${improvement}%`);
+        this.addLog(`   Success rate: ${successRate}%`);
         
         // Update results display
         if (data.session_id) {
@@ -245,22 +301,30 @@ class TrainingManager {
     }
     
     displaySessionResults(session) {
-        // Update before/after display
-        this.beforeDistanceText.textContent = session.avg_neural_distance_before?.toFixed(2) + '%';
-        this.beforeSuccessRateText.textContent = (session.success_rate_before * 100).toFixed(1) + '%';
+        // Helper function to safely format numbers
+        const safeFixed = (value, decimals, suffix = '') => {
+            if (value === undefined || value === null || isNaN(value)) {
+                return 'N/A';
+            }
+            return value.toFixed(decimals) + suffix;
+        };
         
-        this.afterDistanceText.textContent = session.avg_neural_distance_after?.toFixed(2) + '%';
-        this.afterSuccessRateText.textContent = (session.success_rate_after * 100).toFixed(1) + '%';
+        // Update before/after display with safe defaults
+        this.beforeDistanceText.textContent = safeFixed(session.avg_neural_distance_before, 2, '%');
+        this.beforeSuccessRateText.textContent = safeFixed(session.success_rate_before * 100, 1, '%');
         
-        const improvement = session.improvement_percent;
-        this.overallImprovementText.textContent = (improvement >= 0 ? '+' : '') + improvement.toFixed(1) + '%';
+        this.afterDistanceText.textContent = safeFixed(session.avg_neural_distance_after, 2, '%');
+        this.afterSuccessRateText.textContent = safeFixed(session.success_rate_after * 100, 1, '%');
+        
+        const improvement = session.improvement_percent || 0;
+        this.overallImprovementText.textContent = (improvement >= 0 ? '+' : '') + safeFixed(improvement, 1, '%');
         this.overallImprovementText.className = 'improvement-value highlight ' + (improvement >= 0 ? 'positive' : 'negative');
         
-        this.improvementText.textContent = (improvement >= 0 ? '+' : '') + improvement.toFixed(1) + '%';
+        this.improvementText.textContent = (improvement >= 0 ? '+' : '') + safeFixed(improvement, 1, '%');
         
-        this.addLog(`📊 Loaded session: ${session.session_id}`, 'success');
-        this.addLog(`   Blocks trained: ${session.blocks_trained}`);
-        this.addLog(`   Improvement: ${improvement.toFixed(1)}%`);
+        this.addLog(`📊 Loaded session: ${session.session_id || 'Unknown'}`, 'success');
+        this.addLog(`   Blocks trained: ${session.blocks_trained || 0}`);
+        this.addLog(`   Improvement: ${safeFixed(improvement, 1, '%')}`);
     }
     
     async loadSessionResults(sessionId) {
