@@ -2799,15 +2799,31 @@ def get_platform():
             if 'pybind11' in str(e):
                 print("   → Detected pybind11 error, using fallback")
             
-            # Create fallback dummy platform
+            # Create fallback platform with Pure Python implementations
             class DummyPlatform:
-                is_mining = False
-                is_training = False
-                systems_status = {
-                    'mea_interface': {'status': 'fallback'},
-                    'biological_network': {'status': 'fallback'},
-                    'hybrid_miner': {'status': 'fallback'}
-                }
+                def __init__(self):
+                    # Initialize Pure Python components for historical training
+                    print("📦 Initializing DummyPlatform with Pure Python components...")
+                    
+                    try:
+                        self.bio_entropy_generator = PurePythonBioEntropyGenerator()
+                        self.biological_network = PurePythonBiologicalNetwork()
+                        self.mea_interface = PurePythonRealMEAInterface()
+                        print("✅ Pure Python components initialized")
+                    except Exception as init_error:
+                        print(f"⚠️ Error initializing Pure Python components: {init_error}")
+                        # Provide None fallbacks
+                        self.bio_entropy_generator = None
+                        self.biological_network = None
+                        self.mea_interface = None
+                    
+                    self.is_mining = False
+                    self.is_training = False
+                    self.systems_status = {
+                        'mea_interface': {'status': 'fallback'},
+                        'biological_network': {'status': 'fallback'},
+                        'hybrid_miner': {'status': 'fallback'}
+                    }
                 
                 def get_platform_status(self):
                     return {
@@ -2827,7 +2843,7 @@ def get_platform():
                     return {"status": "error", "message": "C++ bindings unavailable"}
             
             platform = DummyPlatform()
-            print("📦 Using DummyPlatform fallback")
+            print("📦 Using DummyPlatform fallback with Pure Python components")
     
     return platform
 
