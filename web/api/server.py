@@ -929,6 +929,12 @@ class PurePythonBiologicalNetwork:
         
         batch_size = targets.shape[0]
         
+        # Ensure all activations are 2D with correct batch dimension
+        # This is crucial for correct gradient computation
+        for key in ['a0', 'a1', 'a2', 'a3']:
+            if key in self.activations and self.activations[key].ndim == 1:
+                self.activations[key] = self.activations[key].reshape(1, -1)
+        
         # Output layer error (using sigmoid)
         delta3 = (self.activations['a3'] - targets) * self.sigmoid_derivative(self.z_values['z3'])
         
