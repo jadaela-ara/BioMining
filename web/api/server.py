@@ -26,14 +26,11 @@ import numpy as np
 # Add parent directories to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-# Import real Bitcoin mining components
-try:
-    from real_bitcoin_miner import BitcoinMiner, MiningConfig
-    from stratum_client import StratumClient
-    REAL_MINING_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ Real Bitcoin mining modules not available: {e}")
-    REAL_MINING_AVAILABLE = False
+# Real Bitcoin mining components will be imported lazily to avoid circular imports
+REAL_MINING_AVAILABLE = False
+BitcoinMiner = None
+MiningConfig = None
+StratumClient = None
 
 # FastAPI and dependencies
 try:
@@ -3078,7 +3075,7 @@ async def get_bio_entropy_stats():
 # ================================================================
 
 # Global real mining state
-_real_miner_instance: Optional[BitcoinMiner] = None
+_real_miner_instance: Optional[Any] = None  # BitcoinMiner instance (lazy loaded)
 _real_mining_active: bool = False
 _real_mining_task: Optional[asyncio.Task] = None
 _real_mining_stats: Dict[str, Any] = {
@@ -3114,13 +3111,22 @@ async def start_real_mining(request: Dict[str, Any]):
         "bio_weight": 0.3
     }
     """
-    global _real_miner_instance, _real_mining_active, _real_mining_task, _real_mining_stats
+    global _real_miner_instance, _real_mining_active, _real_mining_task, _real_mining_stats, REAL_MINING_AVAILABLE, BitcoinMiner, MiningConfig, StratumClient
     
+    # Lazy import to avoid circular dependency
     if not REAL_MINING_AVAILABLE:
-        return JSONResponse({
-            "success": False,
-            "message": "Real Bitcoin mining modules not available"
-        }, status_code=500)
+        try:
+            from real_bitcoin_miner import BitcoinMiner as BM, MiningConfig as MC
+            from stratum_client import StratumClient as SC
+            BitcoinMiner = BM
+            MiningConfig = MC
+            StratumClient = SC
+            REAL_MINING_AVAILABLE = True
+        except ImportError as e:
+            return JSONResponse({
+                "success": False,
+                "message": f"Real Bitcoin mining modules not available: {e}"
+            }, status_code=500)
     
     if _real_mining_active:
         return JSONResponse({
