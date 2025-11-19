@@ -1,21 +1,35 @@
 # 🔥 URGENT: Redéploiement Nécessaire
 
-## ⚠️ Situation Actuelle
+## ⚠️ Situation Actuelle (MISE À JOUR)
 
-**L'endpoint de training retourne 503 en production**
+**L'endpoint de training retourne maintenant une erreur différente en production:**
 
 ```bash
 POST https://biomining-platform-431163988487.us-central1.run.app/api/training/historical/start
-→ 503 Service Unavailable
-→ {"detail":"Training module not available"}
+→ Error: "Network not initialized"
 ```
 
-## ✅ Fix Déjà Appliqué
+**Progrès**: 503 → Network error = Fix partiel appliqué! Mais composants pas initialisés.
 
-Le fix est **DÉJÀ DANS MAIN** (PR #179, commit 73ecf72):
-- DummyPlatform initialise maintenant les composants Pure Python
-- `TRAINING_AVAILABLE` sera `True` au lieu de `False`
-- Les endpoints de training fonctionneront
+**Ancien problème (RÉSOLU)**:
+~~503 Service Unavailable / "Training module not available"~~
+
+## ✅ Fixes Déjà Appliqués
+
+**Deux fixes sont DÉJÀ DANS MAIN**:
+
+### Fix #1 (PR #179, commit 73ecf72) ✅
+- DummyPlatform crée les composants Pure Python
+- `TRAINING_AVAILABLE = True` au lieu de `False`
+- **Résultat**: 503 → Network error (progrès!)
+
+### Fix #2 (commit da8b943) ✅ NOUVEAU!
+- **Appelle `.initialize()` sur les composants**
+- biological_network.initialize() → is_initialized = True
+- mea_interface.initialize() → is_initialized = True
+- Neural network: 18,144 paramètres initialisés
+- Architecture: 60 → 128 → 64 → 32
+- **Résultat attendu**: Network error → 200 OK
 
 **MAIS** le service en production tourne encore sur l'ancienne version!
 
@@ -192,9 +206,10 @@ gcloud run logs tail biomining-platform --region=us-central1
 
 ### Commits Importants
 
-- **73ecf72**: Fix initial (DummyPlatform avec composants Pure Python)
+- **73ecf72**: Fix initial (DummyPlatform crée composants Pure Python)
 - **e8b7d29**: Merge PR #179 (fix entre dans main)
 - **39695cc**: Merge PR #180 (trigger redéploiement)
+- **da8b943**: **Fix #2 (DummyPlatform appelle .initialize() sur composants)** ← NOUVEAU!
 
 ### Fichier Modifié
 
