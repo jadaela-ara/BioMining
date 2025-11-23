@@ -327,6 +327,9 @@ class HistoricalBitcoinTrainer:
         training_results = []
         total_neural_loss = 0.0
         
+        # Track blocks to detect duplicates
+        seen_blocks = {}
+        
         for i in range(count):
             block_height = start_height + i
             
@@ -337,6 +340,17 @@ class HistoricalBitcoinTrainer:
             if not block:
                 logger.warning(f"   ⚠️  Failed to fetch block {block_height}, skipping")
                 continue
+            
+            # DUPLICATE DETECTION
+            block_key = f"{block.hash}_{block.nonce}"
+            if block_key in seen_blocks:
+                logger.error(f"   ❌ DUPLICATE BLOCK DETECTED!")
+                logger.error(f"      Previously seen in iteration {seen_blocks[block_key]}")
+                logger.error(f"      This is iteration {i+1}")
+                logger.error(f"      Block: height={block.height}, hash={block.hash[:16]}..., nonce={block.nonce:#010x}")
+            else:
+                seen_blocks[block_key] = i+1
+                logger.info(f"   ✅ New unique block: height={block.height}")
             
             logger.info(f"   Block hash: {block.hash[:16]}...")
             logger.info(f"   Actual nonce: {block.nonce:#010x}")

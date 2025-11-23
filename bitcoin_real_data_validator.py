@@ -105,6 +105,8 @@ class BitcoinBlockchainFetcher:
         self.session.headers.update({
             'User-Agent': 'BioMining-Validator/1.0'
         })
+        self._last_fetched_height = None  # Track last successful fetch
+        self._cache_buster = 0  # Simple cache buster counter
     
     def fetch_latest_block(self) -> Optional[BitcoinBlock]:
         """Fetch the latest Bitcoin block"""
@@ -123,13 +125,35 @@ class BitcoinBlockchainFetcher:
     def fetch_block_by_height(self, height: int) -> Optional[BitcoinBlock]:
         """Fetch Bitcoin block by height"""
         try:
+            # Log fetch attempt with cache buster
+            self._cache_buster += 1
+            logger.info(f"🔍 Fetching block at height {height} (fetch #{self._cache_buster})")
+            
+            # Detect potential duplicate requests
+            if self._last_fetched_height == height:
+                logger.warning(f"⚠️  DUPLICATE REQUEST: Fetching same height {height} twice in a row!")
+            
+            block = None
             if self.api == BlockchainAPI.BLOCKCHAIN_INFO:
-                return self._fetch_from_blockchain_info(height)
+                block = self._fetch_from_blockchain_info(height)
             elif self.api == BlockchainAPI.BLOCKCHAIR:
-                return self._fetch_from_blockchair(height)
+                block = self._fetch_from_blockchair(height)
             else:
                 logger.error(f"Unsupported API: {self.api}")
                 return None
+            
+            # Verify we got the correct block
+            if block:
+                if block.height != height:
+                    logger.error(f"❌ BLOCK HEIGHT MISMATCH: Requested {height}, got {block.height}")
+                    return None
+                logger.info(f"✅ Successfully fetched block {block.height}: hash={block.hash[:16]}..., nonce={block.nonce:#010x}")
+                self._last_fetched_height = height
+            else:
+                logger.error(f"❌ Failed to fetch block {height}: API returned None")
+            
+            return block
+            
         except Exception as e:
             logger.error(f"Failed to fetch block {height}: {e}")
             return None
@@ -152,34 +176,73 @@ class BitcoinBlockchainFetcher:
     
     def _fetch_from_blockchain_info(self, height_or_latest: any) -> Optional[BitcoinBlock]:
         """Fetch block from blockchain.info API"""
-        try:
-            if height_or_latest == "latest":
-                # Get latest block hash first
-                url = "https://blockchain.info/latestblock"
-                response = self.session.get(url, timeout=10)
-                response.raise_for_status()
-                latest_data = response.json()
-                block_hash = latest_data['hash']
+        max_retries = 3
+        retry_delay = 2.0
+        
+        for attempt in range(max_retries):
+            try:
+                if height_or_latest == "latest":
+                    # Get latest block hash first
+                    url = "https://blockchain.info/latestblock"
+                    logger.debug(f"Fetching from: {url}")
+                    response = self.session.get(url, timeout=15)
+                    response.raise_for_status()
+                    latest_data = response.json()
+                    block_hash = latest_data['hash']
+                    
+                    # Fetch full block data
+                    url = f"https://blockchain.info/rawblock/{block_hash}"
+                    logger.debug(f"Fetching from: {url}")
+                    response = self.session.get(url, timeout=15)
+                    response.raise_for_status()
+                    data = response.json()
+                else:
+                    # Fetch by height - add cache buster to URL
+                    url = f"https://blockchain.info/block-height/{height_or_latest}?format=json&cors=true&_={self._cache_buster}"
+                    logger.debug(f"Fetching from: {url}")
+                    response = self.session.get(url, timeout=15)
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    # blockchain.info returns list of blocks at this height
+                    if 'blocks' in data:
+                        if len(data['blocks']) == 0:
+                            logger.error(f"No blocks found at height {height_or_latest}")
+                            return None
+                        # Log if multiple blocks at this height (orphans)
+                        if len(data['blocks']) > 1:
+                            logger.warning(f"Multiple blocks at height {height_or_latest}: {len(data['blocks'])} (using main chain)")
+                        data = data['blocks'][0]  # Take first block (main chain)
+                    
+                    # Verify height matches
+                    if data.get('height') != height_or_latest:
+                        logger.error(f"Height mismatch: requested {height_or_latest}, got {data.get('height')}")
+                        return None
                 
-                # Fetch full block data
-                url = f"https://blockchain.info/rawblock/{block_hash}"
-                response = self.session.get(url, timeout=10)
-                response.raise_for_status()
-                data = response.json()
-            else:
-                # Fetch by height
-                url = f"https://blockchain.info/block-height/{height_or_latest}?format=json"
-                response = self.session.get(url, timeout=10)
-                response.raise_for_status()
-                data = response.json()
-                # blockchain.info returns list of blocks at this height
-                data = data['blocks'][0] if 'blocks' in data else data
-            
-            return self._parse_blockchain_info_response(data)
-            
-        except Exception as e:
-            logger.error(f"blockchain.info API error: {e}")
-            return None
+                return self._parse_blockchain_info_response(data)
+                
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"Timeout on attempt {attempt+1}/{max_retries}: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429:  # Rate limit
+                    logger.warning(f"Rate limited on attempt {attempt+1}/{max_retries}, waiting {retry_delay*2}s")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * 2)
+                        continue
+                logger.error(f"HTTP error: {e}")
+                return None
+            except Exception as e:
+                logger.error(f"blockchain.info API error on attempt {attempt+1}/{max_retries}: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                return None
+        
+        logger.error(f"Failed to fetch block after {max_retries} attempts")
+        return None
     
     def _parse_blockchain_info_response(self, data: Dict) -> BitcoinBlock:
         """Parse blockchain.info API response"""
